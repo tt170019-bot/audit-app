@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a2332">
+<title>심사 점검표</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --navy:   #1a2332;
+  --navy2:  #243044;
+  --navy3:  #2e3d56;
+  --blue:   #3b7dd8;
+  --blue2:  #5a9af5;
+  --teal:   #2ec4b6;
+  --teal2:  #4dd9cc;
+  --warn:   #f4a261;
+  --danger: #e55c5c;
+  --ok:     #52c77a;
+  --text:   #e8edf5;
+  --text2:  #9aadc8;
+  --text3:  #5d7a9e;
+  --border: #2e3d56;
+  --border2:#3a4f6e;
+  --card:   #1e2d42;
+  --input:  #243044;
+  --radius: 10px;
+  --r2:     6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--navy);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;overflow:hidden}
+
+/* ── Layout ── */
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#topbar{
+  background:var(--navy2);border-bottom:1px solid var(--border);
+  padding:env(safe-area-inset-top,0) 0 0;
+  flex-shrink:0;z-index:100
+}
+#topbar-inner{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;min-height:52px
+}
+#topbar h1{font-size:17px;font-weight:600;flex:1;letter-spacing:-.3px}
+#topbar .tag{
+  font-size:11px;font-weight:600;letter-spacing:.5px;
+  background:var(--teal);color:var(--navy);
+  padding:3px 8px;border-radius:99px
+}
+#content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:env(safe-area-inset-bottom,0)}
+#tabbar{
+  background:var(--navy2);border-top:1px solid var(--border);
+  display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom,0));
+  flex-shrink:0
+}
+.tab-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  border:none;background:none;color:var(--text3);font-size:10px;padding:4px 0;cursor:pointer;
+  transition:color .15s
+}
+.tab-btn.active{color:var(--teal)}
+.tab-btn svg{width:22px;height:22px}
+
+/* ── Cards & Sections ── */
+.section-header{
+  padding:16px 16px 8px;
+  font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text3)
+}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  margin:0 12px 8px;overflow:hidden
+}
+.card-row{
+  display:flex;align-items:center;padding:14px 16px;gap:12px;
+  border-bottom:1px solid var(--border)
+}
+.card-row:last-child{border-bottom:none}
+.card-row .label{flex:1;font-size:14px;line-height:1.4}
+.card-row .sub{font-size:12px;color:var(--text3);margin-top:2px}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:none;border-radius:var(--r2);font-size:14px;font-weight:500;
+  padding:10px 18px;cursor:pointer;transition:opacity .15s,transform .1s;
+  -webkit-user-select:none;user-select:none
+}
+.btn:active{transform:scale(.97);opacity:.85}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-teal{background:var(--teal);color:var(--navy)}
+.btn-ghost{background:var(--navy3);color:var(--text)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:7px 13px;font-size:13px}
+.btn-full{width:100%;border-radius:var(--radius)}
+
+/* ── Form controls ── */
+input[type=text],input[type=date],input[type=number],textarea,select{
+  background:var(--input);border:1px solid var(--border2);border-radius:var(--r2);
+  color:var(--text);font-size:14px;padding:10px 12px;width:100%;outline:none;
+  font-family:inherit;transition:border-color .15s;-webkit-appearance:none
+}
+input:focus,textarea:focus,select:focus{border-color:var(--blue)}
+textarea{resize:none;line-height:1.5}
+select option{background:var(--navy2)}
+
+/* ── Result badges ── */
+.badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;
+  min-width:48px;white-space:nowrap
+}
+.badge-ok{background:rgba(82,199,122,.18);color:var(--ok);border:1px solid rgba(82,199,122,.3)}
+.badge-ng{background:rgba(229,92,92,.18);color:var(--danger);border:1px solid rgba(229,92,92,.3)}
+.badge-na{background:rgba(93,122,158,.18);color:var(--text3);border:1px solid rgba(93,122,158,.3)}
+.badge-obs{background:rgba(244,162,97,.18);color:var(--warn);border:1px solid rgba(244,162,97,.3)}
+
+/* ── Answer buttons ── */
+.ans-row{display:flex;gap:6px;flex-wrap:wrap}
+.ans-btn{
+  flex:1;min-width:58px;border:1.5px solid var(--border2);background:var(--input);
+  color:var(--text2);border-radius:var(--r2);padding:8px 4px;font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .15s;text-align:center
+}
+.ans-btn.sel-ok{background:rgba(82,199,122,.2);border-color:var(--ok);color:var(--ok)}
+.ans-btn.sel-ng{background:rgba(229,92,92,.2);border-color:var(--danger);color:var(--danger)}
+.ans-btn.sel-na{background:rgba(93,122,158,.2);border-color:var(--text3);color:var(--text3)}
+.ans-btn.sel-obs{background:rgba(244,162,97,.2);border-color:var(--warn);color:var(--warn)}
+
+/* ── Progress bar ── */
+.prog-wrap{height:4px;background:var(--navy3);border-radius:2px;overflow:hidden;margin:0 12px 4px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--blue2));border-radius:2px;transition:width .3s}
+.prog-label{font-size:12px;color:var(--text3);padding:0 12px 12px;display:flex;justify-content:space-between}
+
+/* ── Check item card ── */
+.check-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  margin:0 12px 10px;overflow:hidden
+}
+.check-card.answered{border-color:var(--border2)}
+.check-head{padding:14px 16px 10px;cursor:pointer}
+.check-num{font-size:11px;color:var(--teal);font-weight:600;margin-bottom:4px;letter-spacing:.3px}
+.check-q{font-size:14px;line-height:1.5;font-weight:500}
+.check-ref{font-size:11px;color:var(--text3);margin-top:4px}
+.check-body{padding:0 16px 14px;border-top:1px solid var(--border);padding-top:12px}
+.check-body.hidden{display:none}
+.check-label{font-size:12px;color:var(--text3);margin-bottom:6px;margin-top:10px}
+.check-label:first-child{margin-top:0}
+
+/* ── Photo area ── */
+.photo-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.photo-thumb{
+  width:72px;height:72px;border-radius:var(--r2);object-fit:cover;
+  border:1px solid var(--border2);cursor:pointer
+}
+.photo-add{
+  width:72px;height:72px;border-radius:var(--r2);border:1.5px dashed var(--border2);
+  background:var(--input);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;cursor:pointer;color:var(--text3);font-size:11px
+}
+.photo-add svg{width:20px;height:20px}
+
+/* ── Modal ── */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s
+}
+.modal-backdrop.open{opacity:1;pointer-events:all}
+.modal-sheet{
+  background:var(--navy2);border-radius:16px 16px 0 0;width:100%;max-height:90vh;
+  overflow-y:auto;padding:0 0 env(safe-area-inset-bottom,16px);
+  transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1)
+}
+.modal-backdrop.open .modal-sheet{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:10px auto 14px}
+.modal-title{font-size:16px;font-weight:600;padding:0 20px 14px;border-bottom:1px solid var(--border)}
+.modal-body{padding:16px 20px}
+.modal-actions{display:flex;gap:10px;padding:14px 20px 0;border-top:1px solid var(--border)}
+
+/* ── Upload zone ── */
+.upload-zone{
+  border:2px dashed var(--border2);border-radius:var(--radius);
+  padding:36px 20px;text-align:center;cursor:pointer;transition:border-color .2s;
+  margin:0 12px
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue)}
+.upload-zone svg{width:36px;height:36px;color:var(--text3);margin-bottom:10px}
+.upload-zone h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.upload-zone p{font-size:13px;color:var(--text3);line-height:1.5}
+
+/* ── Summary stats ── */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 12px}
+.stat-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;text-align:center
+}
+.stat-val{font-size:28px;font-weight:700;line-height:1}
+.stat-lbl{font-size:12px;color:var(--text3);margin-top:4px}
+.stat-ok .stat-val{color:var(--ok)}
+.stat-ng .stat-val{color:var(--danger)}
+.stat-na .stat-val{color:var(--text3)}
+.stat-obs .stat-val{color:var(--warn)}
+
+/* ── Toast ── */
+#toast{
+  position:fixed;bottom:calc(80px + env(safe-area-inset-bottom,0));left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:var(--navy);border:1px solid var(--border2);border-radius:99px;
+  padding:10px 20px;font-size:13px;font-weight:500;white-space:nowrap;
+  opacity:0;transition:opacity .2s,transform .2s;z-index:300;pointer-events:none;
+  box-shadow:0 4px 20px rgba(0,0,0,.4)
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Divider ── */
+.divider{height:1px;background:var(--border);margin:8px 0}
+
+/* ── Empty state ── */
+.empty{padding:60px 24px;text-align:center}
+.empty svg{width:48px;height:48px;color:var(--text3);margin-bottom:14px}
+.empty h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.empty p{font-size:14px;color:var(--text3);line-height:1.6}
+
+/* ── Audit list ── */
+.audit-item{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  margin:0 12px 8px;padding:16px;cursor:pointer;transition:border-color .15s
+}
+.audit-item:active{border-color:var(--blue)}
+.audit-item-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.audit-item-title{font-size:15px;font-weight:600}
+.audit-item-meta{font-size:12px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap}
+.audit-item-meta span{display:flex;align-items:center;gap:3px}
+.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-progress{background:var(--warn)}
+.dot-done{background:var(--ok)}
+.dot-new{background:var(--blue)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── Icon util ── */
+.icon{display:inline-flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div id="topbar-inner">
+      <h1 id="topbar-title">심사 점검표</h1>
+      <span class="tag" id="offline-tag">OFFLINE</span>
+      <button class="btn btn-ghost btn-sm" id="topbar-action" style="display:none"></button>
+    </div>
+  </div>
+  <div id="content"></div>
+  <nav id="tabbar">
+    <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>홈
+    </button>
+    <button class="tab-btn" data-tab="audits" onclick="switchTab('audits')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>점검 기록
+    </button>
+    <button class="tab-btn" data-tab="templates" onclick="switchTab('templates')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>점검표
+    </button>
+    <button class="tab-btn" data-tab="export" onclick="switchTab('export')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>내보내기
+    </button>
+  </nav>
+</div>
+
+<div id="toast"></div>
+
+<!-- Modals -->
+<div class="modal-backdrop" id="modal-newaudit">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">새 심사 시작</div>
+    <div class="modal-body">
+      <div class="check-label">심사 제목</div>
+      <input type="text" id="na-title" placeholder="예: 2024년 상반기 운항 심사">
+      <div class="check-label" style="margin-top:12px">점검표 선택</div>
+      <select id="na-template">
+        <option value="">— 점검표를 선택하세요 —</option>
+      </select>
+      <div class="check-label" style="margin-top:12px">심사 일자</div>
+      <input type="date" id="na-date">
+      <div class="check-label" style="margin-top:12px">심사원</div>
+      <input type="text" id="na-auditor" placeholder="홍길동">
+      <div class="check-label" style="margin-top:12px">피심사 부서</div>
+      <input type="text" id="na-dept" placeholder="운항부">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-newaudit')">취소</button>
+      <button class="btn btn-teal" style="flex:2" onclick="createAudit()">시작하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-photo">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">사진 첨부</div>
+    <div class="modal-body">
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <button class="btn btn-ghost" style="flex:1" onclick="takePhoto()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
+          카메라 촬영
+        </button>
+        <button class="btn btn-ghost" style="flex:1" onclick="pickPhoto()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          앨범에서 선택
+        </button>
+      </div>
+      <div id="photo-preview-area" class="photo-row"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-photo')">취소</button>
+      <button class="btn btn-teal" style="flex:2" onclick="savePhoto()">확인</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none">
+<input type="file" id="file-gallery" accept="image/*" style="display:none">
+<input type="file" id="file-excel" accept=".xlsx,.xls" style="display:none">
+
+<script>
+// ═══════════════════════════════════════════════
+//  DB (IndexedDB via simple wrapper)
+// ═══════════════════════════════════════════════
+const DB_NAME = 'AuditApp', DB_VER = 2;
+let db;
+
+function openDB(){
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('templates'))
+        d.createObjectStore('templates',{keyPath:'id',autoIncrement:true});
+      if(!d.objectStoreNames.contains('audits'))
+        d.createObjectStore('audits',{keyPath:'id',autoIncrement:true});
+    };
+    req.onsuccess = e=>{ db=e.target.result; res(db); };
+    req.onerror = e=>rej(e);
+  });
+}
+
+function dbAll(store){
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readonly');
+    const req=tx.objectStore(store).getAll();
+    req.onsuccess=()=>res(req.result);
+    req.onerror=e=>rej(e);
+  });
+}
+function dbGet(store,id){
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readonly');
+    const req=tx.objectStore(store).get(id);
+    req.onsuccess=()=>res(req.result);
+    req.onerror=e=>rej(e);
+  });
+}
+function dbPut(store,obj){
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readwrite');
+    const req=tx.objectStore(store).put(obj);
+    req.onsuccess=()=>res(req.result);
+    req.onerror=e=>rej(e);
+  });
+}
+function dbDelete(store,id){
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readwrite');
+    const req=tx.objectStore(store).delete(id);
+    req.onsuccess=()=>res(req.result);
+    req.onerror=e=>rej(e);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════
+let currentTab = 'home';
+let currentAudit = null;
+let currentPhotoTarget = null; // {auditId, itemIndex}
+let pendingPhotos = [];
+
+// ═══════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════
+openDB().then(()=>{
+  updateOnlineTag();
+  window.addEventListener('online', updateOnlineTag);
+  window.addEventListener('offline', updateOnlineTag);
+  switchTab('home');
+});
+
+function updateOnlineTag(){
+  const tag = document.getElementById('offline-tag');
+  if(navigator.onLine){
+    tag.textContent='ONLINE'; tag.style.background='var(--teal)';
+  } else {
+    tag.textContent='OFFLINE'; tag.style.background='var(--warn)';
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  Tab routing
+// ═══════════════════════════════════════════════
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===tab);
+  });
+  const action = document.getElementById('topbar-action');
+  action.style.display='none';
+  if(tab !== 'checklist') currentAudit = null;
+  renderTab(tab);
+}
+
+async function renderTab(tab){
+  const c = document.getElementById('content');
+  document.getElementById('topbar-title').textContent = '심사 점검표';
+  if(tab==='home') await renderHome(c);
+  else if(tab==='audits') await renderAudits(c);
+  else if(tab==='templates') await renderTemplates(c);
+  else if(tab==='export') await renderExport(c);
+}
+
+// ═══════════════════════════════════════════════
+//  Home tab
+// ═══════════════════════════════════════════════
+async function renderHome(c){
+  const [audits, templates] = await Promise.all([dbAll('audits'), dbAll('templates')]);
+  const inProgress = audits.filter(a=>a.status==='progress');
+  const done = audits.filter(a=>a.status==='done');
+  const totalItems = audits.reduce((s,a)=>s+(a.items?.length||0),0);
+  const answered = audits.reduce((s,a)=>s+(a.items?.filter(i=>i.result).length||0),0);
+
+  c.innerHTML=`
+  <div style="padding:20px 12px 8px">
+    <p style="font-size:22px;font-weight:700;letter-spacing:-.5px">안녕하세요 👋</p>
+    <p style="font-size:14px;color:var(--text3);margin-top:4px">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}</p>
+  </div>
+  <div class="stat-grid" style="margin-bottom:12px">
+    <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${audits.length}</div><div class="stat-lbl">전체 심사</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--warn)">${inProgress.length}</div><div class="stat-lbl">진행 중</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--ok)">${done.length}</div><div class="stat-lbl">완료</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--teal)">${templates.length}</div><div class="stat-lbl">점검표 수</div></div>
+  </div>
+
+  <div class="section-header">빠른 시작</div>
+  <div style="padding:0 12px;display:flex;gap:8px;margin-bottom:16px">
+    <button class="btn btn-teal" style="flex:1" onclick="openNewAuditModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      새 심사 시작
+    </button>
+    <button class="btn btn-ghost" style="flex:1" onclick="switchTab('templates')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      점검표 업로드
+    </button>
+  </div>
+
+  ${inProgress.length>0?`
+  <div class="section-header">진행 중인 심사</div>
+  ${inProgress.slice(0,3).map(a=>`
+  <div class="audit-item" onclick="openAudit(${a.id})">
+    <div class="audit-item-head">
+      <div class="audit-item-title">${esc(a.title)}</div>
+      <div class="badge badge-obs">${Math.round((a.items?.filter(i=>i.result).length||0)/(a.items?.length||1)*100)}%</div>
+    </div>
+    <div class="audit-item-meta">
+      <span><span class="status-dot dot-progress"></span>${esc(a.auditor||'')}</span>
+      <span>${esc(a.dept||'')}</span>
+      <span>${esc(a.date||'')}</span>
+    </div>
+  </div>`).join('')}`:``}
+  `;
+}
+
+// ═══════════════════════════════════════════════
+//  Audits tab
+// ═══════════════════════════════════════════════
+async function renderAudits(c){
+  const audits = await dbAll('audits');
+  audits.sort((a,b)=>b.id-a.id);
+  if(audits.length===0){
+    c.innerHTML=`
+    <div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <h3>점검 기록 없음</h3>
+      <p>새 심사를 시작하면<br>여기에 기록이 쌓입니다</p>
+    </div>
+    <div style="padding:0 12px"><button class="btn btn-teal btn-full" onclick="openNewAuditModal()">새 심사 시작</button></div>`;
+    return;
+  }
+  c.innerHTML=`
+  <div style="padding:12px 12px 4px;display:flex;justify-content:flex-end">
+    <button class="btn btn-teal btn-sm" onclick="openNewAuditModal()">+ 새 심사</button>
+  </div>
+  ${audits.map(a=>{
+    const total=a.items?.length||0, ans=a.items?.filter(i=>i.result).length||0;
+    const pct=total?Math.round(ans/total*100):0;
+    const ngCnt=a.items?.filter(i=>i.result==='NG').length||0;
+    return`<div class="audit-item" onclick="openAudit(${a.id})">
+      <div class="audit-item-head">
+        <div class="audit-item-title">${esc(a.title)}</div>
+        <span class="status-dot ${a.status==='done'?'dot-done':a.status==='progress'?'dot-progress':'dot-new'}" style="width:8px;height:8px;margin-top:6px"></span>
+      </div>
+      <div style="margin:8px 0 6px">
+        <div class="prog-wrap" style="margin:0 0 4px"><div class="prog-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:11px;color:var(--text3)">${ans}/${total} 항목 완료 · ${ngCnt>0?`<span style="color:var(--danger)">부적합 ${ngCnt}건</span>`:'적합'}</div>
+      </div>
+      <div class="audit-item-meta">
+        <span>${esc(a.auditor||'')}</span>
+        <span>${esc(a.dept||'')}</span>
+        <span>${esc(a.date||'')}</span>
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+// ═══════════════════════════════════════════════
+//  Templates tab
+// ═══════════════════════════════════════════════
+async function renderTemplates(c){
+  const templates = await dbAll('templates');
+  c.innerHTML=`
+  <div class="section-header">점검표 업로드</div>
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-excel').click()"
+    ondragover="e=>{e.preventDefault();this.classList.add('drag')}"
+    ondragleave="this.classList.remove('drag')"
+    ondrop="handleDrop(event)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <h3>Excel 점검표 업로드</h3>
+    <p>XLSX 파일을 탭하여 선택하거나<br>드래그 앤 드롭 하세요</p>
+    <p style="margin-top:10px;font-size:12px;color:var(--blue)">양식 다운로드 →</p>
+  </div>
+  <div class="section-header" style="margin-top:8px">Excel 컬럼 형식</div>
+  <div class="card" style="margin:0 12px 8px">
+    ${['A: 섹션명 (예: 1. 운항 일반)','B: 항목번호 (예: FLT-001)','C: 점검 질문 (필수)','D: 참조규정 (예: OPS 1.2.3)','E: 점검유형 (OK/NG/NA/OBS)'].map(t=>`
+    <div class="card-row"><div class="label" style="font-size:13px;font-family:monospace">${t}</div></div>`).join('')}
+  </div>
+
+  <div class="section-header">저장된 점검표 (${templates.length})</div>
+  ${templates.length===0?`<div style="padding:20px 12px;color:var(--text3);font-size:14px;text-align:center">업로드된 점검표가 없습니다</div>`:
+  templates.map(t=>`
+  <div class="card" style="margin:0 12px 8px">
+    <div class="card-row">
+      <div style="flex:1">
+        <div class="label">${esc(t.name)}</div>
+        <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>
+    </div>
+  </div>`).join('')}
+  `;
+  document.getElementById('file-excel').onchange = e=> handleFileSelect(e.target.files[0]);
+}
+
+// ═══════════════════════════════════════════════
+//  Export tab
+// ═══════════════════════════════════════════════
+async function renderExport(c){
+  const audits = await dbAll('audits');
+  const done = audits.filter(a=>a.status==='done'||a.items?.some(i=>i.result));
+  c.innerHTML=`
+  <div class="section-header">심사 선택 후 내보내기</div>
+  ${done.length===0?`<div class="empty">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <h3>내보낼 심사 없음</h3><p>심사를 완료하면 Excel/Word로 내보낼 수 있습니다</p>
+  </div>`:''}
+  ${done.map(a=>{
+    const total=a.items?.length||0, ans=a.items?.filter(i=>i.result).length||0;
+    const ok=a.items?.filter(i=>i.result==='OK').length||0;
+    const ng=a.items?.filter(i=>i.result==='NG').length||0;
+    const na=a.items?.filter(i=>i.result==='NA').length||0;
+    const obs=a.items?.filter(i=>i.result==='OBS').length||0;
+    return`
+    <div class="card" style="margin:0 12px 12px">
+      <div class="card-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <div style="font-size:15px;font-weight:600">${esc(a.title)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="badge badge-ok">OK ${ok}</span>
+          <span class="badge badge-ng">NG ${ng}</span>
+          <span class="badge badge-na">NA ${na}</span>
+          <span class="badge badge-obs">OBS ${obs}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3)">${ans}/${total}항목 완료 · ${esc(a.auditor||'')} · ${esc(a.date||'')}</div>
+      </div>
+      <div class="card-row" style="gap:8px">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="exportExcel(${a.id})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Excel
+        </button>
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="exportWord(${a.id})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+          Word
+        </button>
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="exportPDF(${a.id})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          PDF
+        </button>
+      </div>
+      ${navigator.onLine?`<div class="card-row">
+        <button class="btn btn-teal btn-sm" style="flex:1" onclick="uploadGDrive(${a.id})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+          Google Drive 업로드
+        </button>
+      </div>`:''}
+    </div>`;
+  }).join('')}
+  `;
+}
+
+// ═══════════════════════════════════════════════
+//  Checklist view (심사 진행)
+// ═══════════════════════════════════════════════
+async function openAudit(id){
+  currentAudit = await dbGet('audits', id);
+  if(!currentAudit) return;
+  document.getElementById('topbar-title').textContent = currentAudit.title;
+  const action = document.getElementById('topbar-action');
+  action.textContent='완료';
+  action.style.display='flex';
+  action.onclick = ()=> finishAudit(id);
+
+  // hide tabbar while checking
+  document.getElementById('tabbar').style.display='none';
+  renderChecklist(currentAudit);
+}
+
+function renderChecklist(audit){
+  const c = document.getElementById('content');
+  const items = audit.items||[];
+  const total = items.length;
+  const ans = items.filter(i=>i.result).length;
+  const pct = total ? Math.round(ans/total*100) : 0;
+
+  // Group by section
+  const sections = {};
+  items.forEach((item,idx)=>{
+    const sec = item.section||'일반';
+    if(!sections[sec]) sections[sec]=[];
+    sections[sec].push({...item, _idx:idx});
+  });
+
+  c.innerHTML=`
+  <div style="padding:12px 12px 0">
+    <div class="prog-wrap" style="margin:0 0 4px"><div class="prog-fill" style="width:${pct}%"></div></div>
+    <div class="prog-label"><span>${ans}/${total} 항목 완료</span><span>${pct}%</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      ${['OK','NG','NA','OBS'].map(r=>{
+        const cnt=items.filter(i=>i.result===r).length;
+        return cnt>0?`<span class="badge badge-${r.toLowerCase()}">${r} ${cnt}</span>`:'';
+      }).join('')}
+    </div>
+  </div>
+  <div style="padding:0 12px;margin-bottom:8px;display:flex;gap:8px">
+    <button class="btn btn-ghost btn-sm" style="flex:1" onclick="backFromChecklist()">← 돌아가기</button>
+    <button class="btn btn-ghost btn-sm" style="flex:1" onclick="jumpToNext(${audit.id})">미완료로 이동</button>
+  </div>
+
+  ${Object.entries(sections).map(([sec,secItems])=>`
+    <div class="section-header">${esc(sec)}</div>
+    ${secItems.map(item=>`
+    <div class="check-card ${item.result?'answered':''}" id="ci-${item._idx}">
+      <div class="check-head" onclick="toggleCheckItem(${item._idx})">
+        <div class="check-num">${esc(item.ref||item._idx+1)}</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+          <div class="check-q">${esc(item.question)}</div>
+          ${item.result?`<span class="badge badge-${item.result.toLowerCase()}" style="flex-shrink:0">${item.result}</span>`:`<span style="color:var(--text3);font-size:11px;flex-shrink:0">미완료</span>`}
+        </div>
+        ${item.refStd?`<div class="check-ref">📋 ${esc(item.refStd)}</div>`:''}
+      </div>
+      <div class="check-body hidden" id="cb-${item._idx}">
+        <div class="check-label">결과</div>
+        <div class="ans-row">
+          ${['OK','NG','NA','OBS'].map(r=>`
+          <button class="ans-btn ${item.result===r?'sel-'+r.toLowerCase():''}" onclick="setResult(${audit.id},${item._idx},'${r}')">${r}</button>`).join('')}
+        </div>
+        <div class="check-label">비고 / 세부사항</div>
+        <textarea rows="3" placeholder="관찰 내용, 증거자료 등을 입력하세요" onchange="setNote(${audit.id},${item._idx},this.value)">${esc(item.note||'')}</textarea>
+        <div class="check-label">사진</div>
+        <div class="photo-row" id="photos-${item._idx}">
+          ${(item.photos||[]).map((p,pi)=>`<img class="photo-thumb" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')}
+          <div class="photo-add" onclick="openPhotoModal(${audit.id},${item._idx})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
+            <span>추가</span>
+          </div>
+        </div>
+      </div>
+    </div>`).join('')}
+  `).join('')}
+  <div style="height:20px"></div>
+  `;
+}
+
+function toggleCheckItem(idx){
+  const body = document.getElementById('cb-'+idx);
+  if(!body) return;
+  body.classList.toggle('hidden');
+}
+
+async function setResult(auditId, idx, result){
+  const audit = await dbGet('audits', auditId);
+  if(!audit) return;
+  const wasAnswered = !!audit.items[idx].result;
+  audit.items[idx].result = result;
+  currentAudit = audit;
+  await dbPut('audits', audit);
+
+  // Update UI
+  const card = document.getElementById('ci-'+idx);
+  if(card){
+    card.classList.add('answered');
+    // Update badge in head
+    const head = card.querySelector('.check-head');
+    const existingBadge = head.querySelector('.badge');
+    const existingNA = head.querySelector('span[style]');
+    if(existingBadge) existingBadge.outerHTML=`<span class="badge badge-${result.toLowerCase()}" style="flex-shrink:0">${result}</span>`;
+    else if(existingNA) existingNA.outerHTML=`<span class="badge badge-${result.toLowerCase()}" style="flex-shrink:0">${result}</span>`;
+    // Update answer buttons
+    card.querySelectorAll('.ans-btn').forEach(b=>{
+      const r=b.textContent.trim();
+      b.className='ans-btn'+(result===r?' sel-'+r.toLowerCase():'');
+    });
+  }
+  // Update progress
+  const items = audit.items||[];
+  const ans = items.filter(i=>i.result).length;
+  const pct = Math.round(ans/items.length*100);
+  const fill = document.querySelector('.prog-fill');
+  if(fill) fill.style.width=pct+'%';
+  const progLbl = document.querySelector('.prog-label');
+  if(progLbl) progLbl.innerHTML=`<span>${ans}/${items.length} 항목 완료</span><span>${pct}%</span>`;
+
+  // Update result counts
+  const countRow = document.querySelector('[style*="display:flex;gap:6px;flex-wrap:wrap"]');
+  if(countRow){
+    countRow.innerHTML = ['OK','NG','NA','OBS'].map(r=>{
+      const cnt=items.filter(i=>i.result===r).length;
+      return cnt>0?`<span class="badge badge-${r.toLowerCase()}">${r} ${cnt}</span>`:'';
+    }).join('');
+  }
+
+  if(!wasAnswered && result) showToast('저장되었습니다');
+}
+
+async function setNote(auditId, idx, note){
+  const audit = await dbGet('audits', auditId);
+  if(!audit) return;
+  audit.items[idx].note = note;
+  currentAudit = audit;
+  await dbPut('audits', audit);
+}
+
+function jumpToNext(auditId){
+  const items = currentAudit?.items||[];
+  const nextIdx = items.findIndex(i=>!i.result);
+  if(nextIdx<0){ showToast('모든 항목이 완료되었습니다 ✓'); return; }
+  const el = document.getElementById('ci-'+nextIdx);
+  if(el){
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    // open it
+    const body = document.getElementById('cb-'+nextIdx);
+    if(body) body.classList.remove('hidden');
+  }
+}
+
+async function finishAudit(id){
+  const audit = await dbGet('audits', id);
+  if(!audit) return;
+  const unanswered = audit.items?.filter(i=>!i.result).length||0;
+  if(unanswered>0){
+    if(!confirm(`아직 ${unanswered}개 항목이 미완료입니다. 완료로 표시하시겠습니까?`)) return;
+  }
+  audit.status='done';
+  await dbPut('audits', audit);
+  showToast('심사가 완료되었습니다');
+  backFromChecklist();
+}
+
+function backFromChecklist(){
+  document.getElementById('tabbar').style.display='flex';
+  document.getElementById('topbar-action').style.display='none';
+  currentAudit=null;
+  switchTab('audits');
+}
+
+// ═══════════════════════════════════════════════
+//  New Audit Modal
+// ═══════════════════════════════════════════════
+async function openNewAuditModal(){
+  const templates = await dbAll('templates');
+  const sel = document.getElementById('na-template');
+  sel.innerHTML='<option value="">— 점검표를 선택하세요 —</option>'+
+    templates.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  document.getElementById('na-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('na-title').value='';
+  document.getElementById('na-auditor').value='';
+  document.getElementById('na-dept').value='';
+  openModal('modal-newaudit');
+}
+
+async function createAudit(){
+  const title = document.getElementById('na-title').value.trim();
+  const tplId = parseInt(document.getElementById('na-template').value);
+  const date  = document.getElementById('na-date').value;
+  const auditor = document.getElementById('na-auditor').value.trim();
+  const dept  = document.getElementById('na-dept').value.trim();
+
+  if(!title){ showToast('심사 제목을 입력하세요'); return; }
+  if(!tplId){ showToast('점검표를 선택하세요'); return; }
+
+  const tpl = await dbGet('templates', tplId);
+  if(!tpl){ showToast('점검표를 불러올 수 없습니다'); return; }
+
+  const audit = {
+    title, date, auditor, dept,
+    templateId: tplId,
+    status: 'progress',
+    createdAt: new Date().toISOString(),
+    items: tpl.items.map(i=>({...i, result:null, note:'', photos:[]}))
+  };
+  const id = await dbPut('audits', audit);
+  closeModal('modal-newaudit');
+  audit.id = id;
+  showToast('심사가 시작되었습니다');
+  openAudit(id);
+}
+
+// ═══════════════════════════════════════════════
+//  Excel Import
+// ═══════════════════════════════════════════════
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone')?.classList.remove('drag');
+  const file = e.dataTransfer?.files[0];
+  if(file) handleFileSelect(file);
+}
+
+function handleFileSelect(file){
+  if(!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if(!['xlsx','xls'].includes(ext)){ showToast('Excel 파일(.xlsx)만 지원합니다'); return; }
+
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+      // Skip header row
+      const items=[], sections=new Set();
+      for(let i=1;i<rows.length;i++){
+        const [section,ref,question,refStd,type] = rows[i];
+        if(!question) continue;
+        sections.add(section||'일반');
+        items.push({
+          section: section||'일반',
+          ref: String(ref||'').trim(),
+          question: String(question).trim(),
+          refStd: String(refStd||'').trim(),
+          type: String(type||'OK/NG/NA/OBS').trim()
+        });
+      }
+      if(items.length===0){ showToast('항목을 찾을 수 없습니다. 형식을 확인하세요'); return; }
+
+      const tpl = {
+        name: file.name.replace(/\.[^.]+$/,''),
+        importedAt: new Date().toISOString(),
+        sections: [...sections],
+        items
+      };
+      dbPut('templates', tpl).then(()=>{
+        showToast(`${items.length}개 항목 가져오기 완료`);
+        switchTab('templates');
+      });
+    } catch(err){
+      showToast('파일을 읽을 수 없습니다: '+err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+async function deleteTemplate(id, e){
+  e.stopPropagation();
+  if(!confirm('이 점검표를 삭제하시겠습니까?')) return;
+  await dbDelete('templates', id);
+  showToast('삭제되었습니다');
+  switchTab('templates');
+}
+
+// ═══════════════════════════════════════════════
+//  Photo
+// ═══════════════════════════════════════════════
+function openPhotoModal(auditId, itemIdx){
+  currentPhotoTarget = {auditId, itemIdx};
+  pendingPhotos = [...(currentAudit?.items[itemIdx]?.photos||[])];
+  renderPhotoPreview();
+  openModal('modal-photo');
+}
+
+function renderPhotoPreview(){
+  const area = document.getElementById('photo-preview-area');
+  if(!area) return;
+  area.innerHTML = pendingPhotos.map((p,i)=>`
+    <div style="position:relative;display:inline-block">
+      <img class="photo-thumb" src="${p}" alt="사진">
+      <button onclick="pendingPhotos.splice(${i},1);renderPhotoPreview()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--danger);border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>`).join('');
+}
+
+function takePhoto(){
+  document.getElementById('file-camera').click();
+  document.getElementById('file-camera').onchange = e=>{
+    handleImageFile(e.target.files[0]);
+    e.target.value='';
+  };
+}
+function pickPhoto(){
+  document.getElementById('file-gallery').click();
+  document.getElementById('file-gallery').onchange = e=>{
+    handleImageFile(e.target.files[0]);
+    e.target.value='';
+  };
+}
+function handleImageFile(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload=e=>{
+    // Resize to max 800px for storage
+    const img = new Image();
+    img.onload=()=>{
+      const MAX=800;
+      let w=img.width, h=img.height;
+      if(w>MAX||h>MAX){ const r=MAX/Math.max(w,h); w=Math.round(w*r); h=Math.round(h*r); }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      pendingPhotos.push(canvas.toDataURL('image/jpeg',0.75));
+      renderPhotoPreview();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function savePhoto(){
+  if(!currentPhotoTarget) return;
+  const {auditId, itemIdx} = currentPhotoTarget;
+  const audit = await dbGet('audits', auditId);
+  if(!audit) return;
+  audit.items[itemIdx].photos = [...pendingPhotos];
+  currentAudit = audit;
+  await dbPut('audits', audit);
+  // Refresh photos in UI
+  const area = document.getElementById('photos-'+itemIdx);
+  if(area){
+    area.innerHTML = pendingPhotos.map(p=>`<img class="photo-thumb" src="${p}" alt="사진">`).join('')+
+      `<div class="photo-add" onclick="openPhotoModal(${auditId},${itemIdx})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
+        <span>추가</span>
+      </div>`;
+  }
+  closeModal('modal-photo');
+  showToast(`사진 ${pendingPhotos.length}장 저장됨`);
+}
+
+function viewPhoto(src){
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:400;display:flex;align-items:center;justify-content:center';
+  d.innerHTML=`<img src="${src}" style="max-width:100%;max-height:100%;object-fit:contain"><button onclick="this.parentNode.remove()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer">✕</button>`;
+  document.body.appendChild(d);
+}
+
+// ═══════════════════════════════════════════════
+//  Export: Excel
+// ═══════════════════════════════════════════════
+async function exportExcel(id){
+  const audit = await dbGet('audits', id);
+  if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  // Summary sheet
+  const ok=audit.items.filter(i=>i.result==='OK').length;
+  const ng=audit.items.filter(i=>i.result==='NG').length;
+  const na=audit.items.filter(i=>i.result==='NA').length;
+  const obs=audit.items.filter(i=>i.result==='OBS').length;
+  const total=audit.items.length;
+
+  const sumData=[
+    ['심사 요약'],
+    [],
+    ['심사명', audit.title],
+    ['심사일', audit.date],
+    ['심사원', audit.auditor],
+    ['피심사 부서', audit.dept],
+    ['작성일', new Date().toLocaleDateString('ko-KR')],
+    [],
+    ['구분','건수','비율'],
+    ['OK (적합)', ok, total?Math.round(ok/total*100)+'%':''],
+    ['NG (부적합)', ng, total?Math.round(ng/total*100)+'%':''],
+    ['NA (해당없음)', na, total?Math.round(na/total*100)+'%':''],
+    ['OBS (관찰사항)', obs, total?Math.round(obs/total*100)+'%':''],
+    ['합계', total, '100%'],
+  ];
+  const wsSum = XLSX.utils.aoa_to_sheet(sumData);
+  wsSum['!cols']=[{wch:20},{wch:12},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, wsSum, '요약');
+
+  // Detail sheet
+  const detailData=[['섹션','항목번호','점검 항목','참조규정','결과','비고']];
+  audit.items.forEach(item=>{
+    detailData.push([item.section||'',item.ref||'',item.question||'',item.refStd||'',item.result||'',item.note||'']);
+  });
+  const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
+  wsDetail['!cols']=[{wch:16},{wch:12},{wch:50},{wch:20},{wch:8},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, wsDetail, '점검결과');
+
+  // NG sheet
+  const ngItems = audit.items.filter(i=>i.result==='NG');
+  if(ngItems.length>0){
+    const ngData=[['섹션','항목번호','부적합 내용','세부사항']];
+    ngItems.forEach(item=>{
+      ngData.push([item.section||'',item.ref||'',item.question||'',item.note||'']);
+    });
+    const wsNG = XLSX.utils.aoa_to_sheet(ngData);
+    wsNG['!cols']=[{wch:16},{wch:12},{wch:50},{wch:40}];
+    XLSX.utils.book_append_sheet(wb, wsNG, '부적합사항');
+  }
+
+  const fname = `${audit.title}_${audit.date||'결과'}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  showToast('Excel 파일 저장됨');
+}
+
+// ═══════════════════════════════════════════════
+//  Export: Word (HTML → .doc trick, wide support)
+// ═══════════════════════════════════════════════
+async function exportWord(id){
+  const audit = await dbGet('audits', id);
+  if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
+
+  const ok=audit.items.filter(i=>i.result==='OK').length;
+  const ng=audit.items.filter(i=>i.result==='NG').length;
+  const na=audit.items.filter(i=>i.result==='NA').length;
+  const obs=audit.items.filter(i=>i.result==='OBS').length;
+  const total=audit.items.length;
+
+  const resultColor={'OK':'#1a7c3e','NG':'#c0392b','NA':'#7f8c8d','OBS':'#e67e22'};
+  const resultBg={'OK':'#eafaf1','NG':'#fdecea','NA':'#f4f4f4','OBS':'#fef5e7'};
+
+  // Group items by section
+  const sections={};
+  audit.items.forEach(item=>{
+    const sec=item.section||'일반';
+    if(!sections[sec]) sections[sec]=[];
+    sections[sec].push(item);
+  });
+
+  const html=`
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  body{font-family:'맑은 고딕',Arial,sans-serif;font-size:10pt;margin:20mm}
+  h1{font-size:16pt;font-weight:bold;text-align:center;margin-bottom:4pt}
+  h2{font-size:12pt;font-weight:bold;margin-top:16pt;margin-bottom:4pt;color:#1a2332;border-bottom:1pt solid #1a2332;padding-bottom:3pt}
+  table{width:100%;border-collapse:collapse;margin-bottom:10pt}
+  th{background:#1a2332;color:#fff;padding:5pt 6pt;font-size:9pt;text-align:left}
+  td{border:0.5pt solid #ccc;padding:5pt 6pt;font-size:9pt;vertical-align:top}
+  .sum-table td:first-child{font-weight:bold;background:#f0f4f8;width:30%}
+  .result{font-weight:bold;padding:2pt 6pt;border-radius:3pt;display:inline-block}
+  .ok{color:${resultColor.OK};background:${resultBg.OK}}
+  .ng{color:${resultColor.NG};background:${resultBg.NG}}
+  .na{color:${resultColor.NA};background:${resultBg.NA}}
+  .obs{color:${resultColor.OBS};background:${resultBg.OBS}}
+  .footer{font-size:8pt;color:#888;text-align:right;margin-top:20pt;border-top:0.5pt solid #ccc;padding-top:6pt}
+</style></head><body>
+<h1>심사 점검표 결과보고서</h1>
+<table class="sum-table"><tr><td>심사명</td><td>${esc(audit.title)}</td><td>심사일</td><td>${esc(audit.date||'')}</td></tr>
+<tr><td>심사원</td><td>${esc(audit.auditor||'')}</td><td>피심사 부서</td><td>${esc(audit.dept||'')}</td></tr>
+<tr><td>전체 항목</td><td>${total}건</td><td>작성일</td><td>${new Date().toLocaleDateString('ko-KR')}</td></tr></table>
+
+<h2>심사 결과 요약</h2>
+<table><tr><th>구분</th><th>건수</th><th>비율</th><th>비고</th></tr>
+${[['OK','적합',ok],['NG','부적합',ng],['NA','해당없음',na],['OBS','관찰사항',obs]].map(([r,l,n])=>`
+<tr><td><span class="result ${r.toLowerCase()}">${r}</span> ${l}</td><td>${n}건</td><td>${total?Math.round(n/total*100):0}%</td><td></td></tr>`).join('')}
+<tr><td><strong>합계</strong></td><td>${total}건</td><td>100%</td><td></td></tr></table>
+
+${Object.entries(sections).map(([sec,items])=>`
+<h2>${esc(sec)}</h2>
+<table><tr><th style="width:10%">번호</th><th style="width:40%">점검 항목</th><th style="width:15%">참조규정</th><th style="width:8%">결과</th><th style="width:27%">비고</th></tr>
+${items.map(item=>`<tr>
+  <td>${esc(item.ref||'')}</td>
+  <td>${esc(item.question)}</td>
+  <td>${esc(item.refStd||'')}</td>
+  <td>${item.result?`<span class="result ${item.result.toLowerCase()}">${item.result}</span>`:'-'}</td>
+  <td>${esc(item.note||'')}</td>
+</tr>`).join('')}</table>`).join('')}
+
+${ng>0?`<h2>부적합 사항 목록</h2>
+<table><tr><th style="width:10%">번호</th><th style="width:45%">부적합 내용</th><th style="width:45%">세부 사항</th></tr>
+${audit.items.filter(i=>i.result==='NG').map(item=>`<tr>
+  <td>${esc(item.ref||'')}</td>
+  <td>${esc(item.question)}</td>
+  <td>${esc(item.note||'')}</td>
+</tr>`).join('')}</table>`:''}
+
+<div class="footer">Generated by 심사 점검표 앱 · ${new Date().toLocaleString('ko-KR')}</div>
+</body></html>`;
+
+  const blob=new Blob(['\ufeff'+html],{type:'application/msword;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`${audit.title}_${audit.date||'결과'}.doc`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Word 파일 저장됨');
+}
+
+// ═══════════════════════════════════════════════
+//  Export: PDF (print)
+// ═══════════════════════════════════════════════
+async function exportPDF(id){
+  const audit = await dbGet('audits', id);
+  if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
+  showToast('인쇄 창에서 PDF로 저장하세요');
+  setTimeout(()=>{
+    const w = window.open('','_blank');
+    const content = document.createElement('div');
+    // reuse word HTML generation minus header
+    exportWord(id); // This triggers download; for PDF we open print
+    w.document.write(`<html><head><title>${esc(audit.title)}</title><meta charset="UTF-8">
+<style>body{font-family:'맑은 고딕',sans-serif;font-size:10pt}table{width:100%;border-collapse:collapse}th{background:#1a2332;color:#fff;padding:4pt 5pt}td{border:0.5pt solid #ccc;padding:4pt 5pt}@media print{button{display:none}}</style></head>
+<body><button onclick="window.print()" style="position:fixed;top:10px;right:10px;padding:8px 16px;background:#3b7dd8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 인쇄/PDF 저장</button>
+<h2 style="text-align:center">${esc(audit.title)} 점검 결과</h2>
+<p>심사원: ${esc(audit.auditor||'')} | 부서: ${esc(audit.dept||'')} | 일자: ${esc(audit.date||'')}</p>
+<table><tr><th>번호</th><th>점검 항목</th><th>참조규정</th><th>결과</th><th>비고</th></tr>
+${audit.items.map(i=>`<tr><td>${esc(i.ref||'')}</td><td>${esc(i.question)}</td><td>${esc(i.refStd||'')}</td><td>${i.result||'-'}</td><td>${esc(i.note||'')}</td></tr>`).join('')}
+</table></body></html>`);
+    w.document.close();
+  }, 500);
+}
+
+// ═══════════════════════════════════════════════
+//  Google Drive (stub — requires OAuth in real deploy)
+// ═══════════════════════════════════════════════
+async function uploadGDrive(id){
+  if(!navigator.onLine){ showToast('인터넷 연결이 필요합니다'); return; }
+  showToast('Google Drive 연동은 별도 OAuth 설정이 필요합니다');
+  // In production: implement OAuth2 + Drive API v3 multipart upload
+}
+
+// ═══════════════════════════════════════════════
+//  Modal helpers
+// ═══════════════════════════════════════════════
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow='';
+}
+// Close modal on backdrop tap
+document.querySelectorAll('.modal-backdrop').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); });
+});
+
+// ═══════════════════════════════════════════════
+//  Toast
+// ═══════════════════════════════════════════════
+let _toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ═══════════════════════════════════════════════
+//  Utils
+// ═══════════════════════════════════════════════
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Service Worker registration
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
