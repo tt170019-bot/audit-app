@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#1a2332">
 <title>심사 점검표</title>
 <link rel="manifest" href="manifest.json">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="xlsx.min.js"></script>
 <style>
 :root {
   --navy:   #1a2332;
@@ -400,8 +400,63 @@ openDB().then(()=>{
   updateOnlineTag();
   window.addEventListener('online', updateOnlineTag);
   window.addEventListener('offline', updateOnlineTag);
-  switchTab('home');
+  autoLoadChecklists().then(()=> switchTab('home'));
 });
+
+// ═══════════════════════════════════════════════
+//  자동 점검표 로드 (GitHub에서)
+// ═══════════════════════════════════════════════
+const PRESET_CHECKLISTS = [
+  { filename: 'checklist-1.xlsx', name: '운항 안전 점검표' },
+  { filename: 'checklist-2.xlsx', name: '지상 안전 점검표' },
+];
+
+async function autoLoadChecklists(){
+  if(!navigator.onLine) return; // 오프라인이면 스킵
+  const existing = await dbAll('templates');
+
+  for(const cl of PRESET_CHECKLISTS){
+    // 이미 있으면 스킵
+    if(existing.some(t => t.filename === cl.filename)) continue;
+
+    try{
+      const base = location.pathname.replace(/\/[^\/]*$/, '/');
+      const res = await fetch(base + cl.filename, {cache:'no-cache'});
+      if(!res.ok) continue;
+
+      const buf = await res.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+      const items=[], sections=new Set();
+      for(let i=1;i<rows.length;i++){
+        const [section,ref,question,refStd,type] = rows[i];
+        if(!question) continue;
+        sections.add(section||'일반');
+        items.push({
+          section: section||'일반',
+          ref: String(ref||'').trim(),
+          question: String(question).trim(),
+          refStd: String(refStd||'').trim(),
+          type: String(type||'OK/NG/NA/OBS').trim()
+        });
+      }
+      if(items.length===0) continue;
+
+      await dbPut('templates', {
+        name: cl.name,
+        filename: cl.filename,
+        importedAt: new Date().toISOString(),
+        sections: [...sections],
+        items
+      });
+      console.log(`✅ 점검표 로드: ${cl.name}`);
+    } catch(e){
+      console.warn(`점검표 로드 실패: ${cl.filename}`, e);
+    }
+  }
+}
 
 function updateOnlineTag(){
   const tag = document.getElementById('offline-tag');
