@@ -1196,7 +1196,7 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 // Service Worker registration
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    const base = location.pathname.replace(//[^/]*$/, '/'); navigator.serviceWorker.register(base + 'sw.js', { scope: base }).then(r=>console.log('SW:',r.scope)).catch(e=>console.warn('SW:',e));
   });
 }
 </script>
