@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#1a2332">
 <title>심사 점검표</title>
 <link rel="manifest" href="manifest.json">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="xlsx.min.js"></script>
 <style>
 :root {
   --navy:   #1a2332;
@@ -405,11 +405,14 @@ openDB().then(()=>{
 
 function updateOnlineTag(){
   const tag = document.getElementById('offline-tag');
-  if(navigator.onLine){
-    tag.textContent='ONLINE'; tag.style.background='var(--teal)';
-  } else {
-    tag.textContent='OFFLINE'; tag.style.background='var(--warn)';
-  }
+  // fetch로 실제 연결 확인 (navigator.onLine은 부정확할 수 있음)
+  fetch('./index.html', {method:'HEAD', cache:'no-store'})
+    .then(() => {
+      tag.textContent='ONLINE'; tag.style.background='var(--teal)';
+    })
+    .catch(() => {
+      tag.textContent='OFFLINE'; tag.style.background='var(--warn)';
+    });
 }
 
 // ═══════════════════════════════════════════════
@@ -1196,7 +1199,10 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 // Service Worker registration
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    const base = location.pathname.replace(//[^/]*$/, '/'); navigator.serviceWorker.register(base + 'sw.js', { scope: base }).then(r=>console.log('SW:',r.scope)).catch(e=>console.warn('SW:',e));
+    const base = location.pathname.replace(/\/[^\/]*$/, '/');
+    navigator.serviceWorker.register(base + 'sw.js', {scope: base})
+      .then(r => console.log('SW registered:', r.scope))
+      .catch(e => console.warn('SW error:', e));
   });
 }
 </script>
