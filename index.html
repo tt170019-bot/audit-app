@@ -318,9 +318,8 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .result-count-row { display: flex; gap: var(--space-075); flex-wrap: wrap; margin-top: var(--space-100); }
 @media (min-width: 56.25rem) {
   .detail-shell { max-width: 72rem; margin: 0 auto; }
-  .detail-content { display: grid; grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr); gap: var(--space-200); align-items: start; padding-inline: var(--space-200); }
-  .detail-summary-card { position: sticky; top: calc(var(--detail-sticky-offset) + var(--touch-target-min) + var(--space-200)); margin: var(--space-200) var(--space-0); }
-  .detail-checklist-column { min-width: 0; }
+  .detail-content { padding-inline: var(--space-200); }
+  .detail-checklist-column { min-width: 0; max-width: 52rem; margin-inline: auto; }
   .detail-bottom-action { left: 50%; transform: translateX(-50%); max-width: 72rem; border-inline: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large) var(--radius-large) 0 0; }
 }
 
@@ -1246,21 +1245,11 @@ function renderChecklist(audit){
     </div>
 
     <div class="detail-anchor-nav" aria-label="점검 섹션 이동">
-      <button class="anchor-chip" onclick="scrollToChecklistSection('detail-summary')">요약</button>
       ${sectionEntries.map(([sec], i)=>`<button class="anchor-chip" onclick="scrollToChecklistSection('sec-${i}')">${esc(sec)}</button>`).join('')}
       <button class="anchor-chip" onclick="jumpToNext(${audit.id})">미완료</button>
     </div>
 
     <div class="detail-content">
-      <div class="detail-summary-card detail-section-start" id="detail-summary">
-        <div class="detail-summary-grid">
-          <div class="detail-summary-cell"><div class="detail-summary-label">전체 항목</div><div class="detail-summary-value">${total}</div></div>
-          <div class="detail-summary-cell"><div class="detail-summary-label">완료율</div><div class="detail-summary-value">${pct}%</div></div>
-          <div class="detail-summary-cell"><div class="detail-summary-label">부적합</div><div class="detail-summary-value text-danger">${ng}</div></div>
-          <div class="detail-summary-cell"><div class="detail-summary-label">관찰사항</div><div class="detail-summary-value">${obs}</div></div>
-        </div>
-      </div>
-
       <div class="detail-checklist-column">
         ${sectionEntries.map(([sec,secItems], sectionIndex)=>`
           <div class="section-header detail-section-start" id="sec-${sectionIndex}">${esc(sec)}</div>
