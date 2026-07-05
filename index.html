@@ -889,6 +889,48 @@ select:focus {
   }
 }
 
+
+/* ---------- Detail Section Header Completion Summary ---------- */
+.section-header.detail-section-start {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-100);
+}
+
+.detail-section-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check-section-summary-inline {
+  margin: 0;
+  flex: 0 0 auto;
+  color: var(--ads-text-subtle);
+  font-size: var(--ads-body-small-size);
+  line-height: var(--ads-body-small-line);
+  font-weight: var(--ads-weight-medium);
+  white-space: nowrap;
+}
+
+@media (max-width: 23rem) {
+  .section-header.detail-section-start {
+    display: block;
+  }
+
+  .detail-section-title {
+    display: block;
+    white-space: normal;
+  }
+
+  .check-section-summary-inline {
+    display: block;
+    margin-top: var(--space-050);
+  }
+}
+
 </style>
 </head>
 <body>
@@ -2075,8 +2117,10 @@ function renderChecklist(audit){
     <div class="detail-content">
       <div class="detail-checklist-column">
         ${sectionEntries.map(([sec,secItems], sectionIndex)=>`
-          <div class="section-header detail-section-start" id="sec-${sectionIndex}">${esc(sec)}</div>
-          <div class="check-section-summary">${secItems.filter(i=>i.result).length}/${secItems.length} 항목 완료</div>
+          <div class="section-header detail-section-start" id="sec-${sectionIndex}">
+            <span class="detail-section-title">${esc(sec)}</span>
+            <span class="check-section-summary check-section-summary-inline">${secItems.filter(i=>i.result).length}/${secItems.length} 항목 완료</span>
+          </div>
           ${secItems.map(item=>isMaturityChecklistAudit(audit) ? renderFieldChecklistItem(audit, item) : renderStandardChecklistItem(audit, item)).join('')}
         `).join('')}
       </div>
