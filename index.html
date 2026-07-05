@@ -4,10 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#1a2332">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FFFFFF">
 <title>심사 점검표</title>
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <script src="xlsx.min.js"></script>
 <style>
 :root {
@@ -282,6 +283,32 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .viewer-close { position: absolute; top: var(--space-200); right: var(--space-200); background: rgba(255,255,255,0.20); border: 0; color: var(--ads-text-inverse); width: var(--space-500); height: var(--space-500); border-radius: var(--radius-full); font-size: var(--ads-heading-small-size); cursor: pointer; }
 
+/* Offline status / PWA helpers */
+#offline-tag.is-online { background: var(--ads-information-bg); color: var(--ads-information-text); }
+#offline-tag.is-offline { background: var(--ads-warning-bg); color: var(--ads-warning-text); }
+.field-gap { margin-top: var(--space-150); }
+.modal-action-row { display: flex; gap: var(--space-150); margin-bottom: var(--space-200); }
+.home-kpi { margin-bottom: var(--space-150); }
+.template-helper { margin-top: var(--space-150); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-brand); }
+.template-format-card { margin: var(--space-0) var(--space-150) var(--space-100); }
+.template-format-label { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.empty-action { padding: var(--space-0) var(--space-150); }
+.audit-status-dot-large { width: var(--space-100); height: var(--space-100); margin-top: var(--space-075); }
+.audit-progress-block { margin: var(--space-100) var(--space-0) var(--space-075); }
+.audit-progress-note { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtlest); }
+.check-progress-shell { padding: var(--space-150) var(--space-150) var(--space-0); }
+.check-result-row { display: flex; gap: var(--space-075); flex-wrap: wrap; margin-bottom: var(--space-100); }
+.check-question-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-100); }
+.check-badge-fixed { flex-shrink: 0; }
+.check-pending { color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); flex-shrink: 0; }
+.check-bottom-spacer { height: var(--space-250); }
+.export-card { margin: var(--space-0) var(--space-150) var(--space-150); }
+.export-title-row { flex-direction: column; align-items: flex-start; gap: var(--space-100); }
+.export-badge-row { display: flex; gap: var(--space-075); flex-wrap: wrap; }
+.export-title { font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-semibold); }
+.export-meta { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtlest); }
+.photo-thumb-clickable { cursor: pointer; }
+
 ::-webkit-scrollbar { width: var(--space-050); }
 ::-webkit-scrollbar-thumb { background: var(--ads-border-bold); border-radius: var(--radius-full); }
 .icon { display: inline-flex; align-items: center; justify-content: center; }
@@ -324,15 +351,15 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
     <div class="modal-body">
       <div class="check-label">심사 제목</div>
       <input type="text" id="na-title" placeholder="예: 2024년 상반기 운항 심사">
-      <div class="check-label" style="margin-top:12px">점검표 선택</div>
+      <div class="check-label" class="field-gap">점검표 선택</div>
       <select id="na-template">
         <option value="">— 점검표를 선택하세요 —</option>
       </select>
-      <div class="check-label" style="margin-top:12px">심사 일자</div>
+      <div class="check-label" class="field-gap">심사 일자</div>
       <input type="date" id="na-date">
-      <div class="check-label" style="margin-top:12px">심사원</div>
+      <div class="check-label" class="field-gap">심사원</div>
       <input type="text" id="na-auditor" placeholder="홍길동">
-      <div class="check-label" style="margin-top:12px">피심사 부서</div>
+      <div class="check-label" class="field-gap">피심사 부서</div>
       <input type="text" id="na-dept" placeholder="운항부">
     </div>
     <div class="modal-actions">
@@ -347,12 +374,12 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-photo-title">사진 첨부</div>
     <div class="modal-body">
-      <div style="display:flex;gap:10px;margin-bottom:16px">
-        <button class="btn btn-ghost" style="flex:1" onclick="takePhoto()">
+      <div class="modal-action-row">
+        <button class="btn btn-ghost" class="flex-1" onclick="takePhoto()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
           카메라 촬영
         </button>
-        <button class="btn btn-ghost" style="flex:1" onclick="pickPhoto()">
+        <button class="btn btn-ghost" class="flex-1" onclick="pickPhoto()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           앨범에서 선택
         </button>
@@ -440,7 +467,15 @@ openDB().then(()=>{
   updateOnlineTag();
   window.addEventListener('online', updateOnlineTag);
   window.addEventListener('offline', updateOnlineTag);
-  autoLoadChecklists().then(()=> switchTab('home'));
+  document.addEventListener('visibilitychange', () => {
+    if(!document.hidden) updateOnlineTag();
+  });
+  autoLoadChecklists()
+    .catch(e => console.warn('자동 점검표 로드 실패:', e))
+    .finally(()=> switchTab('home'));
+}).catch(e=>{
+  console.error('DB 초기화 실패:', e);
+  document.getElementById('content').innerHTML = '<div class="empty"><h3>앱 초기화 실패</h3><p>브라우저 저장소 접근을 확인한 뒤 다시 실행하세요.</p></div>';
 });
 
 // ═══════════════════════════════════════════════
@@ -452,7 +487,6 @@ const PRESET_CHECKLISTS = [
 ];
 
 async function autoLoadChecklists(){
-  if(!navigator.onLine) return; // 오프라인이면 스킵
   const existing = await dbAll('templates');
 
   for(const cl of PRESET_CHECKLISTS){
@@ -461,7 +495,7 @@ async function autoLoadChecklists(){
 
     try{
       const base = location.pathname.replace(/\/[^\/]*$/, '/');
-      const res = await fetch(base + cl.filename, {cache:'no-cache'});
+      const res = await fetch(base + cl.filename, {cache:'no-store'});
       if(!res.ok) continue;
 
       const buf = await res.arrayBuffer();
@@ -500,13 +534,21 @@ async function autoLoadChecklists(){
 
 function updateOnlineTag(){
   const tag = document.getElementById('offline-tag');
-  // fetch로 실제 연결 확인 (navigator.onLine은 부정확할 수 있음)
-  fetch('./index.html', {method:'HEAD', cache:'no-store'})
+  if(!tag) return Promise.resolve(false);
+  const pingUrl = `./index.html?online-check=${Date.now()}`;
+
+  return fetch(pingUrl, { method:'HEAD', cache:'no-store' })
     .then(() => {
-      tag.textContent='ONLINE'; tag.style.background='var(--teal)';
+      tag.textContent = 'ONLINE';
+      tag.classList.add('is-online');
+      tag.classList.remove('is-offline');
+      return true;
     })
     .catch(() => {
-      tag.textContent='OFFLINE'; tag.style.background='var(--warn)';
+      tag.textContent = 'OFFLINE';
+      tag.classList.add('is-offline');
+      tag.classList.remove('is-online');
+      return false;
     });
 }
 
@@ -548,7 +590,7 @@ async function renderHome(c){
     <p style="font-size:22px;font-weight:700;letter-spacing:-.5px">안녕하세요 👋</p>
     <p style="font-size:14px;color:var(--text3);margin-top:4px">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}</p>
   </div>
-  <div class="stat-grid" style="margin-bottom:12px">
+  <div class="stat-grid" class="home-kpi">
     <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${audits.length}</div><div class="stat-lbl">전체 심사</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--warn)">${inProgress.length}</div><div class="stat-lbl">진행 중</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--ok)">${done.length}</div><div class="stat-lbl">완료</div></div>
@@ -556,12 +598,12 @@ async function renderHome(c){
   </div>
 
   <div class="section-header">빠른 시작</div>
-  <div style="padding:0 12px;display:flex;gap:8px;margin-bottom:16px">
-    <button class="btn btn-teal" style="flex:1" onclick="openNewAuditModal()">
+  <div class="quick-actions">
+    <button class="btn btn-teal" class="flex-1" onclick="openNewAuditModal()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       새 심사 시작
     </button>
-    <button class="btn btn-ghost" style="flex:1" onclick="switchTab('templates')">
+    <button class="btn btn-ghost" class="flex-1" onclick="switchTab('templates')">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       점검표 업로드
     </button>
@@ -597,11 +639,11 @@ async function renderAudits(c){
       <h3>점검 기록 없음</h3>
       <p>새 심사를 시작하면<br>여기에 기록이 쌓입니다</p>
     </div>
-    <div style="padding:0 12px"><button class="btn btn-teal btn-full" onclick="openNewAuditModal()">새 심사 시작</button></div>`;
+    <div class="empty-action"><button class="btn btn-teal btn-full" onclick="openNewAuditModal()">새 심사 시작</button></div>`;
     return;
   }
   c.innerHTML=`
-  <div style="padding:12px 12px 4px;display:flex;justify-content:flex-end">
+  <div class="align-end-row">
     <button class="btn btn-teal btn-sm" onclick="openNewAuditModal()">+ 새 심사</button>
   </div>
   ${audits.map(a=>{
@@ -611,11 +653,11 @@ async function renderAudits(c){
     return`<div class="audit-item" onclick="openAudit(${a.id})">
       <div class="audit-item-head">
         <div class="audit-item-title">${esc(a.title)}</div>
-        <span class="status-dot ${a.status==='done'?'dot-done':a.status==='progress'?'dot-progress':'dot-new'}" style="width:8px;height:8px;margin-top:6px"></span>
+        <span class="status-dot ${a.status==='done'?'dot-done':a.status==='progress'?'dot-progress':'dot-new'}" class="audit-status-dot-large"></span>
       </div>
-      <div style="margin:8px 0 6px">
+      <div class="audit-progress-block">
         <div class="prog-wrap" style="margin:0 0 4px"><div class="prog-fill" style="width:${pct}%"></div></div>
-        <div style="font-size:11px;color:var(--text3)">${ans}/${total} 항목 완료 · ${ngCnt>0?`<span style="color:var(--danger)">부적합 ${ngCnt}건</span>`:'적합'}</div>
+        <div class="audit-progress-note">${ans}/${total} 항목 완료 · ${ngCnt>0?`<span class="text-danger">부적합 ${ngCnt}건</span>`:'적합'}</div>
       </div>
       <div class="audit-item-meta">
         <span>${esc(a.auditor||'')}</span>
@@ -640,20 +682,20 @@ async function renderTemplates(c){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     <h3>Excel 점검표 업로드</h3>
     <p>XLSX 파일을 탭하여 선택하거나<br>드래그 앤 드롭 하세요</p>
-    <p style="margin-top:10px;font-size:12px;color:var(--blue)">양식 다운로드 →</p>
+    <p class="template-helper">양식 다운로드 →</p>
   </div>
-  <div class="section-header" style="margin-top:8px">Excel 컬럼 형식</div>
-  <div class="card" style="margin:0 12px 8px">
+  <div class="section-header" class="mt-150">Excel 컬럼 형식</div>
+  <div class="card" class="template-format-card">
     ${['A: 섹션명 (예: 1. 운항 일반)','B: 항목번호 (예: FLT-001)','C: 점검 질문 (필수)','D: 참조규정 (예: OPS 1.2.3)','E: 점검유형 (OK/NG/NA/OBS)'].map(t=>`
-    <div class="card-row"><div class="label" style="font-size:13px;font-family:monospace">${t}</div></div>`).join('')}
+    <div class="card-row"><div class="label template-format-label">${t}</div></div>`).join('')}
   </div>
 
   <div class="section-header">저장된 점검표 (${templates.length})</div>
   ${templates.length===0?`<div style="padding:20px 12px;color:var(--text3);font-size:14px;text-align:center">업로드된 점검표가 없습니다</div>`:
   templates.map(t=>`
-  <div class="card" style="margin:0 12px 8px">
+  <div class="card" class="template-format-card">
     <div class="card-row">
-      <div style="flex:1">
+      <div class="flex-1">
         <div class="label">${esc(t.name)}</div>
         <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션</div>
       </div>
@@ -683,33 +725,33 @@ async function renderExport(c){
     const na=a.items?.filter(i=>i.result==='NA').length||0;
     const obs=a.items?.filter(i=>i.result==='OBS').length||0;
     return`
-    <div class="card" style="margin:0 12px 12px">
-      <div class="card-row" style="flex-direction:column;align-items:flex-start;gap:8px">
-        <div style="font-size:15px;font-weight:600">${esc(a.title)}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <div class="card" class="export-card">
+      <div class="card-row" class="export-title-row">
+        <div class="export-title">${esc(a.title)}</div>
+        <div class="export-badge-row">
           <span class="badge badge-ok">OK ${ok}</span>
           <span class="badge badge-ng">NG ${ng}</span>
           <span class="badge badge-na">NA ${na}</span>
           <span class="badge badge-obs">OBS ${obs}</span>
         </div>
-        <div style="font-size:12px;color:var(--text3)">${ans}/${total}항목 완료 · ${esc(a.auditor||'')} · ${esc(a.date||'')}</div>
+        <div class="export-meta">${ans}/${total}항목 완료 · ${esc(a.auditor||'')} · ${esc(a.date||'')}</div>
       </div>
-      <div class="card-row" style="gap:8px">
-        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="exportExcel(${a.id})">
+      <div class="card-row" class="export-badge-row">
+        <button class="btn btn-ghost btn-sm" class="flex-1" onclick="exportExcel(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Excel
         </button>
-        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="exportWord(${a.id})">
+        <button class="btn btn-ghost btn-sm" class="flex-1" onclick="exportWord(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
           Word
         </button>
-        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="exportPDF(${a.id})">
+        <button class="btn btn-ghost btn-sm" class="flex-1" onclick="exportPDF(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           PDF
         </button>
       </div>
       ${navigator.onLine?`<div class="card-row">
-        <button class="btn btn-teal btn-sm" style="flex:1" onclick="uploadGDrive(${a.id})">
+        <button class="btn btn-teal btn-sm" class="flex-1" onclick="uploadGDrive(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
           Google Drive 업로드
         </button>
@@ -752,19 +794,19 @@ function renderChecklist(audit){
   });
 
   c.innerHTML=`
-  <div style="padding:12px 12px 0">
+  <div class="check-progress-shell">
     <div class="prog-wrap" style="margin:0 0 4px"><div class="prog-fill" style="width:${pct}%"></div></div>
     <div class="prog-label"><span>${ans}/${total} 항목 완료</span><span>${pct}%</span></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+    <div class="check-result-row">
       ${['OK','NG','NA','OBS'].map(r=>{
         const cnt=items.filter(i=>i.result===r).length;
         return cnt>0?`<span class="badge badge-${r.toLowerCase()}">${r} ${cnt}</span>`:'';
       }).join('')}
     </div>
   </div>
-  <div style="padding:0 12px;margin-bottom:8px;display:flex;gap:8px">
-    <button class="btn btn-ghost btn-sm" style="flex:1" onclick="backFromChecklist()">← 돌아가기</button>
-    <button class="btn btn-ghost btn-sm" style="flex:1" onclick="jumpToNext(${audit.id})">미완료로 이동</button>
+  <div class="check-actions">
+    <button class="btn btn-ghost btn-sm" class="flex-1" onclick="backFromChecklist()">← 돌아가기</button>
+    <button class="btn btn-ghost btn-sm" class="flex-1" onclick="jumpToNext(${audit.id})">미완료로 이동</button>
   </div>
 
   ${Object.entries(sections).map(([sec,secItems])=>`
@@ -773,9 +815,9 @@ function renderChecklist(audit){
     <div class="check-card ${item.result?'answered':''}" id="ci-${item._idx}">
       <div class="check-head" onclick="toggleCheckItem(${item._idx})">
         <div class="check-num">${esc(item.ref||item._idx+1)}</div>
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div class="check-question-row">
           <div class="check-q">${esc(item.question)}</div>
-          ${item.result?`<span class="badge badge-${item.result.toLowerCase()}" style="flex-shrink:0">${item.result}</span>`:`<span style="color:var(--text3);font-size:11px;flex-shrink:0">미완료</span>`}
+          ${item.result?`<span class="badge badge-${item.result.toLowerCase()}" class="check-badge-fixed">${item.result}</span>`:`<span class="check-pending">미완료</span>`}
         </div>
         ${item.refStd?`<div class="check-ref">📋 ${esc(item.refStd)}</div>`:''}
       </div>
@@ -798,7 +840,7 @@ function renderChecklist(audit){
       </div>
     </div>`).join('')}
   `).join('')}
-  <div style="height:20px"></div>
+  <div class="check-bottom-spacer"></div>
   `;
 }
 
@@ -824,8 +866,8 @@ async function setResult(auditId, idx, result){
     const head = card.querySelector('.check-head');
     const existingBadge = head.querySelector('.badge');
     const existingNA = head.querySelector('span[style]');
-    if(existingBadge) existingBadge.outerHTML=`<span class="badge badge-${result.toLowerCase()}" style="flex-shrink:0">${result}</span>`;
-    else if(existingNA) existingNA.outerHTML=`<span class="badge badge-${result.toLowerCase()}" style="flex-shrink:0">${result}</span>`;
+    if(existingBadge) existingBadge.outerHTML=`<span class="badge badge-${result.toLowerCase()}" class="check-badge-fixed">${result}</span>`;
+    else if(existingNA) existingNA.outerHTML=`<span class="badge badge-${result.toLowerCase()}" class="check-badge-fixed">${result}</span>`;
     // Update answer buttons
     card.querySelectorAll('.ans-btn').forEach(b=>{
       const r=b.textContent.trim();
@@ -954,7 +996,7 @@ function handleFileSelect(file){
   const reader = new FileReader();
   reader.onload = e=>{
     try{
-      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const wb = XLSX.read(e.target.result, {type:'array'});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
 
@@ -988,7 +1030,7 @@ function handleFileSelect(file){
       showToast('파일을 읽을 수 없습니다: '+err.message);
     }
   };
-  reader.readAsBinaryString(file);
+  reader.readAsArrayBuffer(file);
 }
 
 async function deleteTemplate(id, e){
@@ -1013,9 +1055,9 @@ function renderPhotoPreview(){
   const area = document.getElementById('photo-preview-area');
   if(!area) return;
   area.innerHTML = pendingPhotos.map((p,i)=>`
-    <div style="position:relative;display:inline-block">
+    <div class="photo-frame">
       <img class="photo-thumb" src="${p}" alt="사진">
-      <button onclick="pendingPhotos.splice(${i},1);renderPhotoPreview()" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--danger);border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+      <button onclick="pendingPhotos.splice(${i},1);renderPhotoPreview()" class="photo-remove">✕</button>
     </div>`).join('');
 }
 
@@ -1065,7 +1107,7 @@ async function savePhoto(){
   // Refresh photos in UI
   const area = document.getElementById('photos-'+itemIdx);
   if(area){
-    area.innerHTML = pendingPhotos.map(p=>`<img class="photo-thumb" src="${p}" alt="사진">`).join('')+
+    area.innerHTML = pendingPhotos.map(p=>`<img class="photo-thumb photo-thumb-clickable" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')+
       `<div class="photo-add" onclick="openPhotoModal(${auditId},${itemIdx})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
         <span>추가</span>
@@ -1077,8 +1119,8 @@ async function savePhoto(){
 
 function viewPhoto(src){
   const d=document.createElement('div');
-  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:400;display:flex;align-items:center;justify-content:center';
-  d.innerHTML=`<img src="${src}" style="max-width:100%;max-height:100%;object-fit:contain"><button onclick="this.parentNode.remove()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer">✕</button>`;
+  d.className = 'viewer';
+  d.innerHTML=`<img src="${src}" alt="첨부 사진 확대"><button class="viewer-close" onclick="this.parentNode.remove()" aria-label="닫기">✕</button>`;
   document.body.appendChild(d);
 }
 
@@ -1232,10 +1274,10 @@ ${audit.items.filter(i=>i.result==='NG').map(item=>`<tr>
 async function exportPDF(id){
   const audit = await dbGet('audits', id);
   if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
+  const w = window.open('', '_blank');
+  if(!w){ showToast('팝업 차단을 해제한 뒤 다시 시도하세요'); return; }
   showToast('인쇄 창에서 PDF로 저장하세요');
-  setTimeout(()=>{
-    const w = window.open('','_blank');
-    w.document.write(`<html><head><title>${esc(audit.title)}</title><meta charset="UTF-8">
+  w.document.write(`<html><head><title>${esc(audit.title)}</title><meta charset="UTF-8">
 <style>body{font-family:'맑은 고딕',sans-serif;font-size:10pt}table{width:100%;border-collapse:collapse}th{background:#1a2332;color:#fff;padding:4pt 5pt}td{border:0.5pt solid #ccc;padding:4pt 5pt}@media print{button{display:none}}</style></head>
 <body><button onclick="window.print()" style="position:fixed;top:10px;right:10px;padding:8px 16px;background:#3b7dd8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 인쇄/PDF 저장</button>
 <h2 style="text-align:center">${esc(audit.title)} 점검 결과</h2>
@@ -1243,15 +1285,16 @@ async function exportPDF(id){
 <table><tr><th>번호</th><th>점검 항목</th><th>참조규정</th><th>결과</th><th>비고</th></tr>
 ${audit.items.map(i=>`<tr><td>${esc(i.ref||'')}</td><td>${esc(i.question)}</td><td>${esc(i.refStd||'')}</td><td>${i.result||'-'}</td><td>${esc(i.note||'')}</td></tr>`).join('')}
 </table></body></html>`);
-    w.document.close();
-  }, 500);
+  w.document.close();
+  w.focus();
 }
 
 // ═══════════════════════════════════════════════
 //  Google Drive (stub — requires OAuth in real deploy)
 // ═══════════════════════════════════════════════
 async function uploadGDrive(id){
-  if(!navigator.onLine){ showToast('인터넷 연결이 필요합니다'); return; }
+  const online = await updateOnlineTag();
+  if(!online){ showToast('인터넷 연결이 필요합니다'); return; }
   showToast('Google Drive 연동은 별도 OAuth 설정이 필요합니다');
   // In production: implement OAuth2 + Drive API v3 multipart upload
 }
@@ -1293,7 +1336,18 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     const base = location.pathname.replace(/\/[^\/]*$/, '/');
     navigator.serviceWorker.register(base + 'sw.js', {scope: base})
-      .then(r => console.log('SW registered:', r.scope))
+      .then(reg => {
+        console.log('SW registered:', reg.scope);
+        reg.addEventListener('updatefound', () => {
+          const worker = reg.installing;
+          if(!worker) return;
+          worker.addEventListener('statechange', () => {
+            if(worker.state === 'installed' && navigator.serviceWorker.controller){
+              showToast('새 버전이 준비되었습니다. 새로고침하면 적용됩니다.');
+            }
+          });
+        });
+      })
       .catch(e => console.warn('SW error:', e));
   });
 }
