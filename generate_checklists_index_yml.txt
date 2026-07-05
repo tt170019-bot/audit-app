@@ -1,0 +1,65 @@
+name: Generate checklist index
+
+on:
+  push:
+    paths:
+      - 'checklists/**/*.xlsx'
+      - 'checklists/**/*.xls'
+      - '.github/workflows/generate-checklists-index.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-index:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate checklists/index.json
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          base = Path('checklists')
+          base.mkdir(exist_ok=True)
+          items = []
+
+          for path in sorted(list(base.glob('*.xlsx')) + list(base.glob('*.xls'))):
+              if path.name.startswith('~$'):
+                  continue
+              data = path.read_bytes()
+              sha = hashlib.sha256(data).hexdigest()
+              stat = path.stat()
+              updated = datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat()
+              items.append({
+                  'filename': path.name,
+                  'name': path.stem.replace('_', ' ').replace('-', ' '),
+                  'sha': sha,
+                  'updatedAt': updated,
+                  'enabled': True
+              })
+
+          index = {
+              'generatedAt': datetime.now(timezone.utc).isoformat(),
+              'checklists': items
+          }
+          (base / 'index.json').write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding='utf-8')
+          PY
+
+      - name: Commit index if changed
+        run: |
+          if git diff --quiet -- checklists/index.json; then
+            echo "No checklist index changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add checklists/index.json
+          git commit -m "Update checklists index"
+          git push
