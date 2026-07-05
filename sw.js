@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'audit-app-v32';
+const CACHE_VERSION = 'audit-app-v33';
 
 const APP_SHELL = [
   './index.html',
