@@ -1,11 +1,18 @@
 {
-  "generatedAt": "2026-07-05T00:00:00+09:00",
+  "generatedAt": "2026-07-05T00:42:54.140870+00:00",
   "checklists": [
     {
       "filename": "IOSA_점검표_샘플.xlsx",
       "name": "IOSA 점검표 샘플",
-      "sha": "replace-with-generated-sha256",
-      "updatedAt": "2026-07-05T00:00:00+09:00",
+      "sha": "b7774d93d50cdf9711b310039861fec7c6a65c24dde2fa1f258e299954d37197",
+      "updatedAt": "2026-07-05T00:42:54.056982+00:00",
+      "enabled": true
+    },
+    {
+      "filename": "checklist-1.xlsx",
+      "name": "checklist 1",
+      "sha": "0565c817a32668a63b2034de3716b4aa312dd4eb81441e5146dc25c5d3a3e421",
+      "updatedAt": "2026-07-05T00:42:54.057513+00:00",
       "enabled": true
     }
   ]
