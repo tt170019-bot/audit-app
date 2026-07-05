@@ -563,15 +563,33 @@ async function repairStoredTemplates(){
 }
 
 // ═══════════════════════════════════════════════
-//  자동 점검표 로드 (GitHub에서)
-//  - filename만으로 중복 판단하지 않고 version까지 비교한다.
-//  - GitHub의 점검표 파일을 변경했으면 아래 version 값을 반드시 올린다.
-//  - 기존 심사/기존 점검표는 삭제하지 않고 새 버전을 추가 등록한다.
+//  자동 점검표 로드 (GitHub checklists.json 기준)
+//  - 관리자는 index.html을 수정하지 않고 checklists.json과 Excel 파일만 갱신한다.
+//  - 같은 filename이라도 version이 바뀌면 새 점검표로 추가 등록한다.
+//  - checklists.json을 읽지 못하면 앱은 계속 동작하되 자동 등록만 건너뛴다.
 // ═══════════════════════════════════════════════
-const PRESET_CHECKLISTS = [
-  { filename: 'checklist-1.xlsx', name: 'IOSA 점검표 샘플', version: '2026.07.05' },
-  { filename: 'checklist-2.xlsx', name: '지상 안전 점검표', version: '2026.07.05' },
-];
+const CHECKLIST_MANIFEST_FILE = './checklists.json';
+
+async function loadChecklistManifest(){
+  try{
+    const res = await fetch(`${CHECKLIST_MANIFEST_FILE}?ts=${Date.now()}`, {cache:'no-store'});
+    if(!res.ok) throw new Error(`checklists.json HTTP ${res.status}`);
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : Array.isArray(data?.checklists) ? data.checklists : [];
+    return list
+      .filter(item => item && item.filename)
+      .map(item => ({
+        filename: String(item.filename).trim(),
+        name: String(item.name || item.title || item.filename).trim(),
+        version: String(item.version || item.updatedAt || 'unversioned').trim(),
+        enabled: item.enabled !== false
+      }))
+      .filter(item => item.enabled);
+  } catch(e){
+    console.warn('checklists.json 로드 실패. 자동 점검표 등록을 건너뜁니다.', e);
+    return [];
+  }
+}
 
 function getPresetTemplateKey(cl){
   return `${cl.filename}@@${cl.version || 'unversioned'}`;
@@ -616,9 +634,10 @@ function extractChecklistItemsFromRows(rows){
 
 async function autoLoadChecklists(){
   const existing = await dbAll('templates');
+  const manifest = await loadChecklistManifest();
   let added = 0;
 
-  for(const cl of PRESET_CHECKLISTS){
+  for(const cl of manifest){
     const templateKey = getPresetTemplateKey(cl);
 
     // 같은 filename + 같은 version이면 이미 등록된 것으로 판단한다.
@@ -654,6 +673,10 @@ async function autoLoadChecklists(){
     } catch(e){
       console.warn(`점검표 로드 실패: ${cl.filename}`, e);
     }
+  }
+
+  if(manifest.length === 0){
+    console.log('자동 등록할 GitHub 점검표가 없습니다. checklists.json을 확인하세요.');
   }
 
   if(added > 0 && currentTab === 'templates'){
