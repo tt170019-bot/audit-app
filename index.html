@@ -376,6 +376,46 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .detail-anchor-nav { padding-block: var(--space-075); }
 }
 
+
+
+/* Card checklist input view - table UI removed for mobile/tablet */
+.field-check-card { margin: var(--space-0) var(--space-150) var(--space-200); background: var(--ads-surface); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-xlarge); overflow: hidden; box-shadow: var(--shadow-raised); }
+.field-check-card.answered { border-color: var(--ads-border-bold); }
+.check-input-card { padding: var(--space-200); cursor: pointer; }
+.check-input-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-150); margin-bottom: var(--space-100); }
+.check-input-no { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; min-height: 1.75rem; padding-inline: var(--space-100); border-radius: var(--radius-full); background: var(--ads-information-bg); color: var(--ads-information-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); }
+.check-input-section { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); text-align: right; }
+.check-input-question { color: var(--ads-text); font-size: var(--ads-body-size); line-height: 1.45; font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-150); }
+.check-input-refs { display: grid; gap: var(--space-075); }
+.check-ref-line { display: flex; gap: var(--space-075); align-items: flex-start; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
+.check-ref-label { flex: 0 0 auto; color: var(--ads-text-subtlest); font-weight: var(--ads-weight-semibold); }
+.check-body { padding: var(--space-0) var(--space-200) var(--space-200); border-top: var(--ui-border-width) solid var(--ads-border); }
+.result-panel, .comment-panel, .maturity-panel, .field-photo-panel { padding-top: var(--space-200); }
+.result-panel-title, .maturity-panel-title, .comment-panel-title { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-100); }
+.field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); }
+.field-choice { min-height: var(--touch-target-min); padding-inline: var(--space-100); border: var(--ui-border-width) solid var(--ads-border-input); border-radius: var(--radius-full); background: var(--ads-surface); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); cursor: pointer; }
+.field-choice.selected-ok { background: var(--ads-success-bg); border-color: var(--ads-success-bold); color: var(--ads-success-text); }
+.field-choice.selected-ng { background: var(--ads-danger-bg); border-color: var(--ads-danger); color: var(--ads-danger-text); }
+.field-choice.selected-na { background: var(--ads-neutral-bg); border-color: var(--ads-neutral-bold); color: var(--ads-neutral-text); }
+.field-choice.selected-obs { background: var(--ads-warning-bg); border-color: var(--ads-warning-bold); color: var(--ads-warning-text); }
+.maturity-level-list { display: grid; gap: var(--space-100); }
+.maturity-card { border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); padding: var(--space-150); background: var(--ads-surface); }
+.maturity-card.selected { border-color: var(--ads-brand); background: var(--ads-information-bg); }
+.maturity-card-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-100); margin-bottom: var(--space-075); }
+.maturity-card-title { font-weight: var(--ads-weight-semibold); color: var(--ads-text); }
+.maturity-card-desc { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: 1.35; }
+.comment-panel textarea { min-height: 4rem; }
+.field-photo-panel { border-top: 0; background: var(--ads-surface); }
+.field-photo-panel .photo-add { width: 6rem; min-width: 6rem; height: 4.75rem; }
+@media (max-width: 47.9375rem) {
+  .field-check-card { margin-inline: var(--space-100); margin-bottom: var(--space-200); }
+  .field-result-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .check-input-card { padding: var(--space-200); }
+}
+@media (min-width: 48rem) {
+  .detail-checklist-column { max-width: 46rem; }
+}
+
 /* Offline status / PWA helpers */
 #offline-tag.is-online { background: var(--ads-information-bg); color: var(--ads-information-text); }
 #offline-tag.is-offline { background: var(--ads-warning-bg); color: var(--ads-warning-text); }
@@ -574,7 +614,7 @@ let pendingPhotos = [];
 let checklistSyncState = { checked: false, reachable: null, message: '점검표 서버 확인 전' };
 
 const REPORT_TEMPLATES = {
-  'report-type-1': "<!DOCTYPE html>\n<html lang=\"ko\">\n<head>\n<meta charset=\"UTF-8\">\n<title>{{audit.title}} 결과보고서</title>\n<style>\n  body{font-family:'맑은 고딕',Arial,sans-serif;font-size:10pt;margin:20mm;color:#172B4D}\n  h1{font-size:16pt;font-weight:bold;text-align:center;margin-bottom:4pt;color:#172B4D}\n  h2{font-size:12pt;font-weight:bold;margin-top:16pt;margin-bottom:4pt;color:#1a2332;border-bottom:1pt solid #1a2332;padding-bottom:3pt}\n  table{width:100%;border-collapse:collapse;margin-bottom:10pt}\n  th{background:#1a2332;color:#fff;padding:5pt 6pt;font-size:9pt;text-align:left}\n  td{border:0.5pt solid #ccc;padding:5pt 6pt;font-size:9pt;vertical-align:top}\n  .sum-table td:first-child{font-weight:bold;background:#f0f4f8;width:30%}\n  .result{font-weight:bold;padding:2pt 6pt;border-radius:3pt;display:inline-block}\n  .ok{color:#1a7c3e;background:#eafaf1}\n  .ng{color:#c0392b;background:#fdecea}\n  .na{color:#7f8c8d;background:#f4f4f4}\n  .obs{color:#e67e22;background:#fef5e7}\n  .footer{font-size:8pt;color:#888;text-align:right;margin-top:20pt;border-top:0.5pt solid #ccc;padding-top:6pt}\n</style>\n</head>\n<body>\n<h1>심사 점검표 결과보고서</h1>\n<table class=\"sum-table\">\n  <tr><td>심사명</td><td>{{audit.title}}</td><td>심사일</td><td>{{audit.date}}</td></tr>\n  <tr><td>심사원</td><td>{{audit.auditor}}</td><td>피심사 부서</td><td>{{audit.dept}}</td></tr>\n  <tr><td>전체 항목</td><td>{{summary.total}}건</td><td>작성일</td><td>{{generated.date}}</td></tr>\n</table>\n\n<h2>심사 결과 요약</h2>\n<table>\n  <tr><th>구분</th><th>건수</th><th>비율</th><th>비고</th></tr>\n  {{summary.rows}}\n  <tr><td><strong>합계</strong></td><td>{{summary.total}}건</td><td>100%</td><td></td></tr>\n</table>\n\n{{sections}}\n\n{{ng.section}}\n\n<div class=\"footer\">Generated by 심사 점검표 앱 · {{generated.datetime}}</div>\n</body>\n</html>\n",
+  'report-type-1': "<!DOCTYPE html>\n<html lang=\"ko\">\n<head>\n<meta charset=\"UTF-8\">\n<title>{{audit.title}} 결과보고서</title>\n<style>\n  body{font-family:'맑은 고딕',Arial,sans-serif;font-size:10pt;margin:20mm;color:#172B4D}\n  h1{font-size:16pt;font-weight:bold;text-align:center;margin-bottom:4pt;color:#172B4D}\n  h2{font-size:12pt;font-weight:bold;margin-top:16pt;margin-bottom:4pt;color:#1a2332;border-bottom:1pt solid #1a2332;padding-bottom:3pt}\n  table{width:100%;border-collapse:collapse;margin-bottom:10pt}\n  th{background:#1a2332;color:#fff;padding:5pt 6pt;font-size:9pt;text-align:left}\n  td{border:0.5pt solid #ccc;padding:5pt 6pt;font-size:9pt;vertical-align:top}\n  .sum-table td:first-child{font-weight:bold;background:#f0f4f8;width:30%}\n  .result{font-weight:bold;padding:2pt 6pt;border-radius:3pt;display:inline-block}\n  .ok,.yes{color:#1a7c3e;background:#eafaf1}\n  .ng,.no{color:#c0392b;background:#fdecea}\n  .na{color:#7f8c8d;background:#f4f4f4}\n  .obs{color:#e67e22;background:#fef5e7}\n  .footer{font-size:8pt;color:#888;text-align:right;margin-top:20pt;border-top:0.5pt solid #ccc;padding-top:6pt}\n</style>\n</head>\n<body>\n<h1>심사 점검표 결과보고서</h1>\n<table class=\"sum-table\">\n  <tr><td>심사명</td><td>{{audit.title}}</td><td>심사일</td><td>{{audit.date}}</td></tr>\n  <tr><td>심사원</td><td>{{audit.auditor}}</td><td>피심사 부서</td><td>{{audit.dept}}</td></tr>\n  <tr><td>전체 항목</td><td>{{summary.total}}건</td><td>작성일</td><td>{{generated.date}}</td></tr>\n</table>\n\n<h2>심사 결과 요약</h2>\n<table>\n  <tr><th>구분</th><th>건수</th><th>비율</th><th>비고</th></tr>\n  {{summary.rows}}\n  <tr><td><strong>합계</strong></td><td>{{summary.total}}건</td><td>100%</td><td></td></tr>\n</table>\n\n{{sections}}\n\n{{ng.section}}\n\n<div class=\"footer\">Generated by 심사 점검표 앱 · {{generated.datetime}}</div>\n</body>\n</html>\n",
   'report-type-2': "<!DOCTYPE html>\n<html lang=\"ko\">\n<head>\n<meta charset=\"UTF-8\">\n<title>{{audit.title}} 현장탑승심사표</title>\n<style>\n  @page { size: A4 portrait; margin: 14mm 12mm; }\n  * { box-sizing: border-box; }\n  body { margin: 0; background: #ffffff; color: #000000; font-family: \"Malgun Gothic\", \"맑은 고딕\", Arial, sans-serif; font-size: 9pt; line-height: 1.35; }\n  .print-page { width: 186mm; margin: 0 auto; background: #ffffff; }\n  table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }\n  td, th { mso-line-height-rule: exactly; }\n  .report-meta { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 8px; }\n  .report-meta td { border: 1px solid #000; padding: 4px 6px; font-size: 8.5pt; vertical-align: middle; }\n  .report-meta .label { background: #d9d9d9; font-weight: 700; width: 18%; text-align: center; }\n  .field-block { width: 100%; margin-bottom: 10px; page-break-inside: avoid; break-inside: avoid; }\n  .top-table, .maturity-table, .comment-table, .result-table { width: 100%; table-layout: fixed; border-collapse: collapse; }\n  .top-table th, .top-table td,\n  .maturity-table th, .maturity-table td,\n  .comment-table td, .result-table td { border: 1px solid #000000; padding: 4px 6px; vertical-align: top; word-break: keep-all; overflow-wrap: break-word; }\n  .top-table { border: 1.5px solid #000; }\n  .top-table th { background: #d9d9d9; text-align: center; font-family: \"Times New Roman\", \"Malgun Gothic\", serif; font-size: 12pt; font-weight: 700; line-height: 1.15; vertical-align: middle; }\n  .section-title { font-size: 10.5pt; font-weight: 700; text-align: left; padding: 5px 6px !important; }\n  .item-no { text-align: center; vertical-align: middle !important; font-size: 10pt; font-weight: 700; }\n  .requirement { font-size: 9.5pt; min-height: 18mm; }\n  .refs, .external-ref { font-size: 9pt; line-height: 1.35; }\n  .external-ref { text-align: center; vertical-align: middle !important; }\n  .maturity-table { border-left: 1.5px solid #000; border-right: 1.5px solid #000; }\n  .satisfaction-cell { background: #d9d9d9; text-align: center; vertical-align: middle !important; font-family: \"Times New Roman\", \"Malgun Gothic\", serif; font-size: 12pt; font-weight: 700; line-height: 1.15; }\n  .maturity-head, .consider-head { background: #d9d9d9; text-align: center; vertical-align: middle !important; font-weight: 700; }\n  .maturity-head { font-family: \"Times New Roman\", \"Malgun Gothic\", serif; font-size: 11pt; line-height: 1.15; }\n  .consider-head { font-size: 10pt; }\n  .maturity-label { vertical-align: middle !important; font-family: \"Times New Roman\", \"Malgun Gothic\", serif; font-size: 10.5pt; font-weight: 700; }\n  .consider-text { font-size: 8.8pt; line-height: 1.35; }\n  .consider-title { font-weight: 700; margin-bottom: 2px; }\n  .comment-table { border-left: 1.5px solid #000; border-right: 1.5px solid #000; }\n  .comment-label { width: 70mm; background: #d9d9d9; text-align: center; vertical-align: middle !important; font-family: \"Times New Roman\", \"Malgun Gothic\", serif; font-size: 11pt; font-weight: 700; }\n  .comment-box { height: 11mm; white-space: pre-wrap; }\n  .result-table { border: 1.5px solid #000; border-top: 0; }\n  .result-row-label { height: 10mm; font-family: \"Times New Roman\", \"Malgun Gothic\", serif; font-size: 11pt; font-weight: 700; vertical-align: middle !important; }\n  .checkbox { font-family: \"Times New Roman\", \"Malgun Gothic\", serif; font-weight: 700; white-space: nowrap; }\n  .checkbox::before { content: \"□ \"; font-family: \"Malgun Gothic\", Arial, sans-serif; font-weight: 400; }\n  .selected::before { content: \"■ \"; }\n  .print-only-note { margin-top: 8px; color: #666666; font-size: 8pt; text-align: right; }\n  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .print-page { width: 100%; } .print-only-note { display: none; } }\n</style>\n</head>\n<body>\n  <div class=\"print-page\">\n    <table class=\"report-meta\">\n      <tr><td class=\"label\">심사명</td><td>{{audit.title}}</td><td class=\"label\">심사일</td><td>{{audit.date}}</td></tr>\n      <tr><td class=\"label\">심사원</td><td>{{audit.auditor}}</td><td class=\"label\">피심사 부서</td><td>{{audit.dept}}</td></tr>\n    </table>\n    {{fieldAuditItems}}\n    <div class=\"print-only-note\">Generated by 심사 점검표 앱 · {{generated.datetime}}</div>\n  </div>\n</body>\n</html>\n"
 };
 
@@ -688,8 +728,8 @@ function normalizeChecklistItem(item){
     establishedCriteria: String(item.establishedCriteria ?? item.established ?? item['Established Criteria'] ?? item['Established'] ?? item['성숙도 Established'] ?? '').trim(),
     matureCriteria: String(item.matureCriteria ?? item.mature ?? item['Mature Criteria'] ?? item['Mature'] ?? item['성숙도 Mature'] ?? '').trim(),
     leadingCriteria: String(item.leadingCriteria ?? item.leading ?? item['Leading Criteria'] ?? item['Leading'] ?? item['성숙도 Leading'] ?? '').trim(),
-    type: String(item.type ?? item.answerType ?? item['점검유형'] ?? 'OK/NG/NA/OBS').trim() || 'OK/NG/NA/OBS',
-    result: item.result ?? null,
+    type: String(item.type ?? item.answerType ?? item['점검유형'] ?? 'YES/NO/OBS/N/A').trim() || 'YES/NO/OBS/N/A',
+    result: normalizeResultValue(item.result) || null,
     maturity: item.maturity ?? '',
     note: String(item.note ?? item.memo ?? item.comment ?? item['비고'] ?? ''),
     photos: Array.isArray(item.photos) ? item.photos : []
@@ -895,7 +935,7 @@ function extractChecklistItemsFromRows(rows){
       establishedCriteria,
       matureCriteria,
       leadingCriteria,
-      type: type || 'OK/NG/NA/OBS'
+      type: type || 'YES/NO/OBS/N/A'
     });
     if(!normalized) continue;
     sections.add(normalized.section || '일반');
@@ -1113,7 +1153,7 @@ async function renderAudits(c){
   ${audits.map(a=>{
     const total=a.items?.length||0, ans=a.items?.filter(i=>i.result).length||0;
     const pct=total?Math.round(ans/total*100):0;
-    const ngCnt=a.items?.filter(i=>i.result==='NG').length||0;
+    const ngCnt=a.items?.filter(i=>normalizeResultValue(i.result)==='NO').length||0;
     return`<div class="audit-item" onclick="openAudit(${a.id})">
       <div class="audit-item-head">
         <div class="audit-item-title">${esc(a.title)}</div>
@@ -1218,7 +1258,7 @@ async function renderTemplates(c){
       'G: Established Criteria (Type 2 성숙도 기준)',
       'H: Mature Criteria (Type 2 성숙도 기준)',
       'I: Leading Criteria (Type 2 성숙도 기준)',
-      'J: 점검유형 (OK/NG/NA/OBS)'
+      'J: 점검유형 (YES/NO/OBS/N/A)'
     ].map(t=>`
     <div class="card-row"><div class="label template-format-label">${t}</div></div>`).join('')}
   </div>` : `
@@ -1277,18 +1317,18 @@ async function renderExport(c){
   </div>`:''}
   ${done.map(a=>{
     const total=a.items?.length||0, ans=a.items?.filter(i=>i.result).length||0;
-    const ok=a.items?.filter(i=>i.result==='OK').length||0;
-    const ng=a.items?.filter(i=>i.result==='NG').length||0;
-    const na=a.items?.filter(i=>i.result==='NA').length||0;
-    const obs=a.items?.filter(i=>i.result==='OBS').length||0;
+    const ok=a.items?.filter(i=>normalizeResultValue(i.result)==='YES').length||0;
+    const ng=a.items?.filter(i=>normalizeResultValue(i.result)==='NO').length||0;
+    const na=a.items?.filter(i=>normalizeResultValue(i.result)==='N/A').length||0;
+    const obs=a.items?.filter(i=>normalizeResultValue(i.result)==='OBS').length||0;
     return`
     <div class="card export-card">
       <div class="card-row export-title-row">
         <div class="export-title">${esc(a.title)}</div>
         <div class="export-badge-row">
-          <span class="badge badge-ok">OK ${ok}</span>
-          <span class="badge badge-ng">NG ${ng}</span>
-          <span class="badge badge-na">NA ${na}</span>
+          <span class="badge badge-ok">YES ${ok}</span>
+          <span class="badge badge-ng">NO ${ng}</span>
+          <span class="badge badge-na">N/A ${na}</span>
           <span class="badge badge-obs">OBS ${obs}</span>
         </div>
         <div class="export-meta">${ans}/${total}항목 완료 · ${esc(a.auditor||'')} · ${esc(a.date||'')}</div>
@@ -1392,9 +1432,34 @@ function isMaturityChecklistAudit(audit){
   return getChecklistUiType(audit) === 'maturity';
 }
 
-function resultLabel(result){
-  return {OK:'Satisfaction', OBS:'Observation', NG:'Un-Satisfaction', NA:'N/A'}[result] || '미완료';
+function normalizeResultValue(value){
+  const v = String(value || '').trim().toUpperCase();
+  if(v === 'OK' || v === 'YES' || v === 'Y') return 'YES';
+  if(v === 'NG' || v === 'NO' || v === 'N') return 'NO';
+  if(v === 'NA' || v === 'N/A') return 'N/A';
+  if(v === 'OBS' || v === 'OBSERVATION') return 'OBS';
+  return value || '';
 }
+
+function resultClass(result){
+  const r = normalizeResultValue(result);
+  return r === 'YES' ? 'badge-ok' : r === 'NO' ? 'badge-ng' : r === 'OBS' ? 'badge-obs' : r === 'N/A' ? 'badge-na' : 'badge-na';
+}
+
+function resultCssClass(result){
+  const r = normalizeResultValue(result);
+  if(r === 'YES') return 'yes';
+  if(r === 'NO') return 'no';
+  if(r === 'OBS') return 'obs';
+  if(r === 'N/A') return 'na';
+  return 'na';
+}
+
+function resultLabel(result){
+  const r = normalizeResultValue(result);
+  return r || '미완료';
+}
+
 function renderRequirementTable(audit, item){
   const idx = item._idx;
   const ref = br(item.ref || idx + 1);
@@ -1402,54 +1467,39 @@ function renderRequirementTable(audit, item){
   const internalRef = br(item.refStd || '');
   const externalRef = br(item.externalRef || item.external || '');
   const sectionTitle = br(item.section || '일반');
+  const result = normalizeResultValue(item.result || '');
+  const resultBadge = result ? `<span class="badge ${resultClass(result)}">${result}</span>` : `<span class="badge badge-na">미완료</span>`;
 
-  return `<table class="field-check-top field-card-toggle" onclick="toggleCheckItem(${idx})" tabindex="0" aria-label="점검항목 열기">
-    <colgroup>
-      <col style="width:14mm"><col style="width:88mm"><col style="width:42mm"><col style="width:42mm">
-    </colgroup>
-    <thead>
-      <tr>
-        <th>No.</th>
-        <th>Check<br>Requirements</th>
-        <th>Internal<br>Ref.</th>
-        <th>External<br>Ref.</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td colspan="4" class="field-check-section-title">${sectionTitle}</td></tr>
-      <tr>
-        <td class="field-check-no">${ref}</td>
-        <td class="field-check-question">${question}</td>
-        <td class="field-check-ref">${internalRef}</td>
-        <td class="field-check-ref">${externalRef}</td>
-      </tr>
-    </tbody>
-  </table>`;
+  return `<div class="check-input-card field-card-toggle" onclick="toggleCheckItem(${idx})" tabindex="0" aria-label="점검항목 열기">
+    <div class="check-input-top">
+      <span class="check-input-no">${ref}</span>
+      <div class="check-input-section">${sectionTitle}</div>
+      ${resultBadge}
+    </div>
+    <div class="check-input-question">${question}</div>
+    <div class="check-input-refs">
+      ${internalRef ? `<div class="check-ref-line"><span class="check-ref-label">Internal Ref.</span><span>${internalRef}</span></div>` : ''}
+      ${externalRef ? `<div class="check-ref-line"><span class="check-ref-label">External Ref.</span><span>${externalRef}</span></div>` : ''}
+    </div>
+  </div>`;
 }
 
 function renderResultPanel(audit, item){
   const idx = item._idx;
-  const result = item.result || '';
+  const result = normalizeResultValue(item.result || '');
   const options = [
-    ['OK', 'Satisfaction', 'selected-ok'],
-    ['OBS', 'Observation', 'selected-obs'],
-    ['NG', 'Un-Satisfaction', 'selected-ng'],
-    ['NA', 'N/A', 'selected-na']
+    ['YES', 'YES', 'selected-ok'],
+    ['NO', 'NO', 'selected-ng'],
+    ['OBS', 'OBS', 'selected-obs'],
+    ['N/A', 'N/A', 'selected-na']
   ];
 
-  return `<table class="field-check-result">
-    <colgroup><col style="width:38%"><col style="width:62%"></colgroup>
-    <tbody>
-      <tr>
-        <td class="field-check-comment-label">Result</td>
-        <td>
-          <div class="field-result-row">
-            ${options.map(([value,label,cls])=>`<button class="field-choice ${result===value ? cls : ''}" onclick="setResult(${audit.id},${idx},'${value}')">${label}</button>`).join('')}
-          </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>`;
+  return `<div class="result-panel">
+    <div class="result-panel-title">Result</div>
+    <div class="field-result-row">
+      ${options.map(([value,label,cls])=>`<button class="field-choice ${result===value ? cls : ''}" onclick="setResult(${audit.id},${idx},'${value}')">${label}</button>`).join('')}
+    </div>
+  </div>`;
 }
 
 function renderMaturityPanel(audit, item){
@@ -1457,45 +1507,31 @@ function renderMaturityPanel(audit, item){
   const maturity = item.maturity || '';
   const maturityLevels = ['Conformity','Established','Mature','Leading'];
 
-  return `<table class="field-check-maturity">
-    <colgroup>
-      <col style="width:36mm"><col style="width:34mm"><col style="width:116mm">
-    </colgroup>
-    <tbody>
-      <tr>
-        <td rowspan="5" class="field-check-side">Maturity<br>Assessment</td>
-        <td class="field-check-head">Maturity<br>Level</td>
-        <td class="field-check-head">요구조건 / 판단기준</td>
-      </tr>
+  return `<div class="maturity-panel">
+    <div class="maturity-panel-title">Maturity Assessment</div>
+    <div class="maturity-level-list">
       ${maturityLevels.map(level=>{
         const c = getMaturityConsideration(item, level);
         const selected = maturity === level;
-        return `<tr>
-          <td class="field-check-level">${selected ? '■' : '□'} ${level}</td>
-          <td class="field-check-consider">
-            <strong>${esc(c.title)}</strong>${esc(c.body)}
-            <div class="field-check-actions">
-              <button class="field-choice ${selected ? 'selected-ok' : ''}" onclick="setMaturityResult(${audit.id},${idx},'${level}')">${level}</button>
-            </div>
-          </td>
-        </tr>`;
+        return `<div class="maturity-card ${selected ? 'selected' : ''}">
+          <div class="maturity-card-head">
+            <div class="maturity-card-title">${selected ? '■' : '□'} ${level}</div>
+            <button class="field-choice ${selected ? 'selected-ok' : ''}" onclick="setMaturityResult(${audit.id},${idx},'${level}')">선택</button>
+          </div>
+          <div class="maturity-card-desc"><strong>${esc(c.title)}</strong>${c.body ? `<br>${esc(c.body)}` : ''}</div>
+        </div>`;
       }).join('')}
-    </tbody>
-  </table>`;
+    </div>
+  </div>`;
 }
 
 function renderCommentPanel(audit, item){
   const idx = item._idx;
   const note = esc(item.note || '');
-  return `<table class="field-check-comment">
-    <colgroup><col style="width:70mm"><col style="width:116mm"></colgroup>
-    <tbody>
-      <tr>
-        <td class="field-check-comment-label">Comment(s)</td>
-        <td><textarea rows="3" placeholder="판단 근거, 관찰 내용 등을 입력하세요" onchange="setNote(${audit.id},${idx},this.value)">${note}</textarea></td>
-      </tr>
-    </tbody>
-  </table>`;
+  return `<div class="comment-panel">
+    <div class="comment-panel-title">Comment(s)</div>
+    <textarea rows="2" placeholder="판단 근거, 관찰 내용 등을 입력하세요" onchange="setNote(${audit.id},${idx},this.value)">${note}</textarea>
+  </div>`;
 }
 
 function renderEvidencePanel(audit, item){
@@ -1544,10 +1580,10 @@ function renderChecklist(audit){
   const total = items.length;
   const ans = items.filter(i=>i.result).length;
   const pct = total ? Math.round(ans/total*100) : 0;
-  const ok = items.filter(i=>i.result==='OK').length;
-  const ng = items.filter(i=>i.result==='NG').length;
-  const na = items.filter(i=>i.result==='NA').length;
-  const obs = items.filter(i=>i.result==='OBS').length;
+  const ok = items.filter(i=>normalizeResultValue(i.result)==='YES').length;
+  const ng = items.filter(i=>normalizeResultValue(i.result)==='NO').length;
+  const na = items.filter(i=>normalizeResultValue(i.result)==='N/A').length;
+  const obs = items.filter(i=>normalizeResultValue(i.result)==='OBS').length;
 
   const sections = {};
   items.forEach((item,idx)=>{
@@ -1572,9 +1608,9 @@ function renderChecklist(audit){
         <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
         <div class="prog-label"><span>${ans}/${total} 항목 완료 (${pct}%)</span></div>
         <div class="result-count-row">
-          <span class="badge badge-ok">OK ${ok}</span>
-          <span class="badge badge-ng">NG ${ng}</span>
-          <span class="badge badge-na">NA ${na}</span>
+          <span class="badge badge-ok">YES ${ok}</span>
+          <span class="badge badge-ng">NO ${ng}</span>
+          <span class="badge badge-na">N/A ${na}</span>
           <span class="badge badge-obs">OBS ${obs}</span>
         </div>
       </div>
@@ -1631,7 +1667,7 @@ async function setResult(auditId, idx, result){
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
   const wasAnswered = !!audit.items[idx].result;
-  audit.items[idx].result = result;
+  audit.items[idx].result = normalizeResultValue(result);
   currentAudit = audit;
   await dbPut('audits', audit);
 
@@ -1770,7 +1806,7 @@ function handleFileSelect(file){
           establishedCriteria,
           matureCriteria,
           leadingCriteria,
-          type: type || 'OK/NG/NA/OBS'
+          type: type || 'YES/NO/OBS/N/A'
         }));
       }
       if(items.length===0){ showToast('항목을 찾을 수 없습니다. 형식을 확인하세요'); return; }
@@ -1950,10 +1986,10 @@ async function exportExcel(id){
   const wb = XLSX.utils.book_new();
 
   // Summary sheet
-  const ok=audit.items.filter(i=>i.result==='OK').length;
-  const ng=audit.items.filter(i=>i.result==='NG').length;
-  const na=audit.items.filter(i=>i.result==='NA').length;
-  const obs=audit.items.filter(i=>i.result==='OBS').length;
+  const ok=audit.items.filter(i=>normalizeResultValue(i.result)==='YES').length;
+  const ng=audit.items.filter(i=>normalizeResultValue(i.result)==='NO').length;
+  const na=audit.items.filter(i=>normalizeResultValue(i.result)==='N/A').length;
+  const obs=audit.items.filter(i=>normalizeResultValue(i.result)==='OBS').length;
   const total=audit.items.length;
 
   const sumData=[
@@ -1966,10 +2002,10 @@ async function exportExcel(id){
     ['작성일', new Date().toLocaleDateString('ko-KR')],
     [],
     ['구분','건수','비율'],
-    ['OK (적합)', ok, total?Math.round(ok/total*100)+'%':''],
-    ['NG (부적합)', ng, total?Math.round(ng/total*100)+'%':''],
-    ['NA (해당없음)', na, total?Math.round(na/total*100)+'%':''],
-    ['OBS (관찰사항)', obs, total?Math.round(obs/total*100)+'%':''],
+    ['YES', ok, total?Math.round(ok/total*100)+'%':''],
+    ['NO', ng, total?Math.round(ng/total*100)+'%':''],
+    ['N/A', na, total?Math.round(na/total*100)+'%':''],
+    ['OBS', obs, total?Math.round(obs/total*100)+'%':''],
     ['합계', total, '100%'],
   ];
   const wsSum = XLSX.utils.aoa_to_sheet(sumData);
@@ -1979,14 +2015,14 @@ async function exportExcel(id){
   // Detail sheet
   const detailData=[['섹션','항목번호','점검 항목','참조규정','결과','비고']];
   audit.items.forEach(item=>{
-    detailData.push([item.section||'',item.ref||'',item.question||'',item.refStd||'',item.result||'',item.note||'']);
+    detailData.push([item.section||'',item.ref||'',item.question||'',item.refStd||'',normalizeResultValue(item.result)||'',item.note||'']);
   });
   const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
   wsDetail['!cols']=[{wch:16},{wch:12},{wch:50},{wch:20},{wch:8},{wch:40}];
   XLSX.utils.book_append_sheet(wb, wsDetail, '점검결과');
 
   // NG sheet
-  const ngItems = audit.items.filter(i=>i.result==='NG');
+  const ngItems = audit.items.filter(i=>normalizeResultValue(i.result)==='NO');
   if(ngItems.length>0){
     const ngData=[['섹션','항목번호','부적합 내용','세부사항']];
     ngItems.forEach(item=>{
@@ -2047,16 +2083,16 @@ function loadReportTemplate(type){
 function getResultSummary(audit){
   const items = audit.items || [];
   const total = items.length;
-  const ok = items.filter(i=>i.result==='OK').length;
-  const ng = items.filter(i=>i.result==='NG').length;
-  const na = items.filter(i=>i.result==='NA').length;
-  const obs = items.filter(i=>i.result==='OBS').length;
+  const ok = items.filter(i=>normalizeResultValue(i.result)==='YES').length;
+  const ng = items.filter(i=>normalizeResultValue(i.result)==='NO').length;
+  const na = items.filter(i=>normalizeResultValue(i.result)==='N/A').length;
+  const obs = items.filter(i=>normalizeResultValue(i.result)==='OBS').length;
   return {total, ok, ng, na, obs};
 }
 
 function renderSummaryRows(audit){
   const {total, ok, ng, na, obs} = getResultSummary(audit);
-  return [['OK','적합',ok],['NG','부적합',ng],['NA','해당없음',na],['OBS','관찰사항',obs]].map(([r,l,n])=>`
+  return [['YES','적합',ok],['NO','부적합',ng],['OBS','관찰사항',obs],['N/A','해당없음',na]].map(([r,l,n])=>`
 <tr><td><span class="result ${r.toLowerCase()}">${r}</span> ${l}</td><td>${n}건</td><td>${total?Math.round(n/total*100):0}%</td><td></td></tr>`).join('');
 }
 
@@ -2079,13 +2115,13 @@ ${items.map(item=>`<tr>
   <td>${esc(item.ref||'')}</td>
   <td>${esc(item.question)}</td>
   <td>${esc(item.refStd||'')}</td>
-  <td>${item.result?`<span class="result ${item.result.toLowerCase()}">${item.result}</span>`:'-'}</td>
+  <td>${normalizeResultValue(item.result)?`<span class="result ${resultCssClass(item.result)}">${normalizeResultValue(item.result)}</span>`:'-'}</td>
   <td>${esc(item.note||'')}</td>
 </tr>`).join('')}</table>`).join('');
 }
 
 function renderType1NgSection(audit){
-  const ngItems = (audit.items || []).filter(i=>i.result==='NG');
+  const ngItems = (audit.items || []).filter(i=>normalizeResultValue(i.result)==='NO');
   if(ngItems.length === 0) return '';
   return `<h2>부적합 사항 목록</h2>
 <table><tr><th style="width:10%">번호</th><th style="width:45%">부적합 내용</th><th style="width:45%">세부 사항</th></tr>
@@ -2097,7 +2133,7 @@ ${ngItems.map(item=>`<tr>
 }
 
 function resultSelected(item, result){
-  return item.result === result ? ' selected' : '';
+  return normalizeResultValue(item.result) === result ? ' selected' : '';
 }
 
 function renderFieldAuditItem(item, index){
@@ -2139,10 +2175,10 @@ function renderFieldAuditItem(item, index){
       <colgroup><col style="width:46.5mm"><col style="width:46.5mm"><col style="width:46.5mm"><col style="width:46.5mm"></colgroup>
       <tbody>
         <tr>
-          <td class="result-row-label"><span class="checkbox${resultSelected(item,'OK')}">Satisfaction</span></td>
-          <td class="result-row-label"><span class="checkbox${resultSelected(item,'OBS')}">Observation</span></td>
-          <td class="result-row-label"><span class="checkbox${resultSelected(item,'NG')}">Un-Satisfaction</span></td>
-          <td class="result-row-label"><span class="checkbox${resultSelected(item,'NA')}">N/A</span></td>
+          <td class="result-row-label"><span class="checkbox${resultSelected(item,'YES')}">YES</span></td>
+          <td class="result-row-label"><span class="checkbox${resultSelected(item,'NO')}">NO</span></td>
+          <td class="result-row-label"><span class="checkbox${resultSelected(item,'OBS')}">OBS</span></td>
+          <td class="result-row-label"><span class="checkbox${resultSelected(item,'N/A')}">N/A</span></td>
         </tr>
       </tbody>
     </table>
@@ -2233,7 +2269,7 @@ async function exportPDF(id){
 <h2 style="text-align:center">${esc(audit.title)} 점검 결과</h2>
 <p>심사원: ${esc(audit.auditor||'')} | 부서: ${esc(audit.dept||'')} | 일자: ${esc(audit.date||'')}</p>
 <table><tr><th>번호</th><th>점검 항목</th><th>참조규정</th><th>결과</th><th>비고</th></tr>
-${audit.items.map(i=>`<tr><td>${esc(i.ref||'')}</td><td>${esc(i.question)}</td><td>${esc(i.refStd||'')}</td><td>${i.result||'-'}</td><td>${esc(i.note||'')}</td></tr>`).join('')}
+${audit.items.map(i=>`<tr><td>${esc(i.ref||'')}</td><td>${esc(i.question)}</td><td>${esc(i.refStd||'')}</td><td>${normalizeResultValue(i.result)||'-'}</td><td>${esc(i.note||'')}</td></tr>`).join('')}
 </table></body></html>`);
   w.document.close();
   w.focus();
