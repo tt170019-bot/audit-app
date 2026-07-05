@@ -715,6 +715,128 @@ textarea {
   }
 }
 
+
+/* =========================================================
+   Mobile Vertical Space Optimization Patch
+   Scope:
+   - Compact sticky section navigation
+   - Reduce result button vertical gap
+   - Compact maturity assessment cards
+   - Keep existing JS/data/export logic untouched
+========================================================= */
+
+/* 1) Compact sticky section navigation */
+.detail-anchor-nav {
+  gap: var(--space-050);
+  padding: var(--space-075) var(--mobile-page-padding);
+}
+
+.anchor-chip {
+  min-height: 2.375rem; /* 38px */
+  padding-inline: var(--space-150);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  line-height: 1.125rem;
+  font-weight: var(--ads-weight-medium);
+}
+
+/* 2) Reduce result panel density */
+.result-panel,
+.maturity-panel,
+.comment-panel,
+.field-photo-panel {
+  padding-top: var(--space-150);
+}
+
+.result-panel-title,
+.maturity-panel-title,
+.comment-panel-title {
+  margin-bottom: var(--space-075);
+}
+
+.field-result-row {
+  gap: var(--space-075);
+}
+
+.field-result-row .field-choice {
+  min-height: 2.625rem; /* 42px */
+}
+
+/* 3) Compact maturity assessment */
+.maturity-level-list {
+  gap: var(--space-075);
+}
+
+.maturity-card {
+  padding: var(--space-125, 0.625rem) var(--space-150);
+  border-radius: var(--radius-medium);
+}
+
+.maturity-card-head {
+  gap: var(--space-075);
+  margin-bottom: var(--space-050);
+}
+
+.maturity-card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+}
+
+.maturity-card-head .field-choice {
+  flex: 0 0 48%;
+  min-height: 2.625rem; /* 42px */
+  padding-inline: var(--space-150);
+  border-radius: var(--radius-full);
+  font-size: 0.9375rem;
+}
+
+.maturity-card-desc {
+  font-size: 0.875rem;
+  line-height: 1.3125rem;
+}
+
+.maturity-card-desc strong {
+  display: block;
+  margin-bottom: var(--space-025);
+}
+
+/* 4) Compact comment area */
+.comment-panel textarea {
+  min-height: 3.5rem;
+}
+
+@media (max-width: 47.9375rem) {
+  .detail-anchor-nav {
+    padding-block: var(--space-075);
+  }
+
+  .anchor-chip {
+    min-height: 2.375rem;
+    padding-inline: var(--space-150);
+    font-size: 0.875rem;
+  }
+
+  .maturity-card {
+    padding: 0.625rem 0.75rem;
+  }
+
+  .maturity-card-head {
+    align-items: center;
+  }
+
+  .maturity-card-head .field-choice {
+    flex-basis: 46%;
+    min-height: 2.625rem;
+  }
+
+  .maturity-card-desc {
+    font-size: 0.875rem;
+    line-height: 1.3125rem;
+  }
+}
+
 </style>
 </head>
 <body>
