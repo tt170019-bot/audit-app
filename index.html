@@ -300,7 +300,17 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-title-wrap { min-width: 0; flex: 1; }
 .detail-title { font-size: var(--ads-heading-small-size); line-height: var(--ads-heading-small-line); font-weight: var(--ads-weight-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detail-meta { margin-top: var(--space-025); color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.detail-progress { padding-top: var(--space-150); }
+.detail-progress { padding-top: var(--space-100); }
+.detail-progress-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); margin-bottom: var(--space-075); }
+.detail-progress-text { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); white-space: nowrap; }
+.detail-result-counts { margin-top: 0; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.detail-result-counts::-webkit-scrollbar { display: none; }
+.detail-prog-wrap { margin: 0; }
+@media (max-width: 47.9375rem) {
+  .detail-progress-head { gap: var(--space-075); }
+  .detail-result-counts { gap: var(--space-050); }
+  .detail-result-counts .badge { padding-inline: var(--space-050); }
+}
 .detail-anchor-nav { position: sticky; top: var(--detail-sticky-offset); z-index: 150; display: flex; gap: var(--space-075); overflow-x: auto; padding: var(--space-100) var(--mobile-page-padding); background: var(--ads-surface-sunken); border-bottom: var(--ui-border-width) solid var(--ads-border); box-shadow: 0 1px 0 rgba(9, 30, 66, 0.08); scrollbar-width: none; }
 .detail-anchor-nav::-webkit-scrollbar { display: none; }
 .anchor-chip { min-height: var(--touch-target-min); padding-inline: var(--space-150); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-full); background: var(--ads-surface); color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); white-space: nowrap; cursor: pointer; }
@@ -1854,14 +1864,16 @@ function renderChecklist(audit){
         <span class="badge ${audit.status==='done'?'badge-ok':'badge-obs'}">${audit.status==='done'?'완료':'진행 중'}</span>
       </div>
       <div class="detail-progress">
-        <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
-        <div class="prog-label"><span>${ans}/${total} 항목 완료 (${pct}%)</span></div>
-        <div class="result-count-row">
-          <span class="badge badge-ok">YES ${ok}</span>
-          <span class="badge badge-ng">NO ${ng}</span>
-          <span class="badge badge-na">N/A ${na}</span>
-          <span class="badge badge-obs">OBS ${obs}</span>
+        <div class="detail-progress-head">
+          <span class="detail-progress-text">${ans}/${total} 항목 완료 (${pct}%)</span>
+          <div class="result-count-row detail-result-counts">
+            <span class="badge badge-ok">YES ${ok}</span>
+            <span class="badge badge-ng">NO ${ng}</span>
+            <span class="badge badge-na">N/A ${na}</span>
+            <span class="badge badge-obs">OBS ${obs}</span>
+          </div>
         </div>
+        <div class="prog-wrap detail-prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
       </div>
     </div>
 
