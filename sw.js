@@ -1,4 +1,5 @@
-const CACHE_VERSION = 'audit-app-v17';
+const CACHE_VERSION = 'audit-app-v18';
+
 const APP_SHELL = [
   './index.html',
   './manifest.json',
