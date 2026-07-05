@@ -291,15 +291,15 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 
 
 /* Mobile detail view - harness v1 */
-.detail-shell { min-height: 100%; display: flex; flex-direction: column; background: var(--ads-surface-sunken); }
-.detail-top { position: sticky; top: 0; z-index: 120; background: var(--ads-surface); border-bottom: var(--ui-border-width) solid var(--ads-border); padding: calc(var(--space-100) + env(safe-area-inset-top, 0)) var(--mobile-page-padding) var(--space-150); }
+.detail-shell { --detail-sticky-offset: 0px; min-height: 100%; display: flex; flex-direction: column; background: var(--ads-surface-sunken); }
+.detail-top { position: sticky; top: 0; z-index: 160; background: var(--ads-surface); border-bottom: var(--ui-border-width) solid var(--ads-border); padding: calc(var(--space-100) + env(safe-area-inset-top, 0)) var(--mobile-page-padding) var(--space-150); }
 .detail-top-row { display: flex; align-items: center; gap: var(--space-100); }
 .detail-back { flex: 0 0 auto; width: var(--touch-target-min); min-height: var(--touch-target-min); padding-inline: var(--space-0); border-radius: var(--radius-full); }
 .detail-title-wrap { min-width: 0; flex: 1; }
 .detail-title { font-size: var(--ads-heading-small-size); line-height: var(--ads-heading-small-line); font-weight: var(--ads-weight-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detail-meta { margin-top: var(--space-025); color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detail-progress { padding-top: var(--space-150); }
-.detail-anchor-nav { position: sticky; top: calc(var(--ui-topbar-height) + env(safe-area-inset-top, 0)); z-index: 110; display: flex; gap: var(--space-075); overflow-x: auto; padding: var(--space-100) var(--mobile-page-padding); background: var(--ads-surface-sunken); border-bottom: var(--ui-border-width) solid var(--ads-border); scrollbar-width: none; }
+.detail-anchor-nav { position: sticky; top: var(--detail-sticky-offset); z-index: 150; display: flex; gap: var(--space-075); overflow-x: auto; padding: var(--space-100) var(--mobile-page-padding); background: var(--ads-surface-sunken); border-bottom: var(--ui-border-width) solid var(--ads-border); box-shadow: 0 1px 0 rgba(9, 30, 66, 0.08); scrollbar-width: none; }
 .detail-anchor-nav::-webkit-scrollbar { display: none; }
 .anchor-chip { min-height: var(--touch-target-min); padding-inline: var(--space-150); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-full); background: var(--ads-surface); color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); white-space: nowrap; cursor: pointer; }
 .anchor-chip:active { background: var(--ads-surface-container); }
@@ -313,13 +313,13 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-summary-value { color: var(--ads-text); font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-semibold); }
 .detail-bottom-action { position: fixed; left: 0; right: 0; bottom: 0; z-index: 180; display: flex; gap: var(--space-100); padding: var(--space-150) var(--mobile-page-padding) calc(var(--space-150) + env(safe-area-inset-bottom, 0)); background: var(--ads-surface); border-top: var(--ui-border-width) solid var(--ads-border); box-shadow: var(--shadow-overflow); }
 .detail-bottom-action .btn { min-height: var(--mobile-action-height); }
-.detail-section-start { scroll-margin-top: 8.5rem; }
+.detail-section-start { scroll-margin-top: calc(var(--detail-sticky-offset) + var(--touch-target-min) + var(--space-400)); }
 .check-section-summary { margin: var(--space-0) var(--space-150) var(--space-100); color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
 .result-count-row { display: flex; gap: var(--space-075); flex-wrap: wrap; margin-top: var(--space-100); }
 @media (min-width: 56.25rem) {
   .detail-shell { max-width: 72rem; margin: 0 auto; }
   .detail-content { display: grid; grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr); gap: var(--space-200); align-items: start; padding-inline: var(--space-200); }
-  .detail-summary-card { position: sticky; top: 7rem; margin: var(--space-200) var(--space-0); }
+  .detail-summary-card { position: sticky; top: calc(var(--detail-sticky-offset) + var(--touch-target-min) + var(--space-200)); margin: var(--space-200) var(--space-0); }
   .detail-checklist-column { min-width: 0; }
   .detail-bottom-action { left: 50%; transform: translateX(-50%); max-width: 72rem; border-inline: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large) var(--radius-large) 0 0; }
 }
@@ -1186,7 +1186,19 @@ async function openAudit(id){
   renderChecklist(currentAudit);
 }
 
+function syncDetailStickyOffset(){
+  const shell = document.querySelector('.detail-shell');
+  const top = document.querySelector('.detail-top');
+  if(!shell || !top) return;
+  shell.style.setProperty('--detail-sticky-offset', `${Math.ceil(top.getBoundingClientRect().height)}px`);
+}
+
+window.addEventListener('resize', () => {
+  if(currentAudit) syncDetailStickyOffset();
+});
+
 function scrollToChecklistSection(sectionId){
+  syncDetailStickyOffset();
   const el = document.getElementById(sectionId);
   if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
@@ -1291,6 +1303,7 @@ function renderChecklist(audit){
       <button class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>
     </div>
   </div>`;
+  requestAnimationFrame(syncDetailStickyOffset);
 }
 
 function toggleCheckItem(idx){
