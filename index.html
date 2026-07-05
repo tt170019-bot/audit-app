@@ -461,6 +461,15 @@ function dbDelete(store,id){
   });
 }
 
+function dbClear(store){
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(store,'readwrite');
+    const req=tx.objectStore(store).clear();
+    req.onsuccess=()=>res(req.result);
+    req.onerror=e=>rej(e);
+  });
+}
+
 // ═══════════════════════════════════════════════
 //  State
 // ═══════════════════════════════════════════════
@@ -952,6 +961,30 @@ async function renderTemplates(c){
     <div class="admin-panel-title">관리자 모드</div>
     <div class="admin-panel-desc">수동 Excel 업로드와 삭제 버튼이 표시됩니다. 일반 심사원 화면에서는 이 영역이 숨겨집니다.</div>
   </div>
+  <div class="section-header">저장 데이터 리셋</div>
+  <div class="card template-sync-card">
+    <div class="card-row">
+      <div class="flex-1">
+        <div class="label">심사 기록 초기화</div>
+        <div class="sub">기기에 저장된 심사 기록과 사진을 삭제합니다. 점검표는 유지됩니다.</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="resetAuditData()">기록 삭제</button>
+    </div>
+    <div class="card-row">
+      <div class="flex-1">
+        <div class="label">점검표 초기화</div>
+        <div class="sub">기기에 저장된 점검표를 삭제한 뒤, 온라인이면 공식 점검표를 다시 동기화합니다.</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="resetTemplateData()">점검표 삭제</button>
+    </div>
+    <div class="card-row">
+      <div class="flex-1">
+        <div class="label">전체 로컬 데이터 초기화</div>
+        <div class="sub">이 기기의 심사 기록, 사진, 수동 점검표, 동기화 점검표를 모두 삭제합니다.</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="resetAllLocalData()">전체 삭제</button>
+    </div>
+  </div>
   <div class="section-header">수동 점검표 업로드</div>
   <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-excel').click()"
     ondragover="event.preventDefault();this.classList.add('drag')"
@@ -1337,6 +1370,55 @@ function handleFileSelect(file){
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+
+async function resetAuditData(){
+  if(!isAdminMode()){ showToast('관리자 모드에서만 초기화할 수 있습니다'); return; }
+  const ok = confirm('이 기기에 저장된 모든 심사 기록과 사진을 삭제합니다. 점검표는 유지됩니다. 계속하시겠습니까?');
+  if(!ok) return;
+  await dbClear('audits');
+  currentAudit = null;
+  showToast('심사 기록이 삭제되었습니다');
+  switchTab('home');
+}
+
+async function resetTemplateData(){
+  if(!isAdminMode()){ showToast('관리자 모드에서만 초기화할 수 있습니다'); return; }
+  const ok = confirm('이 기기에 저장된 모든 점검표를 삭제합니다. 기존 심사 기록은 유지됩니다. 계속하시겠습니까?');
+  if(!ok) return;
+  await dbClear('templates');
+  showToast('점검표가 삭제되었습니다');
+  if(navigator.onLine){
+    try{
+      await autoLoadChecklists();
+      showToast('공식 점검표를 다시 동기화했습니다');
+    } catch(err){
+      console.warn('점검표 재동기화 실패:', err);
+      showToast('점검표 삭제 완료. 재동기화는 나중에 실행하세요');
+    }
+  }
+  switchTab('templates');
+}
+
+async function resetAllLocalData(){
+  if(!isAdminMode()){ showToast('관리자 모드에서만 초기화할 수 있습니다'); return; }
+  const first = confirm('이 기기의 모든 심사 기록, 사진, 점검표를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?');
+  if(!first) return;
+  const second = confirm('정말 전체 로컬 데이터를 삭제하시겠습니까?');
+  if(!second) return;
+  await Promise.all([dbClear('audits'), dbClear('templates')]);
+  currentAudit = null;
+  pendingPhotos = [];
+  showToast('전체 로컬 데이터가 삭제되었습니다');
+  if(navigator.onLine){
+    try{
+      await autoLoadChecklists();
+    } catch(err){
+      console.warn('전체 초기화 후 점검표 재동기화 실패:', err);
+    }
+  }
+  switchTab('home');
 }
 
 async function deleteTemplate(id, e){
