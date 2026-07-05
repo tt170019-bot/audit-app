@@ -568,9 +568,9 @@ async function repairStoredTemplates(){
 
 // ═══════════════════════════════════════════════
 //  자동 점검표 동기화 (checklists/index.json 기준)
-//  - 관리자는 GitHub checklists 폴더에 Excel만 추가/교체한다.
-//  - GitHub Actions가 checklists/index.json을 자동 생성/갱신한다.
-//  - 앱은 index.json의 sha/updatedAt을 기준으로 변경된 파일만 IndexedDB에 반영한다.
+//  - 관리자는 GitHub checklists 폴더에 Excel을 추가/교체한다.
+//  - 관리자는 checklists/index.json에 점검표 목록과 version 또는 updatedAt만 갱신한다.
+//  - 앱은 index.json의 version/updatedAt/sha를 기준으로 변경된 파일만 IndexedDB에 반영한다.
 //  - 기존 심사 데이터는 수정하지 않고, 새 심사부터 최신 점검표를 사용한다.
 // ═══════════════════════════════════════════════
 const CHECKLIST_INDEX_FILE = './checklists/index.json';
@@ -901,8 +901,8 @@ async function renderTemplates(c){
     <p>XLSX 파일을 탭하여 선택하거나<br>드래그 앤 드롭 하세요</p>
     <p class="template-helper">양식 다운로드 →</p>
   </div>
-  <div class="section-header" class="mt-150">Excel 컬럼 형식</div>
-  <div class="card" class="template-format-card">
+  <div class="section-header mt-150">Excel 컬럼 형식</div>
+  <div class="card template-format-card">
     ${['A: 섹션명 (예: 1. 운항 일반)','B: 항목번호 (예: FLT-001)','C: 점검 질문 (필수)','D: 참조규정 (예: OPS 1.2.3)','E: 점검유형 (OK/NG/NA/OBS)'].map(t=>`
     <div class="card-row"><div class="label template-format-label">${t}</div></div>`).join('')}
   </div>
@@ -910,7 +910,7 @@ async function renderTemplates(c){
   <div class="section-header">저장된 점검표 (${templates.length})</div>
   ${templates.length===0?`<div style="padding:20px 12px;color:var(--text3);font-size:14px;text-align:center">업로드된 점검표가 없습니다</div>`:
   templates.map(t=>`
-  <div class="card" class="template-format-card">
+  <div class="card template-format-card">
     <div class="card-row">
       <div class="flex-1">
         <div class="label">${esc(t.name)}</div>
