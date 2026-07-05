@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'audit-app-v9';
+const CACHE_VERSION = 'audit-app-v10';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
@@ -8,8 +8,7 @@ const APP_SHELL = [
 ];
 
 const OPTIONAL_ASSETS = [
-  './checklist-1.xlsx',
-  './checklist-2.xlsx'
+  './checklists.json'
 ];
 
 self.addEventListener('install', event => {
