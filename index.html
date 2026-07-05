@@ -904,22 +904,21 @@ async function autoLoadChecklists(){
 function updateOnlineTag(){
   const tag = document.getElementById('offline-tag');
   if(!tag) return Promise.resolve(false);
+  const pingUrl = `./index.html?online-check=${Date.now()}`;
 
-  // GitHub Pages / company proxy / Service Worker 환경에서는 HEAD ping이 실패해도
-  // 실제 앱 사용은 가능한 경우가 있어 navigator.onLine을 1차 기준으로 사용한다.
-  const online = navigator.onLine !== false;
-
-  if(online){
-    tag.textContent = 'ONLINE';
-    tag.classList.add('is-online');
-    tag.classList.remove('is-offline');
-    return Promise.resolve(true);
-  }
-
-  tag.textContent = 'OFFLINE';
-  tag.classList.add('is-offline');
-  tag.classList.remove('is-online');
-  return Promise.resolve(false);
+  return fetch(pingUrl, { method:'HEAD', cache:'no-store' })
+    .then(() => {
+      tag.textContent = 'ONLINE';
+      tag.classList.add('is-online');
+      tag.classList.remove('is-offline');
+      return true;
+    })
+    .catch(() => {
+      tag.textContent = 'OFFLINE';
+      tag.classList.add('is-offline');
+      tag.classList.remove('is-online');
+      return false;
+    });
 }
 
 // ═══════════════════════════════════════════════
