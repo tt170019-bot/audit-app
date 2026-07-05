@@ -1725,10 +1725,25 @@ function replaceTemplateTokens(template, values){
   return output;
 }
 
-function getAuditReportTemplateType(audit){
-  const inferred = inferReportTemplateType(audit);
-  if(inferred === 'report-type-2') return 'report-type-2';
-  return audit?.reportTemplate || inferred || 'report-type-1';
+async function getAuditReportTemplateType(audit){
+  // 1) First inspect the audit record itself.
+  const auditInferred = inferReportTemplateType(audit);
+  if(auditInferred === 'report-type-2') return 'report-type-2';
+
+  // 2) Existing audits may have been created before templateName/reportTemplate was stored.
+  //    In that case, resolve the original checklist template by templateId and infer from its filename/name.
+  if(audit?.templateId){
+    try{
+      const tpl = await getNormalizedTemplate(Number(audit.templateId));
+      const tplInferred = inferReportTemplateType(tpl);
+      if(tplInferred === 'report-type-2') return 'report-type-2';
+    } catch(e){
+      console.warn('보고서 양식 판별용 점검표 조회 실패:', e);
+    }
+  }
+
+  // 3) Fall back to the value saved in the audit, then default to type-1.
+  return audit?.reportTemplate || auditInferred || 'report-type-1';
 }
 
 function loadReportTemplate(type){
@@ -1860,7 +1875,7 @@ async function exportWord(id){
   if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
 
   try{
-    const type = getAuditReportTemplateType(audit);
+    const type = await getAuditReportTemplateType(audit);
     const template = await loadReportTemplate(type);
     const html = fillReportTemplate(template, audit, type);
     const blob = new Blob(['\ufeff' + html], {type:'application/msword;charset=utf-8'});
