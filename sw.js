@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'audit-app-v21';
+const CACHE_VERSION = 'audit-app-v22';
 
 const APP_SHELL = [
   './index.html',
@@ -13,7 +13,11 @@ const OPTIONAL_ASSETS = [];
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
-      .then(cache => Promise.allSettled([...APP_SHELL, ...OPTIONAL_ASSETS].map(url => cache.add(url))))
+      .then(async cache => {
+        await Promise.allSettled([...APP_SHELL, ...OPTIONAL_ASSETS].map(url => cache.add(url)));
+        const indexCached = await cache.match('./index.html');
+        if (!indexCached) throw new Error('Required app shell asset was not cached: ./index.html');
+      })
       .then(() => self.skipWaiting())
   );
 });
@@ -66,7 +70,10 @@ async function networkFirst(request) {
     }
     return response;
   } catch (error) {
-    return (await caches.match(request)) || getIndexFallback();
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    if (isNavigationRequest(request)) return getIndexFallback();
+    return new Response('', { status: 504, statusText: 'Offline and response not cached' });
   }
 }
 
