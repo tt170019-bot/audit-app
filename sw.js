@@ -2,14 +2,12 @@ const CACHE_VERSION = 'audit-app-v14';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
-  './xlsx.min.js',
+  './xlsx.full.min.js',
   './icon-192.png',
   './icon-512.png'
 ];
 
-const OPTIONAL_ASSETS = [
-  './checklists/index.json'
-];
+const OPTIONAL_ASSETS = [];
 
 self.addEventListener('install', event => {
   event.waitUntil(
