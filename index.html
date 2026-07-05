@@ -609,14 +609,16 @@ async function repairStoredTemplates(){
 }
 
 // ═══════════════════════════════════════════════
-//  자동 점검표 동기화 (checklists/index.json 기준)
+//  자동 점검표 동기화 (GitHub Contents API 폴더 스캔 기준)
 //  - 관리자는 GitHub checklists 폴더에 Excel을 추가/교체한다.
-//  - 관리자는 checklists/index.json에 점검표 목록과 version 또는 updatedAt만 갱신한다.
-//  - 앱은 index.json의 version/updatedAt/sha를 기준으로 변경된 파일만 IndexedDB에 반영한다.
+//  - 앱은 GitHub Contents API로 checklists 폴더를 조회한다.
+//  - .xlsx/.xls 파일만 자동 동기화한다.
+//  - GitHub SHA를 기준으로 변경된 파일만 IndexedDB에 반영한다.
 //  - 기존 심사 데이터는 수정하지 않고, 새 심사부터 최신 점검표를 사용한다.
 // ═══════════════════════════════════════════════
-const CHECKLIST_INDEX_FILE = './checklists/index.json';
-const CHECKLIST_BASE_PATH = './checklists/';
+const CHECKLIST_FOLDER_PATH = 'checklists';
+const GITHUB_BRANCH = 'main';
+const GITHUB_API_BASE = 'https://api.github.com';
 
 function getChecklistDisplayName(filename){
   return String(filename || '')
@@ -627,34 +629,68 @@ function getChecklistDisplayName(filename){
     .trim() || '이름 없는 점검표';
 }
 
-function normalizeChecklistIndexItem(item){
-  if(!item || typeof item !== 'object') return null;
-  const rawFilename = String(item.filename || item.path || item.file || '').trim();
-  if(!rawFilename || !/\.(xlsx|xls)$/i.test(rawFilename)) return null;
+function getGitHubRepoInfo(){
+  const host = location.hostname;
+  const pathParts = location.pathname.split('/').filter(Boolean);
 
-  const filename = rawFilename.replace(/^\.\//, '').replace(/^checklists\//, '');
-  const fingerprint = String(item.sha || item.hash || item.etag || item.lastModified || item.updatedAt || item.version || '').trim();
+  if(host.endsWith('.github.io') && pathParts.length > 0){
+    return {
+      owner: host.replace('.github.io', ''),
+      repo: pathParts[0],
+      branch: GITHUB_BRANCH
+    };
+  }
+
+  // 로컬 테스트 또는 커스텀 도메인에서는 아래 값을 필요 시 직접 수정한다.
+  return {
+    owner: 'tt170019-bot',
+    repo: 'audit-app',
+    branch: GITHUB_BRANCH
+  };
+}
+
+function normalizeGitHubChecklistItem(item){
+  if(!item || typeof item !== 'object') return null;
+  if(item.type !== 'file') return null;
+  if(!/\.(xlsx|xls)$/i.test(item.name || '')) return null;
+  if(String(item.name || '').startsWith('~$')) return null;
+
+  const filename = String(item.name || '').trim();
+  const sha = String(item.sha || '').trim();
+  const downloadUrl = String(item.download_url || '').trim();
+
+  if(!filename || !downloadUrl) return null;
 
   return {
     filename,
-    path: `${CHECKLIST_BASE_PATH}${filename}`,
-    name: String(item.name || item.title || getChecklistDisplayName(filename)).trim(),
-    sha: String(item.sha || item.hash || '').trim(),
-    updatedAt: String(item.updatedAt || item.lastModified || item.version || '').trim(),
-    fingerprint: fingerprint || filename,
-    enabled: item.enabled !== false
+    path: downloadUrl,
+    name: getChecklistDisplayName(filename),
+    sha,
+    updatedAt: '',
+    fingerprint: sha || filename,
+    enabled: true
   };
 }
 
 async function loadChecklistIndex(){
+  const repo = getGitHubRepoInfo();
+  const apiUrl = `${GITHUB_API_BASE}/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/contents/${CHECKLIST_FOLDER_PATH}?ref=${encodeURIComponent(repo.branch)}&ts=${Date.now()}`;
+
   try{
-    const res = await fetch(`${CHECKLIST_INDEX_FILE}?ts=${Date.now()}`, {cache:'no-store'});
-    if(!res.ok) throw new Error(`checklists/index.json HTTP ${res.status}`);
+    const res = await fetch(apiUrl, {
+      cache: 'no-store',
+      headers: { 'Accept': 'application/vnd.github+json' }
+    });
+    if(!res.ok) throw new Error(`GitHub Contents API HTTP ${res.status}`);
+
     const data = await res.json();
-    const rawList = Array.isArray(data) ? data : Array.isArray(data?.checklists) ? data.checklists : [];
-    return rawList.map(normalizeChecklistIndexItem).filter(Boolean).filter(item => item.enabled);
+    const rawList = Array.isArray(data) ? data : [];
+    return rawList
+      .map(normalizeGitHubChecklistItem)
+      .filter(Boolean)
+      .sort((a,b)=>a.filename.localeCompare(b.filename, 'ko'));
   } catch(e){
-    console.warn('checklists/index.json 로드 실패. 저장된 점검표를 계속 사용합니다.', e);
+    console.warn('GitHub checklists 폴더 조회 실패. 저장된 점검표를 계속 사용합니다.', e);
     return [];
   }
 }
@@ -672,7 +708,7 @@ function getTemplateVersionLabel(template){
 }
 
 function getTemplateSourceLabel(template){
-  if(template?.source === 'github-index') return '자동동기화';
+  if((template?.source === 'github-api' || template?.source === 'github-index')) return '자동동기화';
   if(template?.source === 'preset') return '자동등록';
   return '수동등록';
 }
@@ -714,7 +750,7 @@ function extractChecklistItemsFromRows(rows){
 async function markSupersededTemplates(filename, keepTemplateKey, indexFilenames){
   const existing = await dbAll('templates');
   for(const t of existing){
-    if(t.source !== 'github-index' && t.source !== 'preset') continue;
+    if(t.source !== 'github-api' && t.source !== 'github-index' && t.source !== 'preset') continue;
     if(filename && t.filename === filename && t.templateKey !== keepTemplateKey && t.active !== false){
       await dbPut('templates', {...t, active:false, supersededAt:new Date().toISOString()});
     }
@@ -730,7 +766,7 @@ async function autoLoadChecklists(){
   let updated = 0;
 
   if(index.length === 0){
-    console.log('동기화할 GitHub 점검표가 없습니다. checklists/index.json을 확인하세요.');
+    console.log('동기화할 GitHub 점검표가 없습니다. checklists 폴더를 확인하세요.');
     return 0;
   }
 
@@ -767,7 +803,7 @@ async function autoLoadChecklists(){
         updatedAt: cl.updatedAt || '',
         fingerprint: cl.fingerprint,
         templateKey,
-        source: 'github-index',
+        source: 'github-api',
         active: true,
         importedAt: new Date().toISOString(),
         sections: parsed.sections,
@@ -934,14 +970,14 @@ async function renderTemplates(c){
   const admin = isAdminMode();
   const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
   const activeCount = templates.filter(t => t.active !== false).length;
-  const autoCount = templates.filter(t => t.source === 'github-index' && t.active !== false).length;
+  const autoCount = templates.filter(t => (t.source === 'github-api' || t.source === 'github-index') && t.active !== false).length;
 
   c.innerHTML=`
   <div class="section-header">공식 점검표</div>
   <div class="admin-panel">
     <div class="admin-panel-title">GitHub 공식 점검표 동기화</div>
     <div class="admin-panel-desc">
-      앱은 <code>checklists/index.json</code>을 기준으로 공식 Excel 점검표를 자동 동기화합니다.
+      앱은 GitHub <code>checklists/</code> 폴더의 Excel 파일을 자동 스캔하여 공식 점검표를 동기화합니다.
       기존 심사 기록은 변경하지 않고, 새 심사부터 최신 점검표가 적용됩니다.
     </div>
   </div>
@@ -1002,11 +1038,11 @@ async function renderTemplates(c){
   <div class="section-header">운영 안내</div>
   <div class="admin-panel">
     <div class="admin-panel-title">심사원 화면</div>
-    <div class="admin-panel-desc">점검표는 관리자가 GitHub에 배포한 공식 파일을 사용합니다. 수동 업로드와 삭제는 관리자 모드에서만 가능합니다.</div>
+    <div class="admin-panel-desc">점검표는 관리자가 GitHub checklists 폴더에 배포한 공식 파일을 사용합니다. 수동 업로드와 삭제는 관리자 모드에서만 가능합니다.</div>
   </div>`}
 
   <div class="section-header">저장된 점검표 (${templates.length})</div>
-  ${templates.length===0?`<div class="template-empty-message">저장된 점검표가 없습니다. 온라인 상태에서 동기화를 실행하세요.</div>`:
+  ${templates.length===0?`<div class="template-empty-message">저장된 점검표가 없습니다. 온라인 상태에서 GitHub checklists 폴더 동기화를 실행하세요.</div>`:
   templates.map(t=>`
   <div class="card template-format-card ${t.active === false ? 'template-card-inactive' : ''}">
     <div class="card-row">
