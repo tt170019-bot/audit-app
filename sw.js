@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'audit-app-v11';
+const CACHE_VERSION = 'audit-app-v12';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
@@ -34,6 +34,12 @@ function isSameOrigin(request) {
 function isOnlineCheck(request) {
   const url = new URL(request.url);
   return url.searchParams.has('online-check');
+}
+
+
+function isChecklistIndex(request) {
+  const url = new URL(request.url);
+  return url.pathname.endsWith('/checklists/index.json');
 }
 
 function isNavigationRequest(request) {
@@ -90,6 +96,11 @@ self.addEventListener('fetch', event => {
   }
 
   if (isNavigationRequest(request)) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  if (isChecklistIndex(request)) {
     event.respondWith(networkFirst(request));
     return;
   }
