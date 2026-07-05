@@ -467,395 +467,36 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 @media (min-width: 48rem) { .modal-sheet { max-width: 40rem; border-radius: var(--radius-xxlarge); margin-bottom: var(--space-300); } #content { max-width: 48rem; width: 100%; margin-inline: auto; } #tabbar { justify-content: center; } .tab-btn { max-width: 10rem; } }
 @media (min-width: 56.25rem) { #content { max-width: 72rem; } }
 
-/* =========================================================
-   Mobile / Tablet Typography Patch
-   Applied: Toss-like readability + Atlassian-like enterprise UI density
-   Scope: typography, line-height, touch target size only
-   ========================================================= */
-
-:root {
-  --font-page-title: 1.5rem;        /* 24px */
-  --font-section-title: 1.125rem;   /* 18px */
-  --font-card-title: 1rem;          /* 16px */
-  --font-checklist-title: 1rem;     /* 16px */
-  --font-body: 0.9375rem;           /* 15px */
-  --font-button: 0.9375rem;         /* 15px */
-  --font-input: 1rem;               /* 16px */
-  --font-badge: 0.8125rem;          /* 13px */
-  --font-helper: 0.8125rem;         /* 13px */
-  --font-caption: 0.75rem;          /* 12px */
-
-  --line-page-title: 2rem;          /* 32px */
-  --line-section-title: 1.625rem;   /* 26px */
-  --line-card-title: 1.5rem;        /* 24px */
-  --line-body: 1.375rem;            /* 22px */
-  --line-helper: 1.25rem;           /* 20px */
-
-  --ads-heading-large-size: var(--font-page-title);
-  --ads-heading-large-line: var(--line-page-title);
-  --ads-heading-medium-size: var(--font-page-title);
-  --ads-heading-medium-line: var(--line-page-title);
-  --ads-heading-small-size: var(--font-card-title);
-  --ads-heading-small-line: var(--line-card-title);
-  --ads-body-size: var(--font-body);
-  --ads-body-line: var(--line-body);
-  --ads-body-small-size: var(--font-helper);
-  --ads-body-small-line: var(--line-helper);
-
-  --ui-button-height: 2.75rem;
-  --ui-button-small-height: 2.75rem;
-  --ui-field-height: 2.75rem;
-  --touch-target-min: 2.75rem;
-  --mobile-action-height: 3.5rem;
-}
-
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-body {
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-}
-
-#topbar h1,
-.page-title,
-.app-title,
-.home-title,
-h1 {
-  font-size: var(--font-page-title);
-  line-height: var(--line-page-title);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.section-header,
-.section-title,
-h2 {
-  font-size: var(--font-section-title);
-  line-height: var(--line-section-title);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.card-title,
-.audit-item-title,
-.detail-title,
-.modal-title,
-.empty h3,
-.upload-zone h3,
-h3 {
-  font-size: var(--font-card-title);
-  line-height: var(--line-card-title);
-  font-weight: 600;
-}
-
-.check-q,
-.check-input-question,
-.checklist-item-title,
-.checklist-title,
-.question-title,
-.field-check-question {
-  font-size: var(--font-checklist-title);
-  line-height: var(--line-card-title);
-  font-weight: 600;
-}
-
-p,
-td,
-th,
-label,
-.card-row .label,
-.field-value,
-.description,
-.metadata,
-.audit-item-meta,
-.detail-summary-value,
-.check-input-card,
-.check-card,
-.audit-item,
-.stat-card {
-  font-size: var(--font-body);
-  line-height: var(--line-body);
-}
-
-.card-row .sub,
-.check-ref,
-.check-label,
-.check-num,
-.check-input-section,
-.check-input-no,
-.check-ref-line,
-.result-panel-title,
-.maturity-panel-title,
-.comment-panel-title,
-.maturity-card-desc,
-.audit-progress-note,
-.detail-meta,
-.detail-summary-label,
-.helper-text,
-.description-text,
-.form-hint,
-.subtext {
-  font-size: var(--font-helper);
-  line-height: var(--line-helper);
-}
-
-.caption,
-.timestamp,
-.small-text,
-.stat-lbl {
-  font-size: var(--font-caption);
-  line-height: 1.125rem;
-}
-
-button,
-.btn,
-.button,
-.ans-btn,
-.field-choice,
-.anchor-chip,
-.yes-no-button,
-.choice-button,
-.action-button {
-  font-size: var(--font-button);
-  min-height: var(--touch-target-min);
-  line-height: 1.25rem;
-}
-
-input,
-select,
-textarea {
-  font-size: var(--font-input);
-  min-height: var(--ui-field-height);
-  line-height: var(--line-body);
-}
-
-.badge,
-.lozenge,
-.dDay,
-.status-badge,
-.status-chip {
-  font-size: var(--font-badge);
-  line-height: 1.125rem;
-  font-weight: 600;
-}
-
-/* Legacy field-table mobile overrides: keep readable on phone/tablet */
-@media (max-width: 47.9375rem) {
-  .field-check-top th {
-    font-size: 0.8125rem;
-    line-height: 1.25;
-  }
-
-  .field-check-question {
-    font-size: 1rem;
-    line-height: 1.5rem;
-  }
-
-  .field-check-ref,
-  .field-check-consider,
-  .field-check-side,
-  .field-check-head,
-  .field-check-level,
-  .field-check-comment-label {
-    font-size: 0.8125rem;
-    line-height: 1.25rem;
-  }
-
-  .field-choice {
-    font-size: 0.9375rem;
-    min-height: 2.75rem;
-  }
-}
-
-@media (max-width: 47.9375rem) {
-  body {
-    font-size: var(--font-body);
-    line-height: var(--line-body);
-  }
-
-  .home-title,
-  #topbar h1,
-  h1 {
-    font-size: var(--font-page-title);
-    line-height: var(--line-page-title);
-  }
-
-  .section-header,
-  h2 {
-    font-size: var(--font-section-title);
-    line-height: var(--line-section-title);
-  }
-
-  .check-input-question,
-  .check-q,
-  h3 {
-    font-size: var(--font-checklist-title);
-    line-height: var(--line-card-title);
-  }
-
-  .field-result-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 48rem) and (max-width: 63.9375rem) {
-  body {
-    font-size: var(--font-body);
-    line-height: var(--line-body);
-  }
-
-  .check-input-question,
-  .check-q,
-  .field-check-question {
-    font-size: var(--font-checklist-title);
-    line-height: var(--line-card-title);
-  }
-}
-
 
 /* =========================================================
-   Mobile Vertical Space Optimization Patch
+   Final Harness UI Consistency Override
+   Version: 2026-07-06
    Scope:
-   - Compact sticky section navigation
-   - Reduce result button vertical gap
-   - Compact maturity assessment cards
-   - Keep existing JS/data/export logic untouched
+   - Radius consistency
+   - Spacing consistency
+   - Result/state color consistency
+   - Compact section navigation
+   - Compact maturity assessment
+   - Border/shadow consistency
+   Excluded:
+   - Font-size changes
+   - JavaScript / IndexedDB / export / service worker logic
 ========================================================= */
 
-/* 1) Compact sticky section navigation */
-.detail-anchor-nav {
-  gap: var(--space-050);
-  padding: var(--space-075) var(--mobile-page-padding);
-}
-
-.anchor-chip {
-  min-height: 2.375rem; /* 38px */
-  padding-inline: var(--space-150);
-  border-radius: var(--radius-full);
-  font-size: 0.875rem;
-  line-height: 1.125rem;
-  font-weight: var(--ads-weight-medium);
-}
-
-/* 2) Reduce result panel density */
-.result-panel,
-.maturity-panel,
-.comment-panel,
-.field-photo-panel {
-  padding-top: var(--space-150);
-}
-
-.result-panel-title,
-.maturity-panel-title,
-.comment-panel-title {
-  margin-bottom: var(--space-075);
-}
-
-.field-result-row {
-  gap: var(--space-075);
-}
-
-.field-result-row .field-choice {
-  min-height: 2.625rem; /* 42px */
-}
-
-/* 3) Compact maturity assessment */
-.maturity-level-list {
-  gap: var(--space-075);
-}
-
-.maturity-card {
-  padding: var(--space-125, 0.625rem) var(--space-150);
-  border-radius: var(--radius-medium);
-}
-
-.maturity-card-head {
-  gap: var(--space-075);
-  margin-bottom: var(--space-050);
-}
-
-.maturity-card-title {
-  flex: 1;
-  min-width: 0;
-  font-size: 0.9375rem;
-  line-height: 1.375rem;
-}
-
-.maturity-card-head .field-choice {
-  flex: 0 0 48%;
-  min-height: 2.625rem; /* 42px */
-  padding-inline: var(--space-150);
-  border-radius: var(--radius-full);
-  font-size: 0.9375rem;
-}
-
-.maturity-card-desc {
-  font-size: 0.875rem;
-  line-height: 1.3125rem;
-}
-
-.maturity-card-desc strong {
-  display: block;
-  margin-bottom: var(--space-025);
-}
-
-/* 4) Compact comment area */
-.comment-panel textarea {
-  min-height: 3.5rem;
-}
-
-@media (max-width: 47.9375rem) {
-  .detail-anchor-nav {
-    padding-block: var(--space-075);
-  }
-
-  .anchor-chip {
-    min-height: 2.375rem;
-    padding-inline: var(--space-150);
-    font-size: 0.875rem;
-  }
-
-  .maturity-card {
-    padding: 0.625rem 0.75rem;
-  }
-
-  .maturity-card-head {
-    align-items: center;
-  }
-
-  .maturity-card-head .field-choice {
-    flex-basis: 46%;
-    min-height: 2.625rem;
-  }
-
-  .maturity-card-desc {
-    font-size: 0.875rem;
-    line-height: 1.3125rem;
-  }
-}
-
-
-
-/* =========================================================
-   Harness Design Consistency Patch
-   Scope: radius, spacing, color, border, shadow, component consistency
-   Excluded: font-size changes
-   Logic/JS/Data/Export: untouched
-========================================================= */
 :root {
-  --radius-card: var(--radius-xxlarge);       /* 16px */
-  --radius-control: var(--radius-xxlarge);    /* 16px */
-  --radius-pill: var(--radius-full);          /* 9999px */
-  --component-border: var(--ui-border-width) solid var(--ads-border);
-  --component-border-strong: var(--ui-border-width) solid var(--ads-border-bold);
-  --component-border-selected: var(--ui-border-width-strong) solid var(--ads-brand);
-  --component-shadow: var(--shadow-raised);
+  --radius-card-final: var(--radius-xxlarge);
+  --radius-control-final: var(--radius-xxlarge);
+  --radius-pill-final: var(--radius-full);
+
+  --border-final: var(--ui-border-width) solid var(--ads-border);
+  --border-final-strong: var(--ui-border-width) solid var(--ads-border-bold);
+  --border-final-selected: var(--ui-border-width-strong) solid var(--ads-brand);
+
+  --shadow-final-rest: none;
+  --shadow-final-active: var(--shadow-raised);
 }
 
-/* Surface/radius normalization */
+/* ---------- Surface / Radius ---------- */
 .card,
 .check-card,
 .audit-item,
@@ -868,8 +509,8 @@ textarea {
 .export-card,
 .upload-zone,
 .maturity-card {
-  border-radius: var(--radius-card);
-  border: var(--component-border);
+  border-radius: var(--radius-card-final);
+  border: var(--border-final);
 }
 
 input[type=text],
@@ -880,7 +521,7 @@ select,
 .modal-sheet,
 .photo-thumb,
 .photo-add {
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-control-final);
 }
 
 .btn,
@@ -893,10 +534,10 @@ select,
 .status-badge,
 .status-chip,
 .check-input-no {
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-pill-final);
 }
 
-/* Border consistency */
+/* ---------- Border / Focus ---------- */
 .btn,
 .field-choice,
 .ans-btn,
@@ -906,7 +547,7 @@ input[type=date],
 input[type=number],
 textarea,
 select {
-  border: var(--component-border);
+  border: var(--border-final);
 }
 
 .btn:hover,
@@ -929,38 +570,44 @@ select:focus {
   box-shadow: 0 0 0 var(--ui-border-width) var(--ads-brand);
 }
 
-/* Shadow consistency: restrained enterprise surface */
+/* ---------- Shadow ---------- */
 .field-check-card,
 .audit-item,
 .stat-card,
 .card,
 .detail-summary-card,
 .maturity-card {
-  box-shadow: none;
+  box-shadow: var(--shadow-final-rest);
 }
 
 .field-check-card.answered,
 .maturity-card.selected,
 .audit-item:active {
-  box-shadow: var(--component-shadow);
+  box-shadow: var(--shadow-final-active);
 }
 
-/* Header/section area consistency */
+/* ---------- Sticky Header / Section Navigation ---------- */
 .detail-top {
   background: var(--ads-surface);
-  border-bottom: var(--component-border);
+  border-bottom: var(--border-final);
   box-shadow: none;
 }
 
 .detail-anchor-nav {
   background: var(--ads-surface);
-  border-bottom: var(--component-border);
+  border-bottom: var(--border-final);
   box-shadow: none;
+  gap: var(--space-050);
+  padding: var(--space-075) var(--mobile-page-padding);
 }
 
 .anchor-chip {
+  min-height: 2.375rem;
+  padding-inline: var(--space-150);
   background: var(--ads-surface);
   color: var(--ads-text-subtle);
+  line-height: 1.125rem;
+  font-weight: var(--ads-weight-medium);
 }
 
 .anchor-chip:active,
@@ -970,13 +617,20 @@ select:focus {
   color: var(--ads-brand);
 }
 
-/* Button hierarchy consistency */
+/* ---------- Button Hierarchy ---------- */
 .btn-primary,
 .btn-teal,
 .detail-bottom-action .btn-teal {
   background: var(--ads-brand);
   border-color: var(--ads-brand);
   color: var(--ads-text-inverse);
+}
+
+.btn-primary:hover,
+.btn-teal:hover,
+.detail-bottom-action .btn-teal:hover {
+  background: var(--ads-brand-hovered);
+  border-color: var(--ads-brand-hovered);
 }
 
 .btn-ghost,
@@ -992,7 +646,7 @@ select:focus {
   color: var(--ads-text-inverse);
 }
 
-/* Result/state colors: state colors only for actual result status */
+/* ---------- Result State Colors ---------- */
 .field-choice.selected-ok,
 .ans-btn.sel-ok,
 .badge-ok {
@@ -1025,10 +679,10 @@ select:focus {
   color: var(--ads-neutral-text);
 }
 
-/* Selection color: non-result selection uses brand, not success green */
+/* Maturity selection is a selection state, not a YES/success state. */
 .maturity-card.selected {
   background: var(--ads-information-bg);
-  border: var(--component-border-selected);
+  border: var(--border-final-selected);
 }
 
 .maturity-card.selected .maturity-card-title,
@@ -1049,7 +703,7 @@ select:focus {
   color: var(--ads-text-inverse);
 }
 
-/* Spacing rhythm normalization: 4/8/12/16/24/32 only */
+/* ---------- Spacing Rhythm: 4 / 8 / 12 / 16 / 24 / 32 ---------- */
 .card,
 .audit-item,
 .check-card,
@@ -1069,9 +723,7 @@ select:focus {
 .check-input-card,
 .modal-body,
 .modal-actions,
-.admin-panel,
-.upload-zone,
-.maturity-card {
+.admin-panel {
   padding: var(--space-200);
 }
 
@@ -1086,45 +738,78 @@ select:focus {
 .audit-item-head,
 .result-count-row,
 .field-result-row,
-.maturity-level-list,
 .template-actions,
 .export-badge-row,
 .photo-row {
   gap: var(--space-100);
 }
 
+/* ---------- Result Panel Compactness ---------- */
 .result-panel,
 .maturity-panel,
 .comment-panel,
 .field-photo-panel {
-  padding-top: var(--space-200);
+  padding-top: var(--space-150);
 }
 
 .result-panel-title,
 .maturity-panel-title,
 .comment-panel-title,
 .check-label {
-  margin-bottom: var(--space-100);
+  margin-bottom: var(--space-075);
+}
+
+.field-result-row {
+  gap: var(--space-075);
+}
+
+.field-result-row .field-choice {
+  min-height: 2.625rem;
+}
+
+/* ---------- Maturity Compactness ---------- */
+.maturity-level-list {
+  gap: var(--space-075);
+}
+
+.maturity-card {
+  padding: var(--space-150);
+  background: var(--ads-surface);
 }
 
 .maturity-card-head {
-  margin-bottom: var(--space-100);
+  gap: var(--space-075);
+  margin-bottom: var(--space-050);
+  align-items: center;
 }
 
-/* Component consistency: chips and buttons visually related */
-.anchor-chip,
-.field-choice,
-.ans-btn {
-  background: var(--ads-surface);
-  color: var(--ads-text);
+.maturity-card-title {
+  flex: 1;
+  min-width: 0;
 }
 
-.field-result-row .field-choice,
 .maturity-card-head .field-choice {
-  min-height: var(--touch-target-min);
+  flex: 0 0 46%;
+  min-height: 2.625rem;
+  padding-inline: var(--space-150);
 }
 
-/* Lozenge should not stretch full width */
+.maturity-card-desc strong {
+  display: block;
+  margin-bottom: var(--space-025);
+}
+
+/* ---------- Comment / Photo ---------- */
+.comment-panel textarea {
+  min-height: 3.5rem;
+}
+
+.field-photo-panel,
+.comment-panel textarea {
+  background: var(--ads-surface);
+}
+
+/* ---------- Lozenge Width ---------- */
 .badge,
 .lozenge,
 .dDay,
@@ -1134,13 +819,7 @@ select:focus {
   flex: 0 0 auto;
 }
 
-/* Neutralize excessive nested gray surfaces */
-.maturity-card,
-.field-photo-panel,
-.comment-panel textarea {
-  background: var(--ads-surface);
-}
-
+/* ---------- Mobile ---------- */
 @media (max-width: 47.9375rem) {
   .card,
   .audit-item,
@@ -1161,14 +840,27 @@ select:focus {
   .check-input-card,
   .modal-body,
   .modal-actions,
-  .admin-panel,
-  .maturity-card {
+  .admin-panel {
     padding: var(--space-200);
   }
 
   .detail-anchor-nav {
-    padding: var(--space-100) var(--mobile-page-padding);
-    gap: var(--space-100);
+    padding: var(--space-075) var(--mobile-page-padding);
+    gap: var(--space-050);
+  }
+
+  .anchor-chip {
+    min-height: 2.375rem;
+    padding-inline: var(--space-150);
+  }
+
+  .maturity-card {
+    padding: var(--space-150);
+  }
+
+  .maturity-card-head .field-choice {
+    flex-basis: 46%;
+    min-height: 2.625rem;
   }
 }
 
