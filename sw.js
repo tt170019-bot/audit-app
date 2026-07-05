@@ -1,19 +1,21 @@
-const CACHE = 'audit-app-v6';
-
-const ASSETS = [
+const CACHE_VERSION = 'audit-app-v8';
+const APP_SHELL = [
   './index.html',
   './manifest.json',
   './xlsx.min.js',
   './icon-192.png',
-  './icon-512.png',
+  './icon-512.png'
+];
+
+const OPTIONAL_ASSETS = [
   './checklist-1.xlsx',
   './checklist-2.xlsx'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE)
-      .then(cache => Promise.allSettled(ASSETS.map(url => cache.add(url))))
+    caches.open(CACHE_VERSION)
+      .then(cache => Promise.allSettled([...APP_SHELL, ...OPTIONAL_ASSETS].map(url => cache.add(url))))
       .then(() => self.skipWaiting())
   );
 });
@@ -21,27 +23,82 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE_VERSION).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-  if (!event.request.url.startsWith('http')) return;
+function isSameOrigin(request) {
+  return new URL(request.url).origin === self.location.origin;
+}
 
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE).then(cache => cache.put(event.request, clone));
-        }
-        return response;
-      })
-      .catch(() => {
-        return caches.match(event.request)
-          .then(cached => cached || caches.match('./index.html'));
-      })
-  );
+function isOnlineCheck(request) {
+  const url = new URL(request.url);
+  return url.searchParams.has('online-check');
+}
+
+function isNavigationRequest(request) {
+  return request.mode === 'navigate' || (request.destination === 'document' && request.headers.get('accept')?.includes('text/html'));
+}
+
+function isStaticAsset(request) {
+  const url = new URL(request.url);
+  return /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|json|xlsx|xls)$/i.test(url.pathname);
+}
+
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
+      const cache = await caches.open(CACHE_VERSION);
+      await cache.put(request, response.clone());
+      if (isNavigationRequest(request)) await cache.put('./index.html', response.clone());
+    }
+    return response;
+  } catch (error) {
+    return (await caches.match(request)) || (await caches.match('./index.html'));
+  }
+}
+
+async function cacheFirstWithRefresh(request) {
+  const cached = await caches.match(request);
+  const refresh = fetch(request)
+    .then(async response => {
+      if (response && response.status === 200 && response.type !== 'opaque') {
+        const cache = await caches.open(CACHE_VERSION);
+        await cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => null);
+
+  return cached || refresh || caches.match('./index.html');
+}
+
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  if (request.method !== 'GET') return;
+  if (!request.url.startsWith('http')) return;
+
+  if (isOnlineCheck(request)) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  if (!isSameOrigin(request)) {
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    return;
+  }
+
+  if (isNavigationRequest(request)) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  if (isStaticAsset(request)) {
+    event.respondWith(cacheFirstWithRefresh(request));
+    return;
+  }
+
+  event.respondWith(networkFirst(request));
 });
