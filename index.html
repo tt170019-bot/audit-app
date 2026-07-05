@@ -309,6 +309,15 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .export-meta { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtlest); }
 .photo-thumb-clickable { cursor: pointer; }
 
+
+.admin-panel { margin: var(--space-0) var(--space-150) var(--space-150); padding: var(--space-200); background: var(--ads-information-bg); border: var(--ui-border-width) solid var(--ads-information-bold); border-radius: var(--radius-large); }
+.admin-panel-title { font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-semibold); color: var(--ads-information-text); margin-bottom: var(--space-050); }
+.admin-panel-desc { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtle); }
+.template-sync-card { margin: var(--space-0) var(--space-150) var(--space-150); }
+.template-empty-message { padding: var(--space-300) var(--space-150); color: var(--ads-text-subtlest); font-size: var(--ads-body-size); line-height: var(--ads-body-line); text-align: center; }
+.template-card-inactive { opacity: 0.68; }
+.template-actions { display: flex; gap: var(--space-100); flex-wrap: wrap; }
+
 ::-webkit-scrollbar { width: var(--space-050); }
 ::-webkit-scrollbar-thumb { background: var(--ads-border-bold); border-radius: var(--radius-full); }
 .icon { display: inline-flex; align-items: center; justify-content: center; }
@@ -460,9 +469,33 @@ let currentAudit = null;
 let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
 
+// 관리자 모드
+// - 일반 사용자는 GitHub에서 동기화된 공식 점검표로 심사만 수행한다.
+// - 관리자는 URL에 ?admin=1을 붙여 점검표 업로드/삭제 등 관리 기능을 표시한다.
+const ADMIN_MODE_STORAGE_KEY = 'auditAppAdminMode';
+
+function initAdminModeFromUrl(){
+  const params = new URLSearchParams(location.search);
+  if(params.get('admin') === '1') localStorage.setItem(ADMIN_MODE_STORAGE_KEY, '1');
+  if(params.get('admin') === '0') localStorage.removeItem(ADMIN_MODE_STORAGE_KEY);
+}
+
+function isAdminMode(){
+  return localStorage.getItem(ADMIN_MODE_STORAGE_KEY) === '1';
+}
+
+function setAdminMode(enabled){
+  if(enabled) localStorage.setItem(ADMIN_MODE_STORAGE_KEY, '1');
+  else localStorage.removeItem(ADMIN_MODE_STORAGE_KEY);
+  showToast(enabled ? '관리자 모드가 켜졌습니다' : '관리자 모드가 꺼졌습니다');
+  switchTab(currentTab);
+}
+
 // ═══════════════════════════════════════════════
 //  Init
 // ═══════════════════════════════════════════════
+initAdminModeFromUrl();
+
 openDB().then(()=>{
   updateOnlineTag();
   window.addEventListener('online', updateOnlineTag);
@@ -816,13 +849,13 @@ async function renderHome(c){
 
   <div class="section-header">빠른 시작</div>
   <div class="quick-actions">
-    <button class="btn btn-teal" class="flex-1" onclick="openNewAuditModal()">
+    <button class="btn btn-teal flex-1" onclick="openNewAuditModal()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       새 심사 시작
     </button>
-    <button class="btn btn-ghost" class="flex-1" onclick="switchTab('templates')">
+    <button class="btn btn-ghost flex-1" onclick="switchTab('templates')">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      점검표 업로드
+      공식 점검표
     </button>
   </div>
 
@@ -889,9 +922,37 @@ async function renderAudits(c){
 //  Templates tab
 // ═══════════════════════════════════════════════
 async function renderTemplates(c){
+  const admin = isAdminMode();
   const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
+  const activeCount = templates.filter(t => t.active !== false).length;
+  const autoCount = templates.filter(t => t.source === 'github-index' && t.active !== false).length;
+
   c.innerHTML=`
-  <div class="section-header">점검표 업로드</div>
+  <div class="section-header">공식 점검표</div>
+  <div class="admin-panel">
+    <div class="admin-panel-title">GitHub 공식 점검표 동기화</div>
+    <div class="admin-panel-desc">
+      앱은 <code>checklists/index.json</code>을 기준으로 공식 Excel 점검표를 자동 동기화합니다.
+      기존 심사 기록은 변경하지 않고, 새 심사부터 최신 점검표가 적용됩니다.
+    </div>
+  </div>
+  <div class="card template-sync-card">
+    <div class="card-row">
+      <div class="flex-1">
+        <div class="label">동기화 상태</div>
+        <div class="sub">활성 ${activeCount}건 · 자동동기화 ${autoCount}건 · ${navigator.onLine ? '온라인 확인 가능' : '오프라인 저장본 사용 중'}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="syncChecklistsNow()">동기화</button>
+    </div>
+  </div>
+
+  ${admin ? `
+  <div class="section-header">관리자 기능</div>
+  <div class="admin-panel">
+    <div class="admin-panel-title">관리자 모드</div>
+    <div class="admin-panel-desc">수동 Excel 업로드와 삭제 버튼이 표시됩니다. 일반 심사원 화면에서는 이 영역이 숨겨집니다.</div>
+  </div>
+  <div class="section-header">수동 점검표 업로드</div>
   <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-excel').click()"
     ondragover="event.preventDefault();this.classList.add('drag')"
     ondragleave="this.classList.remove('drag')"
@@ -899,28 +960,50 @@ async function renderTemplates(c){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     <h3>Excel 점검표 업로드</h3>
     <p>XLSX 파일을 탭하여 선택하거나<br>드래그 앤 드롭 하세요</p>
-    <p class="template-helper">양식 다운로드 →</p>
   </div>
   <div class="section-header mt-150">Excel 컬럼 형식</div>
   <div class="card template-format-card">
     ${['A: 섹션명 (예: 1. 운항 일반)','B: 항목번호 (예: FLT-001)','C: 점검 질문 (필수)','D: 참조규정 (예: OPS 1.2.3)','E: 점검유형 (OK/NG/NA/OBS)'].map(t=>`
     <div class="card-row"><div class="label template-format-label">${t}</div></div>`).join('')}
-  </div>
+  </div>` : `
+  <div class="section-header">운영 안내</div>
+  <div class="admin-panel">
+    <div class="admin-panel-title">심사원 화면</div>
+    <div class="admin-panel-desc">점검표는 관리자가 GitHub에 배포한 공식 파일을 사용합니다. 수동 업로드와 삭제는 관리자 모드에서만 가능합니다.</div>
+  </div>`}
 
   <div class="section-header">저장된 점검표 (${templates.length})</div>
-  ${templates.length===0?`<div style="padding:20px 12px;color:var(--text3);font-size:14px;text-align:center">업로드된 점검표가 없습니다</div>`:
+  ${templates.length===0?`<div class="template-empty-message">저장된 점검표가 없습니다. 온라인 상태에서 동기화를 실행하세요.</div>`:
   templates.map(t=>`
-  <div class="card template-format-card">
+  <div class="card template-format-card ${t.active === false ? 'template-card-inactive' : ''}">
     <div class="card-row">
       <div class="flex-1">
         <div class="label">${esc(t.name)}</div>
         <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))} · ${esc(getTemplateSourceLabel(t))}${t.active === false ? ' · 비활성' : ''}</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>
+      ${admin ? `<button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
     </div>
   </div>`).join('')}
+  ${admin ? `<div class="align-end-row"><button class="btn btn-ghost btn-sm" onclick="setAdminMode(false)">관리자 모드 끄기</button></div>` : `<div class="align-end-row"><button class="btn btn-ghost btn-sm" onclick="setAdminMode(true)">관리자 모드 켜기</button></div>`}
   `;
-  document.getElementById('file-excel').onchange = e=> handleFileSelect(e.target.files[0]);
+
+  const fileInput = document.getElementById('file-excel');
+  if(fileInput) fileInput.onchange = e=> handleFileSelect(e.target.files[0]);
+}
+
+async function syncChecklistsNow(){
+  if(!navigator.onLine){ showToast('오프라인입니다. 저장된 점검표를 사용합니다'); return; }
+  showToast('점검표 동기화 확인 중');
+  try{
+    const count = await autoLoadChecklists();
+    if(count === 0) showToast('새 점검표가 없습니다');
+    const c = document.getElementById('content');
+    if(currentTab === 'templates' && c) await renderTemplates(c);
+    if(currentTab === 'home') switchTab('home');
+  } catch(err){
+    console.warn('수동 동기화 실패:', err);
+    showToast('동기화 실패. 저장된 점검표를 사용합니다');
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -1258,6 +1341,7 @@ function handleFileSelect(file){
 
 async function deleteTemplate(id, e){
   e.stopPropagation();
+  if(!isAdminMode()){ showToast('관리자 모드에서만 삭제할 수 있습니다'); return; }
   if(!confirm('이 점검표를 삭제하시겠습니까?')) return;
   await dbDelete('templates', id);
   showToast('삭제되었습니다');
