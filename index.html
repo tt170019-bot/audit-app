@@ -92,7 +92,7 @@
   --shadow-overflow: 0 0 8px #1E1F2129, 0 0 1px #1E1F211F;
 
   --ui-button-height: 2.5rem;
-  --ui-button-small-height: 2rem;
+  --ui-button-small-height: 2.75rem;
   --ui-button-padding-inline: var(--space-200);
   --ui-button-small-padding-inline: var(--space-150);
   --ui-chip-height: 2rem;
@@ -518,6 +518,7 @@ let currentTab = 'home';
 let currentAudit = null;
 let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
+let checklistSyncState = { checked: false, reachable: null, message: '점검표 서버 확인 전' };
 
 // 관리자 모드
 // - 일반 사용자는 GitHub에서 동기화된 공식 점검표로 심사만 수행한다.
@@ -725,12 +726,14 @@ async function loadChecklistIndex(){
     if(!res.ok) throw new Error(`GitHub Contents API HTTP ${res.status}`);
 
     const data = await res.json();
+    checklistSyncState = { checked: true, reachable: true, message: 'GitHub 점검표 서버 접근 가능' };
     const rawList = Array.isArray(data) ? data : [];
     return rawList
       .map(normalizeGitHubChecklistItem)
       .filter(Boolean)
       .sort((a,b)=>a.filename.localeCompare(b.filename, 'ko'));
   } catch(e){
+    checklistSyncState = { checked: true, reachable: false, message: '온라인 상태와 별개로 GitHub 점검표 서버 접근 실패' };
     console.warn('GitHub checklists 폴더 조회 실패. 저장된 점검표를 계속 사용합니다.', e);
     return [];
   }
@@ -1012,6 +1015,13 @@ async function renderTemplates(c){
   const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
   const activeCount = templates.filter(t => t.active !== false).length;
   const autoCount = templates.filter(t => (t.source === 'github-api' || t.source === 'github-index') && t.active !== false).length;
+  const syncStatusLabel = !navigator.onLine
+    ? '오프라인 저장본 사용 중'
+    : checklistSyncState.reachable === false
+      ? '온라인이나 점검표 서버 접근 실패'
+      : checklistSyncState.reachable === true
+        ? '온라인 · 점검표 서버 접근 가능'
+        : '온라인 확인 전';
 
   c.innerHTML=`
   <div class="section-header">공식 점검표</div>
@@ -1026,7 +1036,7 @@ async function renderTemplates(c){
     <div class="card-row">
       <div class="flex-1">
         <div class="label">동기화 상태</div>
-        <div class="sub">활성 ${activeCount}건 · 자동동기화 ${autoCount}건 · ${navigator.onLine ? '온라인 확인 가능' : '오프라인 저장본 사용 중'}</div>
+        <div class="sub">활성 ${activeCount}건 · 자동동기화 ${autoCount}건 · ${syncStatusLabel}</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="syncChecklistsNow()">동기화</button>
     </div>
@@ -1036,7 +1046,7 @@ async function renderTemplates(c){
   <div class="section-header">관리자 기능</div>
   <div class="admin-panel">
     <div class="admin-panel-title">관리자 모드</div>
-    <div class="admin-panel-desc">수동 Excel 업로드와 삭제 버튼이 표시됩니다. 일반 심사원 화면에서는 이 영역이 숨겨집니다.</div>
+    <div class="admin-panel-desc">수동 Excel 업로드와 삭제 버튼이 표시됩니다. 이 모드는 편의 기능이며 접근제어 또는 보안 기능이 아닙니다.</div>
   </div>
   <div class="section-header">저장 데이터 리셋</div>
   <div class="card template-sync-card">
@@ -1079,7 +1089,7 @@ async function renderTemplates(c){
   <div class="section-header">운영 안내</div>
   <div class="admin-panel">
     <div class="admin-panel-title">심사원 화면</div>
-    <div class="admin-panel-desc">점검표는 관리자가 GitHub checklists 폴더에 배포한 공식 파일을 사용합니다. 수동 업로드와 삭제는 관리자 모드에서만 가능합니다.</div>
+    <div class="admin-panel-desc">점검표는 관리자가 GitHub checklists 폴더에 배포한 공식 파일을 사용합니다. 수동 업로드와 삭제는 관리자 모드에서만 가능하지만, 관리자 모드는 보안 기능이 아닌 화면 표시용 편의 기능입니다.</div>
   </div>`}
 
   <div class="section-header">저장된 점검표 (${templates.length})</div>
@@ -1102,7 +1112,8 @@ async function renderTemplates(c){
 }
 
 async function syncChecklistsNow(){
-  if(!navigator.onLine){ showToast('오프라인입니다. 저장된 점검표를 사용합니다'); return; }
+  const online = await updateOnlineTag();
+  if(!online){ showToast('오프라인입니다. 저장된 점검표를 사용합니다'); return; }
   showToast('점검표 동기화 확인 중');
   try{
     const count = await autoLoadChecklists();
@@ -1480,7 +1491,7 @@ async function resetTemplateData(){
   if(!ok) return;
   await dbClear('templates');
   showToast('점검표가 삭제되었습니다');
-  if(navigator.onLine){
+  if(await updateOnlineTag()){
     try{
       await autoLoadChecklists();
       showToast('공식 점검표를 다시 동기화했습니다');
@@ -1502,7 +1513,7 @@ async function resetAllLocalData(){
   currentAudit = null;
   pendingPhotos = [];
   showToast('전체 로컬 데이터가 삭제되었습니다');
-  if(navigator.onLine){
+  if(await updateOnlineTag()){
     try{
       await autoLoadChecklists();
     } catch(err){
