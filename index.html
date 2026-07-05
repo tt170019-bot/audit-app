@@ -904,10 +904,19 @@ async function autoLoadChecklists(){
 function updateOnlineTag(){
   const tag = document.getElementById('offline-tag');
   if(!tag) return Promise.resolve(false);
+
+  if(!navigator.onLine){
+    tag.textContent = 'OFFLINE';
+    tag.classList.add('is-offline');
+    tag.classList.remove('is-online');
+    return Promise.resolve(false);
+  }
+
   const pingUrl = `./index.html?online-check=${Date.now()}`;
 
-  return fetch(pingUrl, { method:'HEAD', cache:'no-store' })
-    .then(() => {
+  return fetch(pingUrl, { method:'GET', cache:'no-store' })
+    .then(res => {
+      if(!res.ok) throw new Error(`online check failed: ${res.status}`);
       tag.textContent = 'ONLINE';
       tag.classList.add('is-online');
       tag.classList.remove('is-offline');
