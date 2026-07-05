@@ -1899,6 +1899,12 @@ function toggleCheckItem(idx){
 async function setMaturityResult(auditId, idx, maturity){
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
+
+  // Preserve the current scroll position.
+  // Mobile browsers otherwise appear to jump when the checklist is re-rendered.
+  const content = document.getElementById('content');
+  const previousScrollTop = content ? content.scrollTop : 0;
+
   audit.items[idx].maturity = maturity;
   currentAudit = audit;
   await dbPut('audits', audit);
@@ -1906,8 +1912,12 @@ async function setMaturityResult(auditId, idx, maturity){
   renderChecklist(audit);
   const body = document.getElementById('cb-'+idx);
   if(body) body.classList.remove('hidden');
-  const card = document.getElementById('ci-'+idx);
-  if(card) card.scrollIntoView({behavior:'smooth', block:'center'});
+
+  // Do not call scrollIntoView here. YES/NO/OBS/N/A and maturity input should not move the screen.
+  requestAnimationFrame(() => {
+    const c = document.getElementById('content');
+    if(c) c.scrollTop = previousScrollTop;
+  });
 
   showToast('성숙도 수준이 저장되었습니다');
 }
@@ -1915,6 +1925,12 @@ async function setMaturityResult(auditId, idx, maturity){
 async function setResult(auditId, idx, result){
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
+
+  // Preserve the current scroll position.
+  // Result input is an in-place action, not a navigation action.
+  const content = document.getElementById('content');
+  const previousScrollTop = content ? content.scrollTop : 0;
+
   const wasAnswered = !!audit.items[idx].result;
   audit.items[idx].result = normalizeResultValue(result);
   currentAudit = audit;
@@ -1923,8 +1939,12 @@ async function setResult(auditId, idx, result){
   renderChecklist(audit);
   const body = document.getElementById('cb-'+idx);
   if(body) body.classList.remove('hidden');
-  const card = document.getElementById('ci-'+idx);
-  if(card) card.scrollIntoView({behavior:'smooth', block:'center'});
+
+  // Do not call scrollIntoView here. YES/NO/OBS/N/A input should not move the screen.
+  requestAnimationFrame(() => {
+    const c = document.getElementById('content');
+    if(c) c.scrollTop = previousScrollTop;
+  });
 
   if(!wasAnswered && result) showToast('저장되었습니다');
 }
