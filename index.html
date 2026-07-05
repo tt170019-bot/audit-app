@@ -658,8 +658,14 @@ function normalizeChecklistItem(item){
     ref: String(item.ref ?? item.no ?? item.number ?? item.code ?? item['항목번호'] ?? '').trim(),
     question,
     refStd: String(item.refStd ?? item.standard ?? item.reference ?? item.regulation ?? item['참조규정'] ?? '').trim(),
+    externalRef: String(item.externalRef ?? item.external ?? item.externalReference ?? item['외부참조'] ?? item['External Ref.'] ?? '').trim(),
+    conformityCriteria: String(item.conformityCriteria ?? item.conformity ?? item['Conformity Criteria'] ?? item['Conformity'] ?? item['성숙도 Conformity'] ?? '').trim(),
+    establishedCriteria: String(item.establishedCriteria ?? item.established ?? item['Established Criteria'] ?? item['Established'] ?? item['성숙도 Established'] ?? '').trim(),
+    matureCriteria: String(item.matureCriteria ?? item.mature ?? item['Mature Criteria'] ?? item['Mature'] ?? item['성숙도 Mature'] ?? '').trim(),
+    leadingCriteria: String(item.leadingCriteria ?? item.leading ?? item['Leading Criteria'] ?? item['Leading'] ?? item['성숙도 Leading'] ?? '').trim(),
     type: String(item.type ?? item.answerType ?? item['점검유형'] ?? 'OK/NG/NA/OBS').trim() || 'OK/NG/NA/OBS',
     result: item.result ?? null,
+    maturity: item.maturity ?? '',
     note: String(item.note ?? item.memo ?? item.comment ?? item['비고'] ?? ''),
     photos: Array.isArray(item.photos) ? item.photos : []
   };
@@ -851,13 +857,18 @@ function extractChecklistItemsFromRows(rows){
   const sections = new Set();
 
   for(let i=1;i<rows.length;i++){
-    const [section,ref,question,refStd,type] = rows[i];
+    const [section,ref,question,refStd,externalRef,conformityCriteria,establishedCriteria,matureCriteria,leadingCriteria,type] = rows[i];
     if(!question) continue;
     const normalized = normalizeChecklistItem({
       section: section || '일반',
       ref,
       question,
       refStd,
+      externalRef,
+      conformityCriteria,
+      establishedCriteria,
+      matureCriteria,
+      leadingCriteria,
       type: type || 'OK/NG/NA/OBS'
     });
     if(!normalized) continue;
@@ -1170,7 +1181,18 @@ async function renderTemplates(c){
   </div>
   <div class="section-header mt-150">Excel 컬럼 형식</div>
   <div class="card template-format-card">
-    ${['A: 섹션명 (예: 1. 운항 일반)','B: 항목번호 (예: FLT-001)','C: 점검 질문 (필수)','D: 참조규정 (예: OPS 1.2.3)','E: 점검유형 (OK/NG/NA/OBS)'].map(t=>`
+    ${[
+      'A: 섹션명 (예: 1. 운항 일반)',
+      'B: 항목번호 (예: FLT-001)',
+      'C: 점검 질문 / Check Requirement (필수)',
+      'D: 내부 참조 / Internal Ref.',
+      'E: 외부 참조 / External Ref.',
+      'F: Conformity Criteria (Type 2 성숙도 기준)',
+      'G: Established Criteria (Type 2 성숙도 기준)',
+      'H: Mature Criteria (Type 2 성숙도 기준)',
+      'I: Leading Criteria (Type 2 성숙도 기준)',
+      'J: 점검유형 (OK/NG/NA/OBS)'
+    ].map(t=>`
     <div class="card-row"><div class="label template-format-label">${t}</div></div>`).join('')}
   </div>` : `
   <div class="section-header">운영 안내</div>
@@ -1304,7 +1326,16 @@ function br(value){
   return esc(value || '').split(String.fromCharCode(10)).join('<br>');
 }
 
-function getMaturityConsideration(level){
+function getMaturityConsideration(item, level){
+  const fieldMap = {
+    Conformity: 'conformityCriteria',
+    Established: 'establishedCriteria',
+    Mature: 'matureCriteria',
+    Leading: 'leadingCriteria'
+  };
+  const itemText = String(item?.[fieldMap[level]] || '').trim();
+  if(itemText) return {title: itemText, body: ''};
+
   const map = {
     Conformity: {
       title: '기본 절차를 인지하고 실행하는 수준',
@@ -1326,112 +1357,159 @@ function getMaturityConsideration(level){
   return map[level] || {title:'', body:''};
 }
 
-function renderFieldChecklistItem(audit, item){
+function isMaturityChecklistAudit(audit){
+  const savedType = audit?.reportTemplate || inferReportTemplateType(audit);
+  if(savedType === 'report-type-2') return true;
+  const text = [audit?.templateName, audit?.title].filter(Boolean).join(' ').toLowerCase();
+  return text.includes('checklist-2') || text.includes('checklist 2') || text.includes('현장탑승심사표');
+}
+
+function resultLabel(result){
+  return {OK:'Satisfaction', OBS:'Observation', NG:'Un-Satisfaction', NA:'N/A'}[result] || '미완료';
+}
+function renderRequirementTable(audit, item){
   const idx = item._idx;
-  const result = item.result || '';
-  const maturity = item.maturity || '';
   const ref = br(item.ref || idx + 1);
   const question = br(item.question || '');
   const internalRef = br(item.refStd || '');
   const externalRef = br(item.externalRef || item.external || '');
   const sectionTitle = br(item.section || '일반');
-  const note = esc(item.note || '');
+
+  return `<table class="field-check-top field-card-toggle" onclick="toggleCheckItem(${idx})" tabindex="0" aria-label="점검항목 열기">
+    <colgroup>
+      <col style="width:14mm"><col style="width:88mm"><col style="width:42mm"><col style="width:42mm">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>No.</th>
+        <th>Check<br>Requirements</th>
+        <th>Internal<br>Ref.</th>
+        <th>External<br>Ref.</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="4" class="field-check-section-title">${sectionTitle}</td></tr>
+      <tr>
+        <td class="field-check-no">${ref}</td>
+        <td class="field-check-question">${question}</td>
+        <td class="field-check-ref">${internalRef}</td>
+        <td class="field-check-ref">${externalRef}</td>
+      </tr>
+    </tbody>
+  </table>`;
+}
+
+function renderResultPanel(audit, item){
+  const idx = item._idx;
+  const result = item.result || '';
+  const options = [
+    ['OK', 'Satisfaction', 'selected-ok'],
+    ['OBS', 'Observation', 'selected-obs'],
+    ['NG', 'Un-Satisfaction', 'selected-ng'],
+    ['NA', 'N/A', 'selected-na']
+  ];
+
+  return `<table class="field-check-result">
+    <colgroup><col style="width:38%"><col style="width:62%"></colgroup>
+    <tbody>
+      <tr>
+        <td class="field-check-comment-label">Result</td>
+        <td>
+          <div class="field-result-row">
+            ${options.map(([value,label,cls])=>`<button class="field-choice ${result===value ? cls : ''}" onclick="setResult(${audit.id},${idx},'${value}')">${label}</button>`).join('')}
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>`;
+}
+
+function renderMaturityPanel(audit, item){
+  const idx = item._idx;
+  const maturity = item.maturity || '';
   const maturityLevels = ['Conformity','Established','Mature','Leading'];
 
-  return `<div class="field-check-card ${result?'answered':''}" id="ci-${idx}">
-    <table class="field-check-top field-card-toggle" onclick="toggleCheckItem(${idx})" tabindex="0" aria-label="점검항목 열기">
-      <colgroup>
-        <col style="width:14mm"><col style="width:88mm"><col style="width:42mm"><col style="width:42mm">
-      </colgroup>
-      <thead>
-        <tr>
-          <th>No.</th>
-          <th>Check<br>Requirements</th>
-          <th>Internal<br>Ref.</th>
-          <th>External<br>Ref.</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td colspan="4" class="field-check-section-title">${sectionTitle}</td></tr>
-        <tr>
-          <td class="field-check-no">${ref}</td>
-          <td class="field-check-question">${question}</td>
-          <td class="field-check-ref">${internalRef}</td>
-          <td class="field-check-ref">${externalRef}</td>
-        </tr>
-      </tbody>
-    </table>
+  return `<table class="field-check-maturity">
+    <colgroup>
+      <col style="width:36mm"><col style="width:34mm"><col style="width:116mm">
+    </colgroup>
+    <tbody>
+      <tr>
+        <td rowspan="5" class="field-check-side">Maturity<br>Assessment</td>
+        <td class="field-check-head">Maturity<br>Level</td>
+        <td class="field-check-head">요구조건 / 판단기준</td>
+      </tr>
+      ${maturityLevels.map(level=>{
+        const c = getMaturityConsideration(item, level);
+        const selected = maturity === level;
+        return `<tr>
+          <td class="field-check-level">${selected ? '■' : '□'} ${level}</td>
+          <td class="field-check-consider">
+            <strong>${esc(c.title)}</strong>${esc(c.body)}
+            <div class="field-check-actions">
+              <button class="field-choice ${selected ? 'selected-ok' : ''}" onclick="setMaturityResult(${audit.id},${idx},'${level}')">${level}</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
 
-    <div class="check-body hidden" id="cb-${idx}">
-      <table class="field-check-maturity">
-        <colgroup>
-          <col style="width:36mm"><col style="width:34mm"><col style="width:116mm">
-        </colgroup>
-        <tbody>
-          <tr>
-            <td rowspan="5" class="field-check-side">${result==='OK' || result==='OBS' ? '■' : '□'} Satis-<br>faction</td>
-            <td class="field-check-head">Maturity<br>Level</td>
-            <td class="field-check-head">점검 시 고려 사항</td>
-          </tr>
-          ${maturityLevels.map(level=>{
-            const c = getMaturityConsideration(level);
-            const selected = maturity === level || (!maturity && result === 'OK' && level === 'Conformity');
-            return `<tr>
-              <td class="field-check-level">${selected ? '■' : '□'} ${level}</td>
-              <td class="field-check-consider">
-                <strong>${esc(c.title)}</strong>${esc(c.body)}
-                <div class="field-check-actions">
-                  <button class="field-choice ${selected ? 'selected-ok' : ''}" onclick="setMaturityResult(${audit.id},${idx},'${level}')">${level}</button>
-                </div>
-              </td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
+function renderCommentPanel(audit, item){
+  const idx = item._idx;
+  const note = esc(item.note || '');
+  return `<table class="field-check-comment">
+    <colgroup><col style="width:70mm"><col style="width:116mm"></colgroup>
+    <tbody>
+      <tr>
+        <td class="field-check-comment-label">Comment(s)</td>
+        <td><textarea rows="3" placeholder="판단 근거, 관찰 내용 등을 입력하세요" onchange="setNote(${audit.id},${idx},this.value)">${note}</textarea></td>
+      </tr>
+    </tbody>
+  </table>`;
+}
 
-      <table class="field-check-comment">
-        <colgroup><col style="width:70mm"><col style="width:116mm"></colgroup>
-        <tbody>
-          <tr>
-            <td class="field-check-comment-label">Comment(s)</td>
-            <td><textarea rows="3" placeholder="관찰 내용, 증거자료 등을 입력하세요" onchange="setNote(${audit.id},${idx},this.value)">${note}</textarea></td>
-          </tr>
-        </tbody>
-      </table>
-
-      <table class="field-check-result">
-        <colgroup><col style="width:93mm"><col style="width:93mm"></colgroup>
-        <tbody>
-          <tr>
-            <td class="field-check-level">${result==='NA' ? '■' : '□'} N/A</td>
-            <td><button class="field-choice ${result==='NA' ? 'selected-na' : ''}" onclick="setResult(${audit.id},${idx},'NA')">N/A</button></td>
-          </tr>
-          <tr>
-            <td class="field-check-level">${result==='NG' ? '■' : '□'} Un-Satisfaction</td>
-            <td>
-              <div class="field-result-row">
-                <button class="field-choice ${result==='NG' ? 'selected-ng' : ''}" onclick="setResult(${audit.id},${idx},'NG')">Un-Satisfaction</button>
-                <button class="field-choice ${result==='OBS' ? 'selected-obs' : ''}" onclick="setResult(${audit.id},${idx},'OBS')">Observation</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="field-photo-panel">
-        <div class="check-label">사진</div>
-        <div class="photo-row" id="photos-${idx}">
-          ${(item.photos||[]).map((p)=>`<img class="photo-thumb" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')}
-          <div class="photo-add" onclick="openPhotoModal(${audit.id},${idx})" tabindex="0">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
-            <span>추가</span>
-          </div>
-        </div>
+function renderEvidencePanel(audit, item){
+  const idx = item._idx;
+  return `<div class="field-photo-panel">
+    <div class="check-label">Evidence / 사진</div>
+    <div class="photo-row" id="photos-${idx}">
+      ${(item.photos||[]).map((p)=>`<img class="photo-thumb" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')}
+      <div class="photo-add" onclick="openPhotoModal(${audit.id},${idx})" tabindex="0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
+        <span>추가</span>
       </div>
     </div>
   </div>`;
 }
 
+function renderStandardChecklistItem(audit, item){
+  const idx = item._idx;
+  const result = item.result || '';
+  return `<div class="field-check-card ${result?'answered':''}" id="ci-${idx}">
+    ${renderRequirementTable(audit, item)}
+    <div class="check-body hidden" id="cb-${idx}">
+      ${renderResultPanel(audit, item)}
+      ${renderCommentPanel(audit, item)}
+      ${renderEvidencePanel(audit, item)}
+    </div>
+  </div>`;
+}
+
+function renderFieldChecklistItem(audit, item){
+  const result = item.result || '';
+  const idx = item._idx;
+  return `<div class="field-check-card ${result?'answered':''}" id="ci-${idx}">
+    ${renderRequirementTable(audit, item)}
+    <div class="check-body hidden" id="cb-${idx}">
+      ${renderResultPanel(audit, item)}
+      ${renderMaturityPanel(audit, item)}
+      ${renderCommentPanel(audit, item)}
+      ${renderEvidencePanel(audit, item)}
+    </div>
+  </div>`;
+}
 function renderChecklist(audit){
   const c = document.getElementById('content');
   const items = audit.items||[];
@@ -1484,7 +1562,7 @@ function renderChecklist(audit){
         ${sectionEntries.map(([sec,secItems], sectionIndex)=>`
           <div class="section-header detail-section-start" id="sec-${sectionIndex}">${esc(sec)}</div>
           <div class="check-section-summary">${secItems.filter(i=>i.result).length}/${secItems.length} 항목 완료</div>
-          ${secItems.map(item=>renderFieldChecklistItem(audit, item)).join('')}
+          ${secItems.map(item=>isMaturityChecklistAudit(audit) ? renderFieldChecklistItem(audit, item) : renderStandardChecklistItem(audit, item)).join('')}
         `).join('')}
       </div>
     </div>
@@ -1508,9 +1586,7 @@ function toggleCheckItem(idx){
 async function setMaturityResult(auditId, idx, maturity){
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
-  const wasAnswered = !!audit.items[idx].result;
   audit.items[idx].maturity = maturity;
-  audit.items[idx].result = 'OK';
   currentAudit = audit;
   await dbPut('audits', audit);
 
@@ -1520,7 +1596,7 @@ async function setMaturityResult(auditId, idx, maturity){
   const card = document.getElementById('ci-'+idx);
   if(card) card.scrollIntoView({behavior:'smooth', block:'center'});
 
-  if(!wasAnswered) showToast('저장되었습니다');
+  showToast('성숙도 수준이 저장되었습니다');
 }
 
 async function setResult(auditId, idx, result){
@@ -1528,7 +1604,6 @@ async function setResult(auditId, idx, result){
   if(!audit) return;
   const wasAnswered = !!audit.items[idx].result;
   audit.items[idx].result = result;
-  if(result !== 'OK') audit.items[idx].maturity = '';
   currentAudit = audit;
   await dbPut('audits', audit);
 
@@ -1653,16 +1728,21 @@ function handleFileSelect(file){
       // Skip header row
       const items=[], sections=new Set();
       for(let i=1;i<rows.length;i++){
-        const [section,ref,question,refStd,type] = rows[i];
+        const [section,ref,question,refStd,externalRef,conformityCriteria,establishedCriteria,matureCriteria,leadingCriteria,type] = rows[i];
         if(!question) continue;
         sections.add(section||'일반');
-        items.push({
+        items.push(normalizeChecklistItem({
           section: section||'일반',
-          ref: String(ref||'').trim(),
-          question: String(question).trim(),
-          refStd: String(refStd||'').trim(),
-          type: String(type||'OK/NG/NA/OBS').trim()
-        });
+          ref,
+          question,
+          refStd,
+          externalRef,
+          conformityCriteria,
+          establishedCriteria,
+          matureCriteria,
+          leadingCriteria,
+          type: type || 'OK/NG/NA/OBS'
+        }));
       }
       if(items.length===0){ showToast('항목을 찾을 수 없습니다. 형식을 확인하세요'); return; }
 
@@ -1993,16 +2073,14 @@ function resultSelected(item, result){
 function renderFieldAuditItem(item, index){
   const sectionTitle = esc(item.section || '일반');
   const ref = esc(item.ref || String(index + 1));
-  const question = esc(item.question || '').split('\n').join('<br>');
-  const internalRef = esc(item.refStd || '').split('\n').join('<br>');
-  const externalRef = esc(item.externalRef || item.external || '').split('\n').join('<br>');
-  const note = esc(item.note || '').split('\n').join('<br>');
+  const question = br(item.question || '');
+  const internalRef = br(item.refStd || '');
+  const externalRef = br(item.externalRef || item.external || '');
+  const note = br(item.note || '');
+  const maturityLevels = ['Conformity','Established','Mature','Leading'];
 
   // Type-2 Word compatibility rule:
-  // Word handles HTML tables poorly when one large table uses mixed 4-column headers,
-  // wide colspan, and long rowspan across page breaks. Therefore each checklist item
-  // is rendered as a Word-friendly block composed of small fixed-width tables.
-  // Visual structure remains the 현장탑승심사표 style, but row/column calculation is stable.
+  // Each checklist item is rendered as small fixed-width tables to keep Word/PDF layout stable.
   return `<div class="field-block">
     <table class="top-table">
       <colgroup>
@@ -2027,32 +2105,35 @@ function renderFieldAuditItem(item, index){
       </tbody>
     </table>
 
+    <table class="result-table">
+      <colgroup><col style="width:46.5mm"><col style="width:46.5mm"><col style="width:46.5mm"><col style="width:46.5mm"></colgroup>
+      <tbody>
+        <tr>
+          <td class="result-row-label"><span class="checkbox${resultSelected(item,'OK')}">Satisfaction</span></td>
+          <td class="result-row-label"><span class="checkbox${resultSelected(item,'OBS')}">Observation</span></td>
+          <td class="result-row-label"><span class="checkbox${resultSelected(item,'NG')}">Un-Satisfaction</span></td>
+          <td class="result-row-label"><span class="checkbox${resultSelected(item,'NA')}">N/A</span></td>
+        </tr>
+      </tbody>
+    </table>
+
     <table class="maturity-table">
       <colgroup>
         <col style="width:36mm"><col style="width:34mm"><col style="width:116mm">
       </colgroup>
       <tbody>
         <tr>
-          <td rowspan="5" class="satisfaction-cell"><span class="checkbox${item.result==='OK' || item.result==='OBS' ? ' selected' : ''}">Satis-<br>faction</span></td>
+          <td rowspan="5" class="satisfaction-cell">Maturity<br>Assessment</td>
           <td class="maturity-head">Maturity<br>Level</td>
-          <td class="consider-head">점검 시 고려 사항</td>
+          <td class="consider-head">요구조건 / 판단기준</td>
         </tr>
-        <tr>
-          <td class="maturity-label"><span class="checkbox">Conformity</span></td>
-          <td class="consider-text"><div class="consider-title">리튬 배터리 화재 징후를 인지하고 기본 진화 절차를 실행하는 수준</div>예) 배터리 화재 징후(연기 발생 등) 즉시 인지 및 표준 절차 실행&nbsp;&nbsp; 예) 물 소화기 준비 및 방열 장갑 착용</td>
-        </tr>
-        <tr>
-          <td class="maturity-label"><span class="checkbox">Established</span></td>
-          <td class="consider-text"><div class="consider-title">화재 진압, 보고, 승객 안내를 상황에 맞게 수행하는 수준</div>예) 리튬 배터리에 물을 부어 진화 및 주변 승객 대피&nbsp;&nbsp; 예) 기장에게 즉시 상황 보고<br>예) 승객들에게 상황 설명 및 안전 조치 안내 방송 실시</td>
-        </tr>
-        <tr>
-          <td class="maturity-label"><span class="checkbox">Mature</span></td>
-          <td class="consider-text"><div class="consider-title">역할 분담과 추가 점검으로 화재 대응을 체계적으로 운영하는 수준</div>예) 승무원 간 역할분담 명확화&nbsp;&nbsp; 예) 주변 수하물 검사 및 추가 리튬 배터리 화재 가능성 점검<br>예) 화재 원인 조사 및 상세 보고서 제출</td>
-        </tr>
-        <tr>
-          <td class="maturity-label"><span class="checkbox">Leading</span></td>
-          <td class="consider-text"><div class="consider-title">예방과 교육을 통해 화재 대응 절차를 지속적으로 개선하는 수준</div>예) 탑승 전 리튬 배터리 안전 규정 안내 강화 및 승객 협조 요청&nbsp;&nbsp; 예) 화재 대응 절차 개선 및 보고<br>예) 최신 리튬배터리 화재 대응 기술 및 절차에 대한 정기교육 실시</td>
-        </tr>
+        ${maturityLevels.map(level=>{
+          const c = getMaturityConsideration(item, level);
+          return `<tr>
+            <td class="maturity-label"><span class="checkbox${item.maturity === level ? ' selected' : ''}">${level}</span></td>
+            <td class="consider-text"><div class="consider-title">${esc(c.title)}</div>${esc(c.body)}</td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>
 
@@ -2060,17 +2141,8 @@ function renderFieldAuditItem(item, index){
       <colgroup><col style="width:70mm"><col style="width:116mm"></colgroup>
       <tbody><tr><td class="comment-label">Comment(s)</td><td class="comment-box">${note}</td></tr></tbody>
     </table>
-
-    <table class="result-table">
-      <colgroup><col style="width:93mm"><col style="width:93mm"></colgroup>
-      <tbody>
-        <tr><td class="result-row-label"><span class="checkbox${resultSelected(item,'NA')}">N/A</span></td><td></td></tr>
-        <tr><td class="result-row-label"><span class="checkbox${resultSelected(item,'NG')}">Un-Satisfaction</span></td><td></td></tr>
-      </tbody>
-    </table>
   </div>`;
 }
-
 function renderFieldAuditItems(audit){
   return (audit.items || []).map((item,index)=>renderFieldAuditItem(item,index)).join('');
 }
