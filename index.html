@@ -524,6 +524,10 @@ function normalizeTemplate(template){
     name: String(t.name || t.title || t.filename || '이름 없는 점검표').trim(),
     version: String(t.version || '').trim(),
     source: t.source || (t.filename ? 'preset' : 'manual'),
+    active: t.active !== false,
+    sha: String(t.sha || '').trim(),
+    updatedAt: String(t.updatedAt || '').trim(),
+    fingerprint: String(t.fingerprint || '').trim(),
     templateKey: t.templateKey || (t.filename && t.version ? `${t.filename}@@${t.version}` : ''),
     sections: sectionSource.map(s => String(s || '일반').trim()).filter(Boolean),
     items
@@ -563,46 +567,79 @@ async function repairStoredTemplates(){
 }
 
 // ═══════════════════════════════════════════════
-//  자동 점검표 로드 (GitHub checklists.json 기준)
-//  - 관리자는 index.html을 수정하지 않고 checklists.json과 Excel 파일만 갱신한다.
-//  - 같은 filename이라도 version이 바뀌면 새 점검표로 추가 등록한다.
-//  - checklists.json을 읽지 못하면 앱은 계속 동작하되 자동 등록만 건너뛴다.
+//  자동 점검표 동기화 (checklists/index.json 기준)
+//  - 관리자는 GitHub checklists 폴더에 Excel만 추가/교체한다.
+//  - GitHub Actions가 checklists/index.json을 자동 생성/갱신한다.
+//  - 앱은 index.json의 sha/updatedAt을 기준으로 변경된 파일만 IndexedDB에 반영한다.
+//  - 기존 심사 데이터는 수정하지 않고, 새 심사부터 최신 점검표를 사용한다.
 // ═══════════════════════════════════════════════
-const CHECKLIST_MANIFEST_FILE = './checklists.json';
+const CHECKLIST_INDEX_FILE = './checklists/index.json';
+const CHECKLIST_BASE_PATH = './checklists/';
 
-async function loadChecklistManifest(){
+function getChecklistDisplayName(filename){
+  return String(filename || '')
+    .split('/')
+    .pop()
+    .replace(/\.(xlsx|xls)$/i, '')
+    .replace(/[_-]+/g, ' ')
+    .trim() || '이름 없는 점검표';
+}
+
+function normalizeChecklistIndexItem(item){
+  if(!item || typeof item !== 'object') return null;
+  const rawFilename = String(item.filename || item.path || item.file || '').trim();
+  if(!rawFilename || !/\.(xlsx|xls)$/i.test(rawFilename)) return null;
+
+  const filename = rawFilename.replace(/^\.\//, '').replace(/^checklists\//, '');
+  const fingerprint = String(item.sha || item.hash || item.etag || item.lastModified || item.updatedAt || item.version || '').trim();
+
+  return {
+    filename,
+    path: `${CHECKLIST_BASE_PATH}${filename}`,
+    name: String(item.name || item.title || getChecklistDisplayName(filename)).trim(),
+    sha: String(item.sha || item.hash || '').trim(),
+    updatedAt: String(item.updatedAt || item.lastModified || item.version || '').trim(),
+    fingerprint: fingerprint || filename,
+    enabled: item.enabled !== false
+  };
+}
+
+async function loadChecklistIndex(){
   try{
-    const res = await fetch(`${CHECKLIST_MANIFEST_FILE}?ts=${Date.now()}`, {cache:'no-store'});
-    if(!res.ok) throw new Error(`checklists.json HTTP ${res.status}`);
+    const res = await fetch(`${CHECKLIST_INDEX_FILE}?ts=${Date.now()}`, {cache:'no-store'});
+    if(!res.ok) throw new Error(`checklists/index.json HTTP ${res.status}`);
     const data = await res.json();
-    const list = Array.isArray(data) ? data : Array.isArray(data?.checklists) ? data.checklists : [];
-    return list
-      .filter(item => item && item.filename)
-      .map(item => ({
-        filename: String(item.filename).trim(),
-        name: String(item.name || item.title || item.filename).trim(),
-        version: String(item.version || item.updatedAt || 'unversioned').trim(),
-        enabled: item.enabled !== false
-      }))
-      .filter(item => item.enabled);
+    const rawList = Array.isArray(data) ? data : Array.isArray(data?.checklists) ? data.checklists : [];
+    return rawList.map(normalizeChecklistIndexItem).filter(Boolean).filter(item => item.enabled);
   } catch(e){
-    console.warn('checklists.json 로드 실패. 자동 점검표 등록을 건너뜁니다.', e);
+    console.warn('checklists/index.json 로드 실패. 저장된 점검표를 계속 사용합니다.', e);
     return [];
   }
 }
 
 function getPresetTemplateKey(cl){
-  return `${cl.filename}@@${cl.version || 'unversioned'}`;
+  return `${cl.filename}@@${cl.fingerprint || cl.sha || cl.updatedAt || 'unversioned'}`;
 }
 
 function getTemplateVersionLabel(template){
+  if(template?.sha) return `SHA ${String(template.sha).slice(0, 7)}`;
+  if(template?.updatedAt) return `수정 ${new Date(template.updatedAt).toLocaleDateString('ko-KR')}`;
   if(template?.version) return `v${template.version}`;
   if(template?.importedAt) return `등록 ${new Date(template.importedAt).toLocaleDateString('ko-KR')}`;
   return 'legacy';
 }
 
+function getTemplateSourceLabel(template){
+  if(template?.source === 'github-index') return '자동동기화';
+  if(template?.source === 'preset') return '자동등록';
+  return '수동등록';
+}
+
 function sortTemplatesForDisplay(templates){
   return [...templates].sort((a,b)=>{
+    const activeA = a.active === false ? 1 : 0;
+    const activeB = b.active === false ? 1 : 0;
+    if(activeA !== activeB) return activeA - activeB;
     const ai = String(a.importedAt || '');
     const bi = String(b.importedAt || '');
     if(ai !== bi) return bi.localeCompare(ai);
@@ -632,56 +669,82 @@ function extractChecklistItemsFromRows(rows){
   return { items, sections: [...sections] };
 }
 
-async function autoLoadChecklists(){
+async function markSupersededTemplates(filename, keepTemplateKey, indexFilenames){
   const existing = await dbAll('templates');
-  const manifest = await loadChecklistManifest();
+  for(const t of existing){
+    if(t.source !== 'github-index' && t.source !== 'preset') continue;
+    if(filename && t.filename === filename && t.templateKey !== keepTemplateKey && t.active !== false){
+      await dbPut('templates', {...t, active:false, supersededAt:new Date().toISOString()});
+    }
+    if(!filename && indexFilenames && t.filename && !indexFilenames.has(t.filename) && t.active !== false){
+      await dbPut('templates', {...t, active:false, removedFromIndexAt:new Date().toISOString()});
+    }
+  }
+}
+
+async function autoLoadChecklists(){
+  const index = await loadChecklistIndex();
   let added = 0;
+  let updated = 0;
 
-  for(const cl of manifest){
+  if(index.length === 0){
+    console.log('동기화할 GitHub 점검표가 없습니다. checklists/index.json을 확인하세요.');
+    return 0;
+  }
+
+  const indexFilenames = new Set(index.map(cl => cl.filename));
+  await markSupersededTemplates(null, null, indexFilenames);
+
+  for(const cl of index){
+    const existing = await dbAll('templates');
     const templateKey = getPresetTemplateKey(cl);
-
-    // 같은 filename + 같은 version이면 이미 등록된 것으로 판단한다.
-    // 같은 filename이라도 version이 다르면 새 점검표로 추가 등록한다.
-    if(existing.some(t => t.templateKey === templateKey || (t.source === 'preset' && t.filename === cl.filename && String(t.version || '') === String(cl.version || '')))){
+    const sameVersion = existing.find(t => t.templateKey === templateKey || (t.filename === cl.filename && t.fingerprint === cl.fingerprint));
+    if(sameVersion){
+      if(sameVersion.active === false){
+        await dbPut('templates', {...sameVersion, active:true, restoredAt:new Date().toISOString()});
+      }
       continue;
     }
 
     try{
-      const base = location.pathname.replace(/\/[^\/]*$/, '/');
-      const res = await fetch(base + cl.filename + `?template-version=${encodeURIComponent(cl.version || '')}&ts=${Date.now()}`, {cache:'no-store'});
-      if(!res.ok) continue;
+      const res = await fetch(`${cl.path}?sha=${encodeURIComponent(cl.fingerprint)}&ts=${Date.now()}`, {cache:'no-store'});
+      if(!res.ok) throw new Error(`${cl.path} HTTP ${res.status}`);
 
       const buf = await res.arrayBuffer();
       const wb = XLSX.read(buf, {type:'array'});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
       const parsed = extractChecklistItemsFromRows(rows);
-      if(parsed.items.length===0) continue;
+      if(parsed.items.length===0) throw new Error('점검 항목을 찾을 수 없습니다. Excel 컬럼 형식을 확인하세요.');
 
+      await markSupersededTemplates(cl.filename, templateKey, null);
       await dbPut('templates', {
         name: cl.name,
         filename: cl.filename,
-        version: cl.version || '',
+        sha: cl.sha || '',
+        updatedAt: cl.updatedAt || '',
+        fingerprint: cl.fingerprint,
         templateKey,
-        source: 'preset',
+        source: 'github-index',
+        active: true,
         importedAt: new Date().toISOString(),
         sections: parsed.sections,
         items: parsed.items
       });
       added += 1;
-      console.log(`✅ 점검표 자동 등록: ${cl.name} ${cl.version || ''}`);
+      updated += existing.some(t => t.filename === cl.filename) ? 1 : 0;
+      console.log(`✅ 점검표 동기화: ${cl.name} ${cl.sha ? cl.sha.slice(0, 7) : cl.updatedAt || ''}`);
     } catch(e){
-      console.warn(`점검표 로드 실패: ${cl.filename}`, e);
+      console.warn(`점검표 동기화 실패: ${cl.filename}`, e);
     }
   }
 
-  if(manifest.length === 0){
-    console.log('자동 등록할 GitHub 점검표가 없습니다. checklists.json을 확인하세요.');
-  }
-
-  if(added > 0 && currentTab === 'templates'){
-    const c = document.getElementById('content');
-    if(c) renderTemplates(c);
+  if(added > 0){
+    showToast(updated > 0 ? `점검표 ${updated}건 업데이트됨` : `점검표 ${added}건 동기화됨`);
+    if(currentTab === 'templates'){
+      const c = document.getElementById('content');
+      if(c) renderTemplates(c);
+    }
   }
   return added;
 }
@@ -851,7 +914,7 @@ async function renderTemplates(c){
     <div class="card-row">
       <div class="flex-1">
         <div class="label">${esc(t.name)}</div>
-        <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))}${t.source === 'preset' ? ' · 자동등록' : ' · 수동등록'}</div>
+        <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))} · ${esc(getTemplateSourceLabel(t))}${t.active === false ? ' · 비활성' : ''}</div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>
     </div>
@@ -1094,7 +1157,7 @@ function backFromChecklist(){
 //  New Audit Modal
 // ═══════════════════════════════════════════════
 async function openNewAuditModal(){
-  const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
+  const templates = sortTemplatesForDisplay((await getNormalizedTemplates()).filter(t => t.active !== false));
   const sel = document.getElementById('na-template');
   sel.innerHTML='<option value="">— 점검표를 선택하세요 —</option>'+
     templates.map(t=>`<option value="${t.id}" ${t.items.length ? '' : 'disabled'}>${esc(t.name)} · ${esc(getTemplateVersionLabel(t))}${t.items.length ? '' : ' (항목 없음)'}</option>`).join('');
