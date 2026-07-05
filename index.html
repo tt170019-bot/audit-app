@@ -520,6 +520,24 @@ let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
 let checklistSyncState = { checked: false, reachable: null, message: '점검표 서버 확인 전' };
 
+const REPORT_TEMPLATE_FILES = {
+  'report-type-1': './templates/report-type-1.html',
+  'report-type-2': './templates/report-type-2.html'
+};
+
+function inferReportTemplateType(source){
+  const text = [source?.name, source?.filename, source?.title, source?.templateName]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  if(text.includes('현장탑승심사표') || text.includes('안전성과지표') || text.includes('리튬')) return 'report-type-2';
+  return 'report-type-1';
+}
+
+function getReportTemplateLabel(type){
+  return type === 'report-type-2' ? '2번 양식(현장탑승심사표)' : '1번 양식(기본 결과보고서)';
+}
+
 // 관리자 모드
 // - 일반 사용자는 GitHub에서 동기화된 공식 점검표로 심사만 수행한다.
 // - 관리자는 URL에 ?admin=1을 붙여 점검표 업로드/삭제 등 관리 기능을 표시한다.
@@ -613,6 +631,7 @@ function normalizeTemplate(template){
     updatedAt: String(t.updatedAt || '').trim(),
     fingerprint: String(t.fingerprint || '').trim(),
     templateKey: t.templateKey || (t.filename && t.version ? `${t.filename}@@${t.version}` : ''),
+    reportTemplate: t.reportTemplate || inferReportTemplateType(t),
     sections: sectionSource.map(s => String(s || '일반').trim()).filter(Boolean),
     items
   };
@@ -848,6 +867,7 @@ async function autoLoadChecklists(){
         fingerprint: cl.fingerprint,
         templateKey,
         source: 'github-api',
+        reportTemplate: inferReportTemplateType(cl),
         active: true,
         importedAt: new Date().toISOString(),
         sections: parsed.sections,
@@ -1099,7 +1119,7 @@ async function renderTemplates(c){
     <div class="card-row">
       <div class="flex-1">
         <div class="label">${esc(t.name)}</div>
-        <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))} · ${esc(getTemplateSourceLabel(t))}${t.active === false ? ' · 비활성' : ''}</div>
+        <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))} · ${esc(getTemplateSourceLabel(t))} · Word ${esc(getReportTemplateLabel(t.reportTemplate || inferReportTemplateType(t)))}${t.active === false ? ' · 비활성' : ''}</div>
       </div>
       ${admin ? `<button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
     </div>
@@ -1403,6 +1423,8 @@ async function createAudit(){
   const audit = {
     title, date, auditor, dept,
     templateId: tplId,
+    templateName: tpl.name || '',
+    reportTemplate: tpl.reportTemplate || inferReportTemplateType(tpl),
     status: 'progress',
     createdAt: new Date().toISOString(),
     items: tpl.items.map(i=>({...i, result:null, note:'', photos:[]}))
@@ -1458,6 +1480,7 @@ function handleFileSelect(file){
         filename: file.name,
         version: file.lastModified ? new Date(file.lastModified).toISOString().slice(0,10) : importedAt.slice(0,10),
         source: 'manual',
+        reportTemplate: inferReportTemplateType({name:file.name, filename:file.name}),
         templateKey: `${file.name}@@manual@@${importedAt}`,
         importedAt,
         sections: [...sections],
@@ -1680,56 +1703,62 @@ async function exportExcel(id){
 // ═══════════════════════════════════════════════
 //  Export: Word (HTML → .doc trick, wide support)
 // ═══════════════════════════════════════════════
-async function exportWord(id){
-  const audit = await dbGet('audits', id);
-  if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
+function escapeRegex(value){
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
-  const ok=audit.items.filter(i=>i.result==='OK').length;
-  const ng=audit.items.filter(i=>i.result==='NG').length;
-  const na=audit.items.filter(i=>i.result==='NA').length;
-  const obs=audit.items.filter(i=>i.result==='OBS').length;
-  const total=audit.items.length;
+function replaceTemplateTokens(template, values){
+  let output = template;
+  Object.entries(values).forEach(([key,value])=>{
+    output = output.replace(new RegExp(escapeRegex('{{'+key+'}}'), 'g'), value == null ? '' : String(value));
+  });
+  return output;
+}
 
-  const resultColor={'OK':'#1a7c3e','NG':'#c0392b','NA':'#7f8c8d','OBS':'#e67e22'};
-  const resultBg={'OK':'#eafaf1','NG':'#fdecea','NA':'#f4f4f4','OBS':'#fef5e7'};
+function getAuditReportTemplateType(audit){
+  return audit?.reportTemplate || inferReportTemplateType(audit) || 'report-type-1';
+}
 
-  // Group items by section
-  const sections={};
-  audit.items.forEach(item=>{
-    const sec=item.section||'일반';
-    if(!sections[sec]) sections[sec]=[];
+async function loadReportTemplate(type){
+  const file = REPORT_TEMPLATE_FILES[type] || REPORT_TEMPLATE_FILES['report-type-1'];
+  const res = await fetch(file, {cache:'no-store'});
+  if(!res.ok) throw new Error(`보고서 양식 파일을 불러올 수 없습니다: ${file}`);
+  const text = await res.text();
+  if(text.includes('<div id="app">') || text.includes('심사 점검표</title>')){
+    throw new Error(`보고서 양식 대신 앱 HTML이 반환되었습니다: ${file}`);
+  }
+  return text;
+}
+
+function getResultSummary(audit){
+  const items = audit.items || [];
+  const total = items.length;
+  const ok = items.filter(i=>i.result==='OK').length;
+  const ng = items.filter(i=>i.result==='NG').length;
+  const na = items.filter(i=>i.result==='NA').length;
+  const obs = items.filter(i=>i.result==='OBS').length;
+  return {total, ok, ng, na, obs};
+}
+
+function renderSummaryRows(audit){
+  const {total, ok, ng, na, obs} = getResultSummary(audit);
+  return [['OK','적합',ok],['NG','부적합',ng],['NA','해당없음',na],['OBS','관찰사항',obs]].map(([r,l,n])=>`
+<tr><td><span class="result ${r.toLowerCase()}">${r}</span> ${l}</td><td>${n}건</td><td>${total?Math.round(n/total*100):0}%</td><td></td></tr>`).join('');
+}
+
+function groupAuditItemsBySection(audit){
+  const sections = {};
+  (audit.items || []).forEach(item=>{
+    const sec = item.section || '일반';
+    if(!sections[sec]) sections[sec] = [];
     sections[sec].push(item);
   });
+  return sections;
+}
 
-  const html=`
-<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>
-  body{font-family:'맑은 고딕',Arial,sans-serif;font-size:10pt;margin:20mm}
-  h1{font-size:16pt;font-weight:bold;text-align:center;margin-bottom:4pt}
-  h2{font-size:12pt;font-weight:bold;margin-top:16pt;margin-bottom:4pt;color:#1a2332;border-bottom:1pt solid #1a2332;padding-bottom:3pt}
-  table{width:100%;border-collapse:collapse;margin-bottom:10pt}
-  th{background:#1a2332;color:#fff;padding:5pt 6pt;font-size:9pt;text-align:left}
-  td{border:0.5pt solid #ccc;padding:5pt 6pt;font-size:9pt;vertical-align:top}
-  .sum-table td:first-child{font-weight:bold;background:#f0f4f8;width:30%}
-  .result{font-weight:bold;padding:2pt 6pt;border-radius:3pt;display:inline-block}
-  .ok{color:${resultColor.OK};background:${resultBg.OK}}
-  .ng{color:${resultColor.NG};background:${resultBg.NG}}
-  .na{color:${resultColor.NA};background:${resultBg.NA}}
-  .obs{color:${resultColor.OBS};background:${resultBg.OBS}}
-  .footer{font-size:8pt;color:#888;text-align:right;margin-top:20pt;border-top:0.5pt solid #ccc;padding-top:6pt}
-</style></head><body>
-<h1>심사 점검표 결과보고서</h1>
-<table class="sum-table"><tr><td>심사명</td><td>${esc(audit.title)}</td><td>심사일</td><td>${esc(audit.date||'')}</td></tr>
-<tr><td>심사원</td><td>${esc(audit.auditor||'')}</td><td>피심사 부서</td><td>${esc(audit.dept||'')}</td></tr>
-<tr><td>전체 항목</td><td>${total}건</td><td>작성일</td><td>${new Date().toLocaleDateString('ko-KR')}</td></tr></table>
-
-<h2>심사 결과 요약</h2>
-<table><tr><th>구분</th><th>건수</th><th>비율</th><th>비고</th></tr>
-${[['OK','적합',ok],['NG','부적합',ng],['NA','해당없음',na],['OBS','관찰사항',obs]].map(([r,l,n])=>`
-<tr><td><span class="result ${r.toLowerCase()}">${r}</span> ${l}</td><td>${n}건</td><td>${total?Math.round(n/total*100):0}%</td><td></td></tr>`).join('')}
-<tr><td><strong>합계</strong></td><td>${total}건</td><td>100%</td><td></td></tr></table>
-
-${Object.entries(sections).map(([sec,items])=>`
+function renderType1Sections(audit){
+  const sections = groupAuditItemsBySection(audit);
+  return Object.entries(sections).map(([sec,items])=>`
 <h2>${esc(sec)}</h2>
 <table><tr><th style="width:10%">번호</th><th style="width:40%">점검 항목</th><th style="width:15%">참조규정</th><th style="width:8%">결과</th><th style="width:27%">비고</th></tr>
 ${items.map(item=>`<tr>
@@ -1738,25 +1767,107 @@ ${items.map(item=>`<tr>
   <td>${esc(item.refStd||'')}</td>
   <td>${item.result?`<span class="result ${item.result.toLowerCase()}">${item.result}</span>`:'-'}</td>
   <td>${esc(item.note||'')}</td>
-</tr>`).join('')}</table>`).join('')}
+</tr>`).join('')}</table>`).join('');
+}
 
-${ng>0?`<h2>부적합 사항 목록</h2>
+function renderType1NgSection(audit){
+  const ngItems = (audit.items || []).filter(i=>i.result==='NG');
+  if(ngItems.length === 0) return '';
+  return `<h2>부적합 사항 목록</h2>
 <table><tr><th style="width:10%">번호</th><th style="width:45%">부적합 내용</th><th style="width:45%">세부 사항</th></tr>
-${audit.items.filter(i=>i.result==='NG').map(item=>`<tr>
+${ngItems.map(item=>`<tr>
   <td>${esc(item.ref||'')}</td>
   <td>${esc(item.question)}</td>
   <td>${esc(item.note||'')}</td>
-</tr>`).join('')}</table>`:''}
+</tr>`).join('')}</table>`;
+}
 
-<div class="footer">Generated by 심사 점검표 앱 · ${new Date().toLocaleString('ko-KR')}</div>
-</body></html>`;
+function resultSelected(item, result){
+  return item.result === result ? ' selected' : '';
+}
 
-  const blob=new Blob(['\ufeff'+html],{type:'application/msword;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=`${audit.title}_${audit.date||'결과'}.doc`;
-  a.click(); URL.revokeObjectURL(url);
-  showToast('Word 파일 저장됨');
+function renderFieldAuditItem(item, index){
+  const sectionTitle = esc(item.section || '일반');
+  const ref = esc(item.ref || String(index + 1));
+  const question = esc(item.question || '').replace(/\n/g, '<br>');
+  const internalRef = esc(item.refStd || '').replace(/\n/g, '<br>');
+  const externalRef = esc(item.externalRef || item.external || '').replace(/\n/g, '<br>');
+  const note = esc(item.note || '').replace(/\n/g, '<br>');
+
+  return `<table class="audit-table">
+    <colgroup>
+      <col class="col-no"><col class="col-req"><col class="col-int"><col class="col-ext">
+    </colgroup>
+    <thead>
+      <tr><th>No.</th><th>Check Requirements</th><th>Internal Ref.</th><th>External Ref.</th></tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="4" class="section-title">${sectionTitle}</td></tr>
+      <tr>
+        <td rowspan="8" class="item-no">${ref}</td>
+        <td class="requirement">${question}</td>
+        <td class="refs">${internalRef}</td>
+        <td class="external-ref">${externalRef}</td>
+      </tr>
+      <tr>
+        <td rowspan="6" class="satisfaction-cell"><span class="checkbox${item.result==='OK' || item.result==='OBS' ? ' selected' : ''}">Satis-<br>faction</span></td>
+        <td class="maturity-head">Maturit<br>y<br>Level</td>
+        <td colspan="2" class="consider-head">점검 시 고려 &nbsp; 사항</td>
+      </tr>
+      <tr><td class="maturity-label"><span class="checkbox">Conformity</span></td><td colspan="2" class="consider-text"><div class="consider-title">리튬 배터리 화재 징후를 인지하고 기본 진화 절차를 실행하는 수준</div>예) 배터리 화재 징후(연기 발생 등) 즉시 인지 및 표준 절차 실행 예) 물 소화기 준비 및 방열 장갑 착용</td></tr>
+      <tr><td class="maturity-label"><span class="checkbox">Established</span></td><td colspan="2" class="consider-text"><div class="consider-title">화재 진압, 보고, 승객 안내를 상황에 맞게 수행하는 수준</div>예) 리튬 배터리에 물을 부어 진화 및 주변 승객 대피 예) 기장에게 즉시 상황 보고 예) 승객들에게 상황 설명 및 안전 조치 안내 방송 실시</td></tr>
+      <tr><td class="maturity-label"><span class="checkbox">Mature</span></td><td colspan="2" class="consider-text"><div class="consider-title">역할 분담과 추가 점검으로 화재 대응을 체계적으로 운영하는 수준</div>예) 승무원 간 역할분담 명확화 예) 주변 수하물 검사 및 추가 리튬 배터리 화재 가능성 점검 예) 화재 원인 조사 및 상세 보고서 제출</td></tr>
+      <tr><td class="maturity-label"><span class="checkbox">Leading</span></td><td colspan="2" class="consider-text"><div class="consider-title">예방과 교육을 통해 화재 대응 절차를 지속적으로 개선하는 수준</div>예) 탑승 전 리튬 배터리 안전 규정 안내 강화 및 승객 협조 요청 예) 화재 대응 절차 개선 및 보고 예) 최신 리튬배터리 화재 대응 기술 및 절차에 대한 정기교육 실시</td></tr>
+      <tr><td class="comment-label">Comment(s)</td><td colspan="2" class="comment-box comment-text">${note}</td></tr>
+      <tr><td colspan="3" class="result-row-label"><span class="checkbox${resultSelected(item,'NA')}">N/A</span></td></tr>
+      <tr><td colspan="2" class="result-row-label"><span class="checkbox${resultSelected(item,'NG')}">Un-Satisfaction</span></td><td colspan="2"></td></tr>
+    </tbody>
+  </table>`;
+}
+
+function renderFieldAuditItems(audit){
+  return (audit.items || []).map((item,index)=>renderFieldAuditItem(item,index)).join('');
+}
+
+function fillReportTemplate(template, audit, type){
+  const summary = getResultSummary(audit);
+  const now = new Date();
+  const values = {
+    'audit.title': esc(audit.title || ''),
+    'audit.date': esc(audit.date || ''),
+    'audit.auditor': esc(audit.auditor || ''),
+    'audit.dept': esc(audit.dept || ''),
+    'summary.total': summary.total,
+    'summary.rows': renderSummaryRows(audit),
+    'sections': renderType1Sections(audit),
+    'ng.section': renderType1NgSection(audit),
+    'fieldAuditItems': renderFieldAuditItems(audit),
+    'generated.date': now.toLocaleDateString('ko-KR'),
+    'generated.datetime': now.toLocaleString('ko-KR')
+  };
+  return replaceTemplateTokens(template, values);
+}
+
+async function exportWord(id){
+  const audit = await dbGet('audits', id);
+  if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
+
+  try{
+    const type = getAuditReportTemplateType(audit);
+    const template = await loadReportTemplate(type);
+    const html = fillReportTemplate(template, audit, type);
+    const blob = new Blob(['\ufeff' + html], {type:'application/msword;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${audit.title}_${audit.date||'결과'}_${getReportTemplateLabel(type)}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Word 파일 저장됨');
+  } catch(err){
+    console.error('Word 출력 실패:', err);
+    showToast(err.message || 'Word 파일을 만들 수 없습니다');
+  }
 }
 
 // ═══════════════════════════════════════════════
