@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-07-05T00:00:00+09:00",
+  "checklists": [
+    {
+      "filename": "IOSA_점검표_샘플.xlsx",
+      "name": "IOSA 점검표 샘플",
+      "version": "2026-07-05",
+      "updatedAt": "2026-07-05T00:00:00+09:00",
+      "enabled": true
+    }
+  ]
+}
