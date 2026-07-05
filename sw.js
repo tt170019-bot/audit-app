@@ -1,12 +1,10 @@
-const CACHE_VERSION = 'audit-app-v16';
+const CACHE_VERSION = 'audit-app-v17';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
   './xlsx.full.min.js',
   './icon-192.png',
-  './icon-512.png',
-  './templates/report-type-1.html',
-  './templates/report-type-2.html'
+  './icon-512.png'
 ];
 
 const OPTIONAL_ASSETS = [];
