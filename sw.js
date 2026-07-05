@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'audit-app-v14';
+const CACHE_VERSION = 'audit-app-v15';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
@@ -34,7 +34,6 @@ function isOnlineCheck(request) {
   return url.searchParams.has('online-check');
 }
 
-
 function isChecklistIndex(request) {
   const url = new URL(request.url);
   return url.pathname.endsWith('/checklists/index.json');
@@ -49,17 +48,24 @@ function isStaticAsset(request) {
   return /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|json|xlsx|xls)$/i.test(url.pathname);
 }
 
+async function getIndexFallback() {
+  return (await caches.match('./index.html')) || new Response('Offline app shell is not cached.', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+  });
+}
+
 async function networkFirst(request) {
   try {
     const response = await fetch(request);
-    if (response && response.status === 200) {
+    if (response && response.status === 200 && response.type !== 'opaque') {
       const cache = await caches.open(CACHE_VERSION);
       await cache.put(request, response.clone());
       if (isNavigationRequest(request)) await cache.put('./index.html', response.clone());
     }
     return response;
   } catch (error) {
-    return (await caches.match(request)) || (await caches.match('./index.html'));
+    return (await caches.match(request)) || getIndexFallback();
   }
 }
 
@@ -75,7 +81,8 @@ async function cacheFirstWithRefresh(request) {
     })
     .catch(() => null);
 
-  return cached || refresh || caches.match('./index.html');
+  const response = cached || await refresh;
+  return response || new Response('', { status: 504, statusText: 'Offline and asset not cached' });
 }
 
 self.addEventListener('fetch', event => {
