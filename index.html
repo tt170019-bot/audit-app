@@ -869,6 +869,26 @@ select:focus {
   }
 }
 
+
+/* =========================================================
+   Checklist width and result button group balance
+   Version: 2026-07-06
+   Scope:
+   - Expand checklist card column for large screens
+   - Limit result button group width instead of individual buttons
+   - Preserve mobile behavior and bottom action bar width
+========================================================= */
+@media (min-width: 56.25rem) {
+  .detail-checklist-column {
+    max-width: 52rem;
+  }
+
+  .field-result-row {
+    max-width: 36rem;
+    margin-right: auto;
+  }
+}
+
 </style>
 </head>
 <body>
