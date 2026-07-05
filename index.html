@@ -4,11 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#FFFFFF">
 <title>심사 점검표</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
 <script src="xlsx.full.min.js"></script>
 <style>
 :root {
@@ -321,6 +324,51 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .detail-content { padding-inline: var(--space-200); }
   .detail-checklist-column { min-width: 0; max-width: 52rem; margin-inline: auto; }
   .detail-bottom-action { left: 50%; transform: translateX(-50%); max-width: 72rem; border-inline: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large) var(--radius-large) 0 0; }
+}
+
+
+
+/* Field audit checklist input view */
+.field-check-card { margin: var(--space-0) var(--space-150) var(--space-150); background: var(--ads-surface); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); overflow: hidden; }
+.field-check-card.answered { border-color: var(--ads-border-bold); }
+.field-check-card table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.field-check-card td, .field-check-card th { border: var(--ui-border-width) solid #000000; padding: var(--space-100); vertical-align: top; word-break: keep-all; overflow-wrap: anywhere; }
+.field-check-top { border-bottom: 0; }
+.field-check-top th { background: #d9d9d9; color: #000000; text-align: center; font-family: "Times New Roman", var(--font-family-ui), serif; font-size: var(--ads-body-small-size); line-height: 1.15; font-weight: var(--ads-weight-bold); }
+.field-check-section-title { background: #ffffff; color: #000000; font-weight: var(--ads-weight-bold); font-size: var(--ads-body-size); line-height: var(--ads-body-line); }
+.field-check-no { text-align: center; vertical-align: middle !important; font-weight: var(--ads-weight-bold); color: #000000; }
+.field-check-question { color: #000000; font-weight: var(--ads-weight-medium); }
+.field-check-ref { color: #000000; font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
+.field-check-maturity { border-top: 0; border-bottom: 0; }
+.field-check-side { background: #d9d9d9; text-align: center; vertical-align: middle !important; font-family: "Times New Roman", var(--font-family-ui), serif; font-size: var(--ads-body-size); line-height: 1.15; font-weight: var(--ads-weight-bold); color: #000000; }
+.field-check-head { background: #d9d9d9; text-align: center; vertical-align: middle !important; color: #000000; font-weight: var(--ads-weight-bold); }
+.field-check-level { color: #000000; font-family: "Times New Roman", var(--font-family-ui), serif; font-weight: var(--ads-weight-bold); vertical-align: middle !important; }
+.field-check-consider { color: #000000; font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
+.field-check-consider strong { display: block; margin-bottom: var(--space-025); }
+.field-check-actions { display: flex; flex-wrap: wrap; gap: var(--space-075); margin-top: var(--space-075); }
+.field-choice { min-height: var(--touch-target-min); padding-inline: var(--space-150); border: var(--ui-border-width) solid var(--ads-border-input); border-radius: var(--radius-medium); background: var(--ads-surface); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); cursor: pointer; }
+.field-choice.selected-ok { background: var(--ads-success-bg); border-color: var(--ads-success-bold); color: var(--ads-success-text); }
+.field-choice.selected-ng { background: var(--ads-danger-bg); border-color: var(--ads-danger); color: var(--ads-danger-text); }
+.field-choice.selected-na { background: var(--ads-neutral-bg); border-color: var(--ads-neutral-bold); color: var(--ads-neutral-text); }
+.field-choice.selected-obs { background: var(--ads-warning-bg); border-color: var(--ads-warning-bold); color: var(--ads-warning-text); }
+.field-check-comment { border-top: 0; border-bottom: 0; }
+.field-check-comment-label { width: 38%; background: #d9d9d9; text-align: center; vertical-align: middle !important; font-family: "Times New Roman", var(--font-family-ui), serif; font-weight: var(--ads-weight-bold); color: #000000; }
+.field-check-comment textarea { min-height: 5rem; border: 0; box-shadow: none; padding: var(--space-075); }
+.field-check-result { border-top: 0; }
+.field-check-result td { vertical-align: middle !important; }
+.field-result-row { display: flex; flex-wrap: wrap; gap: var(--space-075); align-items: center; }
+.field-photo-panel { padding: var(--space-150); border-top: var(--ui-border-width) solid var(--ads-border); background: var(--ads-surface); }
+.field-card-toggle { cursor: pointer; }
+@media (max-width: 47.9375rem) {
+  .field-check-card td, .field-check-card th { padding: var(--space-075); }
+  .field-check-top col:nth-child(1) { width: 16% !important; }
+  .field-check-top col:nth-child(2) { width: 44% !important; }
+  .field-check-top col:nth-child(3), .field-check-top col:nth-child(4) { width: 20% !important; }
+  .field-check-maturity col:nth-child(1) { width: 24% !important; }
+  .field-check-maturity col:nth-child(2) { width: 28% !important; }
+  .field-check-maturity col:nth-child(3) { width: 48% !important; }
+  .field-check-consider { font-size: 0.6875rem; line-height: 0.9375rem; }
+  .field-choice { flex: 1 1 calc(50% - var(--space-075)); }
 }
 
 /* Offline status / PWA helpers */
@@ -1252,6 +1300,138 @@ function scrollToChecklistSection(sectionId){
   if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+function br(value){
+  return esc(value || '').split(String.fromCharCode(10)).join('<br>');
+}
+
+function getMaturityConsideration(level){
+  const map = {
+    Conformity: {
+      title: '기본 절차를 인지하고 실행하는 수준',
+      body: '예) 위험 징후 즉시 인지 · 표준 절차 실행 · 필요한 장비 또는 자료 확인'
+    },
+    Established: {
+      title: '상황에 맞게 절차와 보고를 수행하는 수준',
+      body: '예) 담당자 간 정보 공유 · 책임자 보고 · 관련 기록과 안내 수행'
+    },
+    Mature: {
+      title: '역할 분담과 추가 점검으로 체계적으로 운영하는 수준',
+      body: '예) 역할과 책임 명확화 · 주변 영향 확인 · 상세 기록과 후속조치 검토'
+    },
+    Leading: {
+      title: '예방과 개선 활동으로 절차를 고도화하는 수준',
+      body: '예) 예방 조치 강화 · 개선사항 도출 · 교육과 절차 개선으로 환류'
+    }
+  };
+  return map[level] || {title:'', body:''};
+}
+
+function renderFieldChecklistItem(audit, item){
+  const idx = item._idx;
+  const result = item.result || '';
+  const maturity = item.maturity || '';
+  const ref = br(item.ref || idx + 1);
+  const question = br(item.question || '');
+  const internalRef = br(item.refStd || '');
+  const externalRef = br(item.externalRef || item.external || '');
+  const sectionTitle = br(item.section || '일반');
+  const note = esc(item.note || '');
+  const maturityLevels = ['Conformity','Established','Mature','Leading'];
+
+  return `<div class="field-check-card ${result?'answered':''}" id="ci-${idx}">
+    <table class="field-check-top field-card-toggle" onclick="toggleCheckItem(${idx})" tabindex="0" aria-label="점검항목 열기">
+      <colgroup>
+        <col style="width:14mm"><col style="width:88mm"><col style="width:42mm"><col style="width:42mm">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>Check<br>Requirements</th>
+          <th>Internal<br>Ref.</th>
+          <th>External<br>Ref.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="4" class="field-check-section-title">${sectionTitle}</td></tr>
+        <tr>
+          <td class="field-check-no">${ref}</td>
+          <td class="field-check-question">${question}</td>
+          <td class="field-check-ref">${internalRef}</td>
+          <td class="field-check-ref">${externalRef}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="check-body hidden" id="cb-${idx}">
+      <table class="field-check-maturity">
+        <colgroup>
+          <col style="width:36mm"><col style="width:34mm"><col style="width:116mm">
+        </colgroup>
+        <tbody>
+          <tr>
+            <td rowspan="5" class="field-check-side">${result==='OK' || result==='OBS' ? '■' : '□'} Satis-<br>faction</td>
+            <td class="field-check-head">Maturity<br>Level</td>
+            <td class="field-check-head">점검 시 고려 사항</td>
+          </tr>
+          ${maturityLevels.map(level=>{
+            const c = getMaturityConsideration(level);
+            const selected = maturity === level || (!maturity && result === 'OK' && level === 'Conformity');
+            return `<tr>
+              <td class="field-check-level">${selected ? '■' : '□'} ${level}</td>
+              <td class="field-check-consider">
+                <strong>${esc(c.title)}</strong>${esc(c.body)}
+                <div class="field-check-actions">
+                  <button class="field-choice ${selected ? 'selected-ok' : ''}" onclick="setMaturityResult(${audit.id},${idx},'${level}')">${level}</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+
+      <table class="field-check-comment">
+        <colgroup><col style="width:70mm"><col style="width:116mm"></colgroup>
+        <tbody>
+          <tr>
+            <td class="field-check-comment-label">Comment(s)</td>
+            <td><textarea rows="3" placeholder="관찰 내용, 증거자료 등을 입력하세요" onchange="setNote(${audit.id},${idx},this.value)">${note}</textarea></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="field-check-result">
+        <colgroup><col style="width:93mm"><col style="width:93mm"></colgroup>
+        <tbody>
+          <tr>
+            <td class="field-check-level">${result==='NA' ? '■' : '□'} N/A</td>
+            <td><button class="field-choice ${result==='NA' ? 'selected-na' : ''}" onclick="setResult(${audit.id},${idx},'NA')">N/A</button></td>
+          </tr>
+          <tr>
+            <td class="field-check-level">${result==='NG' ? '■' : '□'} Un-Satisfaction</td>
+            <td>
+              <div class="field-result-row">
+                <button class="field-choice ${result==='NG' ? 'selected-ng' : ''}" onclick="setResult(${audit.id},${idx},'NG')">Un-Satisfaction</button>
+                <button class="field-choice ${result==='OBS' ? 'selected-obs' : ''}" onclick="setResult(${audit.id},${idx},'OBS')">Observation</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="field-photo-panel">
+        <div class="check-label">사진</div>
+        <div class="photo-row" id="photos-${idx}">
+          ${(item.photos||[]).map((p)=>`<img class="photo-thumb" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')}
+          <div class="photo-add" onclick="openPhotoModal(${audit.id},${idx})" tabindex="0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
+            <span>추가</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderChecklist(audit){
   const c = document.getElementById('content');
   const items = audit.items||[];
@@ -1304,34 +1484,7 @@ function renderChecklist(audit){
         ${sectionEntries.map(([sec,secItems], sectionIndex)=>`
           <div class="section-header detail-section-start" id="sec-${sectionIndex}">${esc(sec)}</div>
           <div class="check-section-summary">${secItems.filter(i=>i.result).length}/${secItems.length} 항목 완료</div>
-          ${secItems.map(item=>`
-          <div class="check-card ${item.result?'answered':''}" id="ci-${item._idx}">
-            <div class="check-head" onclick="toggleCheckItem(${item._idx})" tabindex="0">
-              <div class="check-num">${esc(item.ref||item._idx+1)}</div>
-              <div class="check-question-row">
-                <div class="check-q">${esc(item.question)}</div>
-                ${item.result?`<span class="badge badge-${item.result.toLowerCase()} check-badge-fixed">${item.result}</span>`:`<span class="check-pending">미완료</span>`}
-              </div>
-              ${item.refStd?`<div class="check-ref">${esc(item.refStd)}</div>`:''}
-            </div>
-            <div class="check-body hidden" id="cb-${item._idx}">
-              <div class="check-label">결과</div>
-              <div class="ans-row">
-                ${['OK','NG','NA','OBS'].map(r=>`
-                <button class="ans-btn ${item.result===r?'sel-'+r.toLowerCase():''}" onclick="setResult(${audit.id},${item._idx},'${r}')">${r}</button>`).join('')}
-              </div>
-              <div class="check-label">비고 / 세부사항</div>
-              <textarea rows="3" placeholder="관찰 내용, 증거자료 등을 입력하세요" onchange="setNote(${audit.id},${item._idx},this.value)">${esc(item.note||'')}</textarea>
-              <div class="check-label">사진</div>
-              <div class="photo-row" id="photos-${item._idx}">
-                ${(item.photos||[]).map((p)=>`<img class="photo-thumb" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')}
-                <div class="photo-add" onclick="openPhotoModal(${audit.id},${item._idx})" tabindex="0">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
-                  <span>추가</span>
-                </div>
-              </div>
-            </div>
-          </div>`).join('')}
+          ${secItems.map(item=>renderFieldChecklistItem(audit, item)).join('')}
         `).join('')}
       </div>
     </div>
@@ -1345,10 +1498,29 @@ function renderChecklist(audit){
   requestAnimationFrame(syncDetailStickyOffset);
 }
 
+
 function toggleCheckItem(idx){
   const body = document.getElementById('cb-'+idx);
   if(!body) return;
   body.classList.toggle('hidden');
+}
+
+async function setMaturityResult(auditId, idx, maturity){
+  const audit = await dbGet('audits', auditId);
+  if(!audit) return;
+  const wasAnswered = !!audit.items[idx].result;
+  audit.items[idx].maturity = maturity;
+  audit.items[idx].result = 'OK';
+  currentAudit = audit;
+  await dbPut('audits', audit);
+
+  renderChecklist(audit);
+  const body = document.getElementById('cb-'+idx);
+  if(body) body.classList.remove('hidden');
+  const card = document.getElementById('ci-'+idx);
+  if(card) card.scrollIntoView({behavior:'smooth', block:'center'});
+
+  if(!wasAnswered) showToast('저장되었습니다');
 }
 
 async function setResult(auditId, idx, result){
@@ -1356,6 +1528,7 @@ async function setResult(auditId, idx, result){
   if(!audit) return;
   const wasAnswered = !!audit.items[idx].result;
   audit.items[idx].result = result;
+  if(result !== 'OK') audit.items[idx].maturity = '';
   currentAudit = audit;
   await dbPut('audits', audit);
 
@@ -1820,10 +1993,10 @@ function resultSelected(item, result){
 function renderFieldAuditItem(item, index){
   const sectionTitle = esc(item.section || '일반');
   const ref = esc(item.ref || String(index + 1));
-  const question = esc(item.question || '').replace(/\n/g, '<br>');
-  const internalRef = esc(item.refStd || '').replace(/\n/g, '<br>');
-  const externalRef = esc(item.externalRef || item.external || '').replace(/\n/g, '<br>');
-  const note = esc(item.note || '').replace(/\n/g, '<br>');
+  const question = esc(item.question || '').split('\n').join('<br>');
+  const internalRef = esc(item.refStd || '').split('\n').join('<br>');
+  const externalRef = esc(item.externalRef || item.external || '').split('\n').join('<br>');
+  const note = esc(item.note || '').split('\n').join('<br>');
 
   // Type-2 Word compatibility rule:
   // Word handles HTML tables poorly when one large table uses mixed 4-column headers,
