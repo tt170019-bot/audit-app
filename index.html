@@ -470,7 +470,9 @@ openDB().then(()=>{
   document.addEventListener('visibilitychange', () => {
     if(!document.hidden) updateOnlineTag();
   });
-  autoLoadChecklists()
+  repairStoredTemplates()
+    .catch(e => console.warn('기존 점검표 호환 보정 실패:', e))
+    .then(() => autoLoadChecklists())
     .catch(e => console.warn('자동 점검표 로드 실패:', e))
     .finally(()=> switchTab('home'));
 }).catch(e=>{
@@ -478,58 +480,187 @@ openDB().then(()=>{
   document.getElementById('content').innerHTML = '<div class="empty"><h3>앱 초기화 실패</h3><p>브라우저 저장소 접근을 확인한 뒤 다시 실행하세요.</p></div>';
 });
 
+
+// ═══════════════════════════════════════════════
+//  Template compatibility / migration helpers
+//  - 기존 기기에 저장된 과거 점검표 데이터를 삭제하지 않고 새 구조로 보정한다.
+// ═══════════════════════════════════════════════
+function normalizeChecklistItem(item){
+  if(!item || typeof item !== 'object') return null;
+
+  const question = String(
+    item.question ?? item.title ?? item.name ?? item.item ?? item.checkItem ?? item['점검 질문'] ?? item['점검항목'] ?? ''
+  ).trim();
+  if(!question) return null;
+
+  return {
+    section: String(item.section ?? item.category ?? item.group ?? item['섹션명'] ?? item['섹션'] ?? '일반').trim() || '일반',
+    ref: String(item.ref ?? item.no ?? item.number ?? item.code ?? item['항목번호'] ?? '').trim(),
+    question,
+    refStd: String(item.refStd ?? item.standard ?? item.reference ?? item.regulation ?? item['참조규정'] ?? '').trim(),
+    type: String(item.type ?? item.answerType ?? item['점검유형'] ?? 'OK/NG/NA/OBS').trim() || 'OK/NG/NA/OBS',
+    result: item.result ?? null,
+    note: String(item.note ?? item.memo ?? item.comment ?? item['비고'] ?? ''),
+    photos: Array.isArray(item.photos) ? item.photos : []
+  };
+}
+
+function normalizeTemplate(template){
+  const t = template && typeof template === 'object' ? template : {};
+  let rawItems = [];
+
+  if(Array.isArray(t.items)) rawItems = t.items;
+  else if(Array.isArray(t.questions)) rawItems = t.questions;
+  else if(Array.isArray(t.rows)) rawItems = t.rows;
+  else if(Array.isArray(t.checklist)) rawItems = t.checklist;
+
+  const items = rawItems.map(normalizeChecklistItem).filter(Boolean);
+  const sectionSource = Array.isArray(t.sections) && t.sections.length
+    ? t.sections
+    : [...new Set(items.map(i => i.section || '일반'))];
+
+  return {
+    ...t,
+    name: String(t.name || t.title || t.filename || '이름 없는 점검표').trim(),
+    version: String(t.version || '').trim(),
+    source: t.source || (t.filename ? 'preset' : 'manual'),
+    templateKey: t.templateKey || (t.filename && t.version ? `${t.filename}@@${t.version}` : ''),
+    sections: sectionSource.map(s => String(s || '일반').trim()).filter(Boolean),
+    items
+  };
+}
+
+async function getNormalizedTemplates(){
+  const templates = await dbAll('templates');
+  return templates.map(normalizeTemplate);
+}
+
+async function getNormalizedTemplate(id){
+  const template = await dbGet('templates', id);
+  return template ? normalizeTemplate(template) : null;
+}
+
+async function repairStoredTemplates(){
+  const templates = await dbAll('templates');
+  let repaired = 0;
+
+  for(const original of templates){
+    const normalized = normalizeTemplate(original);
+    const originalCount = Array.isArray(original?.items) ? original.items.length : 0;
+    const needsRepair = !Array.isArray(original?.items)
+      || originalCount !== normalized.items.length
+      || !Array.isArray(original?.sections)
+      || !original?.name;
+
+    if(needsRepair && normalized.id && normalized.items.length){
+      await dbPut('templates', normalized);
+      repaired += 1;
+    }
+  }
+
+  if(repaired > 0) console.log(`점검표 호환 보정 완료: ${repaired}건`);
+  return repaired;
+}
+
 // ═══════════════════════════════════════════════
 //  자동 점검표 로드 (GitHub에서)
+//  - filename만으로 중복 판단하지 않고 version까지 비교한다.
+//  - GitHub의 점검표 파일을 변경했으면 아래 version 값을 반드시 올린다.
+//  - 기존 심사/기존 점검표는 삭제하지 않고 새 버전을 추가 등록한다.
 // ═══════════════════════════════════════════════
 const PRESET_CHECKLISTS = [
-  { filename: 'checklist-1.xlsx', name: '운항 안전 점검표' },
-  { filename: 'checklist-2.xlsx', name: '지상 안전 점검표' },
+  { filename: 'checklist-1.xlsx', name: 'IOSA 점검표 샘플', version: '2026.07.05' },
+  { filename: 'checklist-2.xlsx', name: '지상 안전 점검표', version: '2026.07.05' },
 ];
+
+function getPresetTemplateKey(cl){
+  return `${cl.filename}@@${cl.version || 'unversioned'}`;
+}
+
+function getTemplateVersionLabel(template){
+  if(template?.version) return `v${template.version}`;
+  if(template?.importedAt) return `등록 ${new Date(template.importedAt).toLocaleDateString('ko-KR')}`;
+  return 'legacy';
+}
+
+function sortTemplatesForDisplay(templates){
+  return [...templates].sort((a,b)=>{
+    const ai = String(a.importedAt || '');
+    const bi = String(b.importedAt || '');
+    if(ai !== bi) return bi.localeCompare(ai);
+    return String(a.name || '').localeCompare(String(b.name || ''), 'ko');
+  });
+}
+
+function extractChecklistItemsFromRows(rows){
+  const items = [];
+  const sections = new Set();
+
+  for(let i=1;i<rows.length;i++){
+    const [section,ref,question,refStd,type] = rows[i];
+    if(!question) continue;
+    const normalized = normalizeChecklistItem({
+      section: section || '일반',
+      ref,
+      question,
+      refStd,
+      type: type || 'OK/NG/NA/OBS'
+    });
+    if(!normalized) continue;
+    sections.add(normalized.section || '일반');
+    items.push(normalized);
+  }
+
+  return { items, sections: [...sections] };
+}
 
 async function autoLoadChecklists(){
   const existing = await dbAll('templates');
+  let added = 0;
 
   for(const cl of PRESET_CHECKLISTS){
-    // 이미 있으면 스킵
-    if(existing.some(t => t.filename === cl.filename)) continue;
+    const templateKey = getPresetTemplateKey(cl);
+
+    // 같은 filename + 같은 version이면 이미 등록된 것으로 판단한다.
+    // 같은 filename이라도 version이 다르면 새 점검표로 추가 등록한다.
+    if(existing.some(t => t.templateKey === templateKey || (t.source === 'preset' && t.filename === cl.filename && String(t.version || '') === String(cl.version || '')))){
+      continue;
+    }
 
     try{
       const base = location.pathname.replace(/\/[^\/]*$/, '/');
-      const res = await fetch(base + cl.filename, {cache:'no-store'});
+      const res = await fetch(base + cl.filename + `?template-version=${encodeURIComponent(cl.version || '')}&ts=${Date.now()}`, {cache:'no-store'});
       if(!res.ok) continue;
 
       const buf = await res.arrayBuffer();
       const wb = XLSX.read(buf, {type:'array'});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-
-      const items=[], sections=new Set();
-      for(let i=1;i<rows.length;i++){
-        const [section,ref,question,refStd,type] = rows[i];
-        if(!question) continue;
-        sections.add(section||'일반');
-        items.push({
-          section: section||'일반',
-          ref: String(ref||'').trim(),
-          question: String(question).trim(),
-          refStd: String(refStd||'').trim(),
-          type: String(type||'OK/NG/NA/OBS').trim()
-        });
-      }
-      if(items.length===0) continue;
+      const parsed = extractChecklistItemsFromRows(rows);
+      if(parsed.items.length===0) continue;
 
       await dbPut('templates', {
         name: cl.name,
         filename: cl.filename,
+        version: cl.version || '',
+        templateKey,
+        source: 'preset',
         importedAt: new Date().toISOString(),
-        sections: [...sections],
-        items
+        sections: parsed.sections,
+        items: parsed.items
       });
-      console.log(`✅ 점검표 로드: ${cl.name}`);
+      added += 1;
+      console.log(`✅ 점검표 자동 등록: ${cl.name} ${cl.version || ''}`);
     } catch(e){
       console.warn(`점검표 로드 실패: ${cl.filename}`, e);
     }
   }
+
+  if(added > 0 && currentTab === 'templates'){
+    const c = document.getElementById('content');
+    if(c) renderTemplates(c);
+  }
+  return added;
 }
 
 function updateOnlineTag(){
@@ -579,7 +710,7 @@ async function renderTab(tab){
 //  Home tab
 // ═══════════════════════════════════════════════
 async function renderHome(c){
-  const [audits, templates] = await Promise.all([dbAll('audits'), dbAll('templates')]);
+  const [audits, templates] = await Promise.all([dbAll('audits'), getNormalizedTemplates()]);
   const inProgress = audits.filter(a=>a.status==='progress');
   const done = audits.filter(a=>a.status==='done');
   const totalItems = audits.reduce((s,a)=>s+(a.items?.length||0),0);
@@ -672,7 +803,7 @@ async function renderAudits(c){
 //  Templates tab
 // ═══════════════════════════════════════════════
 async function renderTemplates(c){
-  const templates = await dbAll('templates');
+  const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
   c.innerHTML=`
   <div class="section-header">점검표 업로드</div>
   <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-excel').click()"
@@ -697,7 +828,7 @@ async function renderTemplates(c){
     <div class="card-row">
       <div class="flex-1">
         <div class="label">${esc(t.name)}</div>
-        <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션</div>
+        <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))}${t.source === 'preset' ? ' · 자동등록' : ' · 수동등록'}</div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>
     </div>
@@ -940,10 +1071,10 @@ function backFromChecklist(){
 //  New Audit Modal
 // ═══════════════════════════════════════════════
 async function openNewAuditModal(){
-  const templates = await dbAll('templates');
+  const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
   const sel = document.getElementById('na-template');
   sel.innerHTML='<option value="">— 점검표를 선택하세요 —</option>'+
-    templates.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+    templates.map(t=>`<option value="${t.id}" ${t.items.length ? '' : 'disabled'}>${esc(t.name)} · ${esc(getTemplateVersionLabel(t))}${t.items.length ? '' : ' (항목 없음)'}</option>`).join('');
   document.getElementById('na-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('na-title').value='';
   document.getElementById('na-auditor').value='';
@@ -961,8 +1092,9 @@ async function createAudit(){
   if(!title){ showToast('심사 제목을 입력하세요'); return; }
   if(!tplId){ showToast('점검표를 선택하세요'); return; }
 
-  const tpl = await dbGet('templates', tplId);
+  const tpl = await getNormalizedTemplate(tplId);
   if(!tpl){ showToast('점검표를 불러올 수 없습니다'); return; }
+  if(!tpl.items.length){ showToast('점검표 항목 형식이 맞지 않습니다. 다시 업로드하세요'); return; }
 
   const audit = {
     title, date, auditor, dept,
@@ -1016,9 +1148,14 @@ function handleFileSelect(file){
       }
       if(items.length===0){ showToast('항목을 찾을 수 없습니다. 형식을 확인하세요'); return; }
 
+      const importedAt = new Date().toISOString();
       const tpl = {
         name: file.name.replace(/\.[^.]+$/,''),
-        importedAt: new Date().toISOString(),
+        filename: file.name,
+        version: file.lastModified ? new Date(file.lastModified).toISOString().slice(0,10) : importedAt.slice(0,10),
+        source: 'manual',
+        templateKey: `${file.name}@@manual@@${importedAt}`,
+        importedAt,
         sections: [...sections],
         items
       };
