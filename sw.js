@@ -1,10 +1,12 @@
-const CACHE_VERSION = 'audit-app-v15';
+const CACHE_VERSION = 'audit-app-v16';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
   './xlsx.full.min.js',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './templates/report-type-1.html',
+  './templates/report-type-2.html'
 ];
 
 const OPTIONAL_ASSETS = [];
@@ -45,7 +47,7 @@ function isNavigationRequest(request) {
 
 function isStaticAsset(request) {
   const url = new URL(request.url);
-  return /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|json|xlsx|xls)$/i.test(url.pathname);
+  return /\.(?:html|js|css|png|jpg|jpeg|webp|svg|ico|json|xlsx|xls)$/i.test(url.pathname);
 }
 
 async function getIndexFallback() {
