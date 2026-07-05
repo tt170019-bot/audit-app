@@ -104,6 +104,11 @@
   --ui-topbar-height: 3.5rem;
   --ui-progress-height: 0.25rem;
   --ui-photo-size: 4.5rem;
+  --touch-target-min: 2.75rem;
+  --mobile-action-height: 3.5rem;
+  --mobile-card-padding: var(--space-200);
+  --mobile-page-padding: var(--space-200);
+  --mobile-bottom-safe-area: env(safe-area-inset-bottom);
   --ui-border-width: 0.0625rem;
   --ui-border-width-strong: 0.125rem;
 
@@ -157,7 +162,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .card-row .sub { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtlest); margin-top: var(--space-025); }
 
 /* Buttons */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-075); min-height: var(--ui-button-height); padding-inline: var(--ui-button-padding-inline); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-medium); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease; -webkit-user-select: none; user-select: none; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-075); min-height: var(--touch-target-min); padding-inline: var(--ui-button-padding-inline); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-medium); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease; -webkit-user-select: none; user-select: none; }
 .btn:hover { background: var(--ads-surface-container-hovered); }
 .btn:active { transform: scale(0.98); }
 .btn-primary, .btn-teal { background: var(--ads-brand); border-color: var(--ads-brand); color: var(--ads-text-inverse); }
@@ -224,7 +229,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .modal-handle { width: var(--space-400); height: var(--space-050); background: var(--ads-border-bold); border-radius: var(--radius-full); margin: var(--space-150) auto var(--space-200); }
 .modal-title { font-size: var(--ads-heading-small-size); line-height: var(--ads-heading-small-line); font-weight: var(--ads-weight-semibold); padding: var(--space-0) var(--space-250) var(--space-200); border-bottom: var(--ui-border-width) solid var(--ads-border); color: var(--ads-text); }
 .modal-body { padding: var(--space-200) var(--space-250); }
-.modal-actions { display: flex; gap: var(--space-150); padding: var(--space-200) var(--space-250) var(--space-0); border-top: var(--ui-border-width) solid var(--ads-border); }
+.modal-actions { position: sticky; bottom: 0; display: flex; gap: var(--space-150); padding: var(--space-200) var(--space-250) calc(var(--space-200) + env(safe-area-inset-bottom, 0)); border-top: var(--ui-border-width) solid var(--ads-border); background: var(--ads-surface-overlay); }
 
 /* Upload */
 .upload-zone { border: var(--ui-border-width-strong) dashed var(--ads-border-bold); border-radius: var(--radius-large); padding: var(--space-500) var(--space-250); text-align: center; cursor: pointer; transition: border-color 200ms ease, background-color 200ms ease; margin: var(--space-0) var(--space-150); background: var(--ads-surface); }
@@ -283,6 +288,42 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .viewer-close { position: absolute; top: var(--space-200); right: var(--space-200); background: rgba(255,255,255,0.20); border: 0; color: var(--ads-text-inverse); width: var(--space-500); height: var(--space-500); border-radius: var(--radius-full); font-size: var(--ads-heading-small-size); cursor: pointer; }
 
+
+
+/* Mobile detail view - harness v1 */
+.detail-shell { min-height: 100%; display: flex; flex-direction: column; background: var(--ads-surface-sunken); }
+.detail-top { position: sticky; top: 0; z-index: 120; background: var(--ads-surface); border-bottom: var(--ui-border-width) solid var(--ads-border); padding: calc(var(--space-100) + env(safe-area-inset-top, 0)) var(--mobile-page-padding) var(--space-150); }
+.detail-top-row { display: flex; align-items: center; gap: var(--space-100); }
+.detail-back { flex: 0 0 auto; width: var(--touch-target-min); min-height: var(--touch-target-min); padding-inline: var(--space-0); border-radius: var(--radius-full); }
+.detail-title-wrap { min-width: 0; flex: 1; }
+.detail-title { font-size: var(--ads-heading-small-size); line-height: var(--ads-heading-small-line); font-weight: var(--ads-weight-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail-meta { margin-top: var(--space-025); color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail-progress { padding-top: var(--space-150); }
+.detail-anchor-nav { position: sticky; top: calc(var(--ui-topbar-height) + env(safe-area-inset-top, 0)); z-index: 110; display: flex; gap: var(--space-075); overflow-x: auto; padding: var(--space-100) var(--mobile-page-padding); background: var(--ads-surface-sunken); border-bottom: var(--ui-border-width) solid var(--ads-border); scrollbar-width: none; }
+.detail-anchor-nav::-webkit-scrollbar { display: none; }
+.anchor-chip { min-height: var(--touch-target-min); padding-inline: var(--space-150); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-full); background: var(--ads-surface); color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); white-space: nowrap; cursor: pointer; }
+.anchor-chip:active { background: var(--ads-surface-container); }
+.detail-content { flex: 1; padding-bottom: calc(var(--mobile-action-height) + var(--space-500) + env(safe-area-inset-bottom, 0)); }
+.detail-summary-card { margin: var(--space-150); background: var(--ads-surface); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); overflow: hidden; }
+.detail-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-0); }
+.detail-summary-cell { padding: var(--space-150); border-right: var(--ui-border-width) solid var(--ads-border); border-bottom: var(--ui-border-width) solid var(--ads-border); }
+.detail-summary-cell:nth-child(2n) { border-right: 0; }
+.detail-summary-cell:nth-last-child(-n+2) { border-bottom: 0; }
+.detail-summary-label { color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); margin-bottom: var(--space-025); }
+.detail-summary-value { color: var(--ads-text); font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-semibold); }
+.detail-bottom-action { position: fixed; left: 0; right: 0; bottom: 0; z-index: 180; display: flex; gap: var(--space-100); padding: var(--space-150) var(--mobile-page-padding) calc(var(--space-150) + env(safe-area-inset-bottom, 0)); background: var(--ads-surface); border-top: var(--ui-border-width) solid var(--ads-border); box-shadow: var(--shadow-overflow); }
+.detail-bottom-action .btn { min-height: var(--mobile-action-height); }
+.detail-section-start { scroll-margin-top: 8.5rem; }
+.check-section-summary { margin: var(--space-0) var(--space-150) var(--space-100); color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
+.result-count-row { display: flex; gap: var(--space-075); flex-wrap: wrap; margin-top: var(--space-100); }
+@media (min-width: 56.25rem) {
+  .detail-shell { max-width: 72rem; margin: 0 auto; }
+  .detail-content { display: grid; grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr); gap: var(--space-200); align-items: start; padding-inline: var(--space-200); }
+  .detail-summary-card { position: sticky; top: 7rem; margin: var(--space-200) var(--space-0); }
+  .detail-checklist-column { min-width: 0; }
+  .detail-bottom-action { left: 50%; transform: translateX(-50%); max-width: 72rem; border-inline: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large) var(--radius-large) 0 0; }
+}
+
 /* Offline status / PWA helpers */
 #offline-tag.is-online { background: var(--ads-information-bg); color: var(--ads-information-text); }
 #offline-tag.is-offline { background: var(--ads-warning-bg); color: var(--ads-warning-text); }
@@ -322,6 +363,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 ::-webkit-scrollbar-thumb { background: var(--ads-border-bold); border-radius: var(--radius-full); }
 .icon { display: inline-flex; align-items: center; justify-content: center; }
 @media (min-width: 48rem) { .modal-sheet { max-width: 40rem; border-radius: var(--radius-xxlarge); margin-bottom: var(--space-300); } #content { max-width: 48rem; width: 100%; margin-inline: auto; } #tabbar { justify-content: center; } .tab-btn { max-width: 10rem; } }
+@media (min-width: 56.25rem) { #content { max-width: 72rem; } }
 </style>
 </head>
 <body>
@@ -360,15 +402,15 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
     <div class="modal-body">
       <div class="check-label">심사 제목</div>
       <input type="text" id="na-title" placeholder="예: 2024년 상반기 운항 심사">
-      <div class="check-label" class="field-gap">점검표 선택</div>
+      <div class="check-label field-gap">점검표 선택</div>
       <select id="na-template">
         <option value="">— 점검표를 선택하세요 —</option>
       </select>
-      <div class="check-label" class="field-gap">심사 일자</div>
+      <div class="check-label field-gap">심사 일자</div>
       <input type="date" id="na-date">
-      <div class="check-label" class="field-gap">심사원</div>
+      <div class="check-label field-gap">심사원</div>
       <input type="text" id="na-auditor" placeholder="홍길동">
-      <div class="check-label" class="field-gap">피심사 부서</div>
+      <div class="check-label field-gap">피심사 부서</div>
       <input type="text" id="na-dept" placeholder="운항부">
     </div>
     <div class="modal-actions">
@@ -384,11 +426,11 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
     <div class="modal-title" id="modal-photo-title">사진 첨부</div>
     <div class="modal-body">
       <div class="modal-action-row">
-        <button class="btn btn-ghost" class="flex-1" onclick="takePhoto()">
+        <button class="btn btn-ghost flex-1" onclick="takePhoto()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
           카메라 촬영
         </button>
-        <button class="btn btn-ghost" class="flex-1" onclick="pickPhoto()">
+        <button class="btn btn-ghost flex-1" onclick="pickPhoto()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           앨범에서 선택
         </button>
@@ -881,12 +923,12 @@ async function renderHome(c){
   const answered = audits.reduce((s,a)=>s+(a.items?.filter(i=>i.result).length||0),0);
 
   c.innerHTML=`
-  <div style="padding:20px 12px 8px">
-    <p style="font-size:22px;font-weight:700;letter-spacing:-.5px">안녕하세요 👋</p>
-    <p style="font-size:14px;color:var(--text3);margin-top:4px">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}</p>
+  <div class="home-hero">
+    <p class="home-title">안녕하세요</p>
+    <p class="home-date">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}</p>
   </div>
-  <div class="stat-grid" class="home-kpi">
-    <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${audits.length}</div><div class="stat-lbl">전체 심사</div></div>
+  <div class="stat-grid home-kpi">
+    <div class="stat-card"><div class="stat-val text-brand">${audits.length}</div><div class="stat-lbl">전체 심사</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--warn)">${inProgress.length}</div><div class="stat-lbl">진행 중</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--ok)">${done.length}</div><div class="stat-lbl">완료</div></div>
     <div class="stat-card"><div class="stat-val" style="color:var(--teal)">${templates.length}</div><div class="stat-lbl">점검표 수</div></div>
@@ -948,7 +990,7 @@ async function renderAudits(c){
     return`<div class="audit-item" onclick="openAudit(${a.id})">
       <div class="audit-item-head">
         <div class="audit-item-title">${esc(a.title)}</div>
-        <span class="status-dot ${a.status==='done'?'dot-done':a.status==='progress'?'dot-progress':'dot-new'}" class="audit-status-dot-large"></span>
+        <span class="status-dot ${a.status==='done'?'dot-done':a.status==='progress'?'dot-progress':'dot-new'} audit-status-dot-large"></span>
       </div>
       <div class="audit-progress-block">
         <div class="prog-wrap" style="margin:0 0 4px"><div class="prog-fill" style="width:${pct}%"></div></div>
@@ -1094,8 +1136,8 @@ async function renderExport(c){
     const na=a.items?.filter(i=>i.result==='NA').length||0;
     const obs=a.items?.filter(i=>i.result==='OBS').length||0;
     return`
-    <div class="card" class="export-card">
-      <div class="card-row" class="export-title-row">
+    <div class="card export-card">
+      <div class="card-row export-title-row">
         <div class="export-title">${esc(a.title)}</div>
         <div class="export-badge-row">
           <span class="badge badge-ok">OK ${ok}</span>
@@ -1105,22 +1147,22 @@ async function renderExport(c){
         </div>
         <div class="export-meta">${ans}/${total}항목 완료 · ${esc(a.auditor||'')} · ${esc(a.date||'')}</div>
       </div>
-      <div class="card-row" class="export-badge-row">
-        <button class="btn btn-ghost btn-sm" class="flex-1" onclick="exportExcel(${a.id})">
+      <div class="card-row export-badge-row">
+        <button class="btn btn-ghost btn-sm flex-1" onclick="exportExcel(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Excel
         </button>
-        <button class="btn btn-ghost btn-sm" class="flex-1" onclick="exportWord(${a.id})">
+        <button class="btn btn-ghost btn-sm flex-1" onclick="exportWord(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
           Word
         </button>
-        <button class="btn btn-ghost btn-sm" class="flex-1" onclick="exportPDF(${a.id})">
+        <button class="btn btn-ghost btn-sm flex-1" onclick="exportPDF(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           PDF
         </button>
       </div>
       ${navigator.onLine?`<div class="card-row">
-        <button class="btn btn-teal btn-sm" class="flex-1" onclick="uploadGDrive(${a.id})">
+        <button class="btn btn-teal btn-sm flex-1" onclick="uploadGDrive(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
           Google Drive 업로드
         </button>
@@ -1136,15 +1178,17 @@ async function renderExport(c){
 async function openAudit(id){
   currentAudit = await dbGet('audits', id);
   if(!currentAudit) return;
-  document.getElementById('topbar-title').textContent = currentAudit.title;
-  const action = document.getElementById('topbar-action');
-  action.textContent='완료';
-  action.style.display='flex';
-  action.onclick = ()=> finishAudit(id);
 
-  // hide tabbar while checking
+  document.getElementById('topbar').style.display='none';
   document.getElementById('tabbar').style.display='none';
+  document.getElementById('topbar-action').style.display='none';
+
   renderChecklist(currentAudit);
+}
+
+function scrollToChecklistSection(sectionId){
+  const el = document.getElementById(sectionId);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function renderChecklist(audit){
@@ -1153,64 +1197,100 @@ function renderChecklist(audit){
   const total = items.length;
   const ans = items.filter(i=>i.result).length;
   const pct = total ? Math.round(ans/total*100) : 0;
+  const ok = items.filter(i=>i.result==='OK').length;
+  const ng = items.filter(i=>i.result==='NG').length;
+  const na = items.filter(i=>i.result==='NA').length;
+  const obs = items.filter(i=>i.result==='OBS').length;
 
-  // Group by section
   const sections = {};
   items.forEach((item,idx)=>{
     const sec = item.section||'일반';
     if(!sections[sec]) sections[sec]=[];
     sections[sec].push({...item, _idx:idx});
   });
+  const sectionEntries = Object.entries(sections);
 
   c.innerHTML=`
-  <div class="check-progress-shell">
-    <div class="prog-wrap" style="margin:0 0 4px"><div class="prog-fill" style="width:${pct}%"></div></div>
-    <div class="prog-label"><span>${ans}/${total} 항목 완료</span><span>${pct}%</span></div>
-    <div class="check-result-row">
-      ${['OK','NG','NA','OBS'].map(r=>{
-        const cnt=items.filter(i=>i.result===r).length;
-        return cnt>0?`<span class="badge badge-${r.toLowerCase()}">${r} ${cnt}</span>`:'';
-      }).join('')}
+  <div class="detail-shell">
+    <div class="detail-top">
+      <div class="detail-top-row">
+        <button class="btn btn-ghost detail-back" onclick="backFromChecklist()" aria-label="목록으로 돌아가기">←</button>
+        <div class="detail-title-wrap">
+          <div class="detail-title">${esc(audit.title)}</div>
+          <div class="detail-meta">${esc(audit.auditor||'심사원 미입력')} · ${esc(audit.dept||'부서 미입력')} · ${esc(audit.date||'일자 미입력')}</div>
+        </div>
+        <span class="badge ${audit.status==='done'?'badge-ok':'badge-obs'}">${audit.status==='done'?'완료':'진행 중'}</span>
+      </div>
+      <div class="detail-progress">
+        <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
+        <div class="prog-label"><span>${ans}/${total} 항목 완료</span><span>${pct}%</span></div>
+        <div class="result-count-row">
+          <span class="badge badge-ok">OK ${ok}</span>
+          <span class="badge badge-ng">NG ${ng}</span>
+          <span class="badge badge-na">NA ${na}</span>
+          <span class="badge badge-obs">OBS ${obs}</span>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="check-actions">
-    <button class="btn btn-ghost btn-sm" class="flex-1" onclick="backFromChecklist()">← 돌아가기</button>
-    <button class="btn btn-ghost btn-sm" class="flex-1" onclick="jumpToNext(${audit.id})">미완료로 이동</button>
-  </div>
 
-  ${Object.entries(sections).map(([sec,secItems])=>`
-    <div class="section-header">${esc(sec)}</div>
-    ${secItems.map(item=>`
-    <div class="check-card ${item.result?'answered':''}" id="ci-${item._idx}">
-      <div class="check-head" onclick="toggleCheckItem(${item._idx})">
-        <div class="check-num">${esc(item.ref||item._idx+1)}</div>
-        <div class="check-question-row">
-          <div class="check-q">${esc(item.question)}</div>
-          ${item.result?`<span class="badge badge-${item.result.toLowerCase()}" class="check-badge-fixed">${item.result}</span>`:`<span class="check-pending">미완료</span>`}
-        </div>
-        ${item.refStd?`<div class="check-ref">📋 ${esc(item.refStd)}</div>`:''}
-      </div>
-      <div class="check-body hidden" id="cb-${item._idx}">
-        <div class="check-label">결과</div>
-        <div class="ans-row">
-          ${['OK','NG','NA','OBS'].map(r=>`
-          <button class="ans-btn ${item.result===r?'sel-'+r.toLowerCase():''}" onclick="setResult(${audit.id},${item._idx},'${r}')">${r}</button>`).join('')}
-        </div>
-        <div class="check-label">비고 / 세부사항</div>
-        <textarea rows="3" placeholder="관찰 내용, 증거자료 등을 입력하세요" onchange="setNote(${audit.id},${item._idx},this.value)">${esc(item.note||'')}</textarea>
-        <div class="check-label">사진</div>
-        <div class="photo-row" id="photos-${item._idx}">
-          ${(item.photos||[]).map((p,pi)=>`<img class="photo-thumb" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')}
-          <div class="photo-add" onclick="openPhotoModal(${audit.id},${item._idx})">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
-            <span>추가</span>
-          </div>
+    <div class="detail-anchor-nav" aria-label="점검 섹션 이동">
+      <button class="anchor-chip" onclick="scrollToChecklistSection('detail-summary')">요약</button>
+      ${sectionEntries.map(([sec], i)=>`<button class="anchor-chip" onclick="scrollToChecklistSection('sec-${i}')">${esc(sec)}</button>`).join('')}
+      <button class="anchor-chip" onclick="jumpToNext(${audit.id})">미완료</button>
+    </div>
+
+    <div class="detail-content">
+      <div class="detail-summary-card detail-section-start" id="detail-summary">
+        <div class="detail-summary-grid">
+          <div class="detail-summary-cell"><div class="detail-summary-label">전체 항목</div><div class="detail-summary-value">${total}</div></div>
+          <div class="detail-summary-cell"><div class="detail-summary-label">완료율</div><div class="detail-summary-value">${pct}%</div></div>
+          <div class="detail-summary-cell"><div class="detail-summary-label">부적합</div><div class="detail-summary-value text-danger">${ng}</div></div>
+          <div class="detail-summary-cell"><div class="detail-summary-label">관찰사항</div><div class="detail-summary-value">${obs}</div></div>
         </div>
       </div>
-    </div>`).join('')}
-  `).join('')}
-  <div class="check-bottom-spacer"></div>
-  `;
+
+      <div class="detail-checklist-column">
+        ${sectionEntries.map(([sec,secItems], sectionIndex)=>`
+          <div class="section-header detail-section-start" id="sec-${sectionIndex}">${esc(sec)}</div>
+          <div class="check-section-summary">${secItems.filter(i=>i.result).length}/${secItems.length} 항목 완료</div>
+          ${secItems.map(item=>`
+          <div class="check-card ${item.result?'answered':''}" id="ci-${item._idx}">
+            <div class="check-head" onclick="toggleCheckItem(${item._idx})" tabindex="0">
+              <div class="check-num">${esc(item.ref||item._idx+1)}</div>
+              <div class="check-question-row">
+                <div class="check-q">${esc(item.question)}</div>
+                ${item.result?`<span class="badge badge-${item.result.toLowerCase()} check-badge-fixed">${item.result}</span>`:`<span class="check-pending">미완료</span>`}
+              </div>
+              ${item.refStd?`<div class="check-ref">${esc(item.refStd)}</div>`:''}
+            </div>
+            <div class="check-body hidden" id="cb-${item._idx}">
+              <div class="check-label">결과</div>
+              <div class="ans-row">
+                ${['OK','NG','NA','OBS'].map(r=>`
+                <button class="ans-btn ${item.result===r?'sel-'+r.toLowerCase():''}" onclick="setResult(${audit.id},${item._idx},'${r}')">${r}</button>`).join('')}
+              </div>
+              <div class="check-label">비고 / 세부사항</div>
+              <textarea rows="3" placeholder="관찰 내용, 증거자료 등을 입력하세요" onchange="setNote(${audit.id},${item._idx},this.value)">${esc(item.note||'')}</textarea>
+              <div class="check-label">사진</div>
+              <div class="photo-row" id="photos-${item._idx}">
+                ${(item.photos||[]).map((p)=>`<img class="photo-thumb" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')}
+                <div class="photo-add" onclick="openPhotoModal(${audit.id},${item._idx})" tabindex="0">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
+                  <span>추가</span>
+                </div>
+              </div>
+            </div>
+          </div>`).join('')}
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="detail-bottom-action">
+      <button class="btn btn-ghost flex-1" onclick="backFromChecklist()">목록</button>
+      <button class="btn btn-ghost flex-1" onclick="jumpToNext(${audit.id})">미완료</button>
+      <button class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>
+    </div>
+  </div>`;
 }
 
 function toggleCheckItem(idx){
@@ -1227,39 +1307,11 @@ async function setResult(auditId, idx, result){
   currentAudit = audit;
   await dbPut('audits', audit);
 
-  // Update UI
+  renderChecklist(audit);
+  const body = document.getElementById('cb-'+idx);
+  if(body) body.classList.remove('hidden');
   const card = document.getElementById('ci-'+idx);
-  if(card){
-    card.classList.add('answered');
-    // Update badge in head
-    const head = card.querySelector('.check-head');
-    const existingBadge = head.querySelector('.badge');
-    const existingNA = head.querySelector('span[style]');
-    if(existingBadge) existingBadge.outerHTML=`<span class="badge badge-${result.toLowerCase()}" class="check-badge-fixed">${result}</span>`;
-    else if(existingNA) existingNA.outerHTML=`<span class="badge badge-${result.toLowerCase()}" class="check-badge-fixed">${result}</span>`;
-    // Update answer buttons
-    card.querySelectorAll('.ans-btn').forEach(b=>{
-      const r=b.textContent.trim();
-      b.className='ans-btn'+(result===r?' sel-'+r.toLowerCase():'');
-    });
-  }
-  // Update progress
-  const items = audit.items||[];
-  const ans = items.filter(i=>i.result).length;
-  const pct = Math.round(ans/items.length*100);
-  const fill = document.querySelector('.prog-fill');
-  if(fill) fill.style.width=pct+'%';
-  const progLbl = document.querySelector('.prog-label');
-  if(progLbl) progLbl.innerHTML=`<span>${ans}/${items.length} 항목 완료</span><span>${pct}%</span>`;
-
-  // Update result counts
-  const countRow = document.querySelector('[style*="display:flex;gap:6px;flex-wrap:wrap"]');
-  if(countRow){
-    countRow.innerHTML = ['OK','NG','NA','OBS'].map(r=>{
-      const cnt=items.filter(i=>i.result===r).length;
-      return cnt>0?`<span class="badge badge-${r.toLowerCase()}">${r} ${cnt}</span>`:'';
-    }).join('');
-  }
+  if(card) card.scrollIntoView({behavior:'smooth', block:'center'});
 
   if(!wasAnswered && result) showToast('저장되었습니다');
 }
@@ -1299,6 +1351,7 @@ async function finishAudit(id){
 }
 
 function backFromChecklist(){
+  document.getElementById('topbar').style.display='block';
   document.getElementById('tabbar').style.display='flex';
   document.getElementById('topbar-action').style.display='none';
   currentAudit=null;
@@ -1738,6 +1791,9 @@ function closeModal(id){
 // Close modal on backdrop tap
 document.querySelectorAll('.modal-backdrop').forEach(m=>{
   m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); });
+});
+window.addEventListener('popstate', () => {
+  if(currentAudit) backFromChecklist();
 });
 
 // ═══════════════════════════════════════════════
