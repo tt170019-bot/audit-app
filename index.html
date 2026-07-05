@@ -1820,14 +1820,10 @@ function resultSelected(item, result){
 function renderFieldAuditItem(item, index){
   const sectionTitle = esc(item.section || '일반');
   const ref = esc(item.ref || String(index + 1));
-  const question = esc(item.question || '').replace(/
-/g, '<br>');
-  const internalRef = esc(item.refStd || '').replace(/
-/g, '<br>');
-  const externalRef = esc(item.externalRef || item.external || '').replace(/
-/g, '<br>');
-  const note = esc(item.note || '').replace(/
-/g, '<br>');
+  const question = esc(item.question || '').replace(/\n/g, '<br>');
+  const internalRef = esc(item.refStd || '').replace(/\n/g, '<br>');
+  const externalRef = esc(item.externalRef || item.external || '').replace(/\n/g, '<br>');
+  const note = esc(item.note || '').replace(/\n/g, '<br>');
 
   // Type-2 Word compatibility rule:
   // Word handles HTML tables poorly when one large table uses mixed 4-column headers,
