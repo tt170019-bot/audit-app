@@ -1,123 +1,160 @@
-# 심사 점검표 앱 — 배포 가이드
+# Audit App - Checklist Type Split & Maturity Assessment
 
-오프라인 동작 모바일 PWA. 인터넷 없이 심사 점검표를 작성하고, 온라인 복귀 후 Excel/Word로 내보내거나 Google Drive에 업로드합니다.
+## 1. 적용 목적
+
+이번 버전은 점검표 유형에 따라 점검 실시 화면을 분리합니다.
+
+- Type 1: 일반 점검표
+- Type 2: 성숙도 점검표
+
+2번 체크리스트(checklist-2 또는 현장탑승심사표 계열)는 Type 2로 판별되어 성숙도 점검 UI가 표시됩니다.
 
 ---
 
-## 파일 구성
+## 2. 화면 구조
 
+### Type 1: 일반 점검표
+
+순서:
+
+1. Requirement
+2. Result
+3. Auditor Comment
+4. Evidence
+
+구성:
+
+- Requirement
+  - No.
+  - Check Requirement
+  - Internal Ref.
+  - External Ref.
+- Result
+  - Satisfaction
+  - Observation
+  - Un-Satisfaction
+  - N/A
+- Comment(s)
+- Evidence / 사진
+
+성숙도 선택 영역은 표시하지 않습니다.
+
+---
+
+### Type 2: 성숙도 점검표
+
+순서:
+
+1. Requirement
+2. Result
+3. Maturity Assessment
+4. Auditor Comment
+5. Evidence
+
+구성:
+
+- Requirement
+  - No.
+  - Check Requirement
+  - Internal Ref.
+  - External Ref.
+- Result
+  - Satisfaction
+  - Observation
+  - Un-Satisfaction
+  - N/A
+- Maturity Assessment
+  - Conformity + 요구조건 / 판단기준
+  - Established + 요구조건 / 판단기준
+  - Mature + 요구조건 / 판단기준
+  - Leading + 요구조건 / 판단기준
+- Comment(s)
+- Evidence / 사진
+
+Result와 Maturity는 별도 평가축입니다.
+Maturity를 선택해도 Result가 자동으로 Satisfaction 처리되지 않습니다.
+
+---
+
+## 3. Type 판별 기준
+
+Type 2로 판별되는 경우:
+
+- checklist-2
+- checklist 2
+- 현장탑승심사표
+- 안전성과지표
+- 리튬
+- report-type-2로 저장된 점검표
+
+그 외는 Type 1 일반 점검표로 처리합니다.
+
+---
+
+## 4. Excel 점검표 컬럼 구조
+
+권장 컬럼은 다음과 같습니다.
+
+| Column | Field | 설명 |
+|---|---|---|
+| A | Section | 섹션명 |
+| B | No. | 항목번호 |
+| C | Check Requirement | 점검 질문 / 요구사항 |
+| D | Internal Ref. | 내부 참조 |
+| E | External Ref. | 외부 참조 |
+| F | Conformity Criteria | Type 2 성숙도 기준 |
+| G | Established Criteria | Type 2 성숙도 기준 |
+| H | Mature Criteria | Type 2 성숙도 기준 |
+| I | Leading Criteria | Type 2 성숙도 기준 |
+| J | Result Type | OK/NG/NA/OBS |
+
+Type 1 점검표는 F~I 컬럼이 비어 있어도 됩니다.
+Type 2 점검표는 F~I 컬럼을 입력하면 각 성숙도 점수 옆에 요구조건으로 표시됩니다.
+F~I가 비어 있으면 앱의 기본 성숙도 설명이 표시됩니다.
+
+---
+
+## 5. 변경 파일
+
+- index_type_split_maturity.txt
+  - index.html로 적용
+- sw_v20_type_split.txt
+  - sw.js로 적용
+
+---
+
+## 6. 배포 시 주의사항
+
+PWA/Service Worker 캐시 때문에 index.html을 수정할 때마다 sw.js의 CACHE_VERSION을 올려야 합니다.
+
+이번 버전:
+
+```js
+const CACHE_VERSION = 'audit-app-v20';
 ```
-audit-app/
-├── index.html              # 앱 전체 (단일 파일)
-├── sw.js                   # Service Worker (오프라인 캐시)
-├── manifest.json           # PWA 설정 (홈 화면 설치)
-├── icon-192.png            # 앱 아이콘 192px (직접 제작)
-├── icon-512.png            # 앱 아이콘 512px (직접 제작)
-└── IOSA_점검표_샘플.xlsx   # 점검표 샘플 (앱에 업로드용)
-```
+
+GitHub Pages 또는 정적 배포 후 화면이 바뀌지 않으면 다음을 수행합니다.
+
+1. Chrome DevTools 열기
+2. Application > Service Workers > Unregister
+3. Application > Storage > Clear site data
+4. 새로고침
 
 ---
 
-## 배포 방법 (권장: Vercel — 무료)
+## 7. 검증 항목
 
-### 1단계 — GitHub 저장소 생성
-```bash
-git init
-git add .
-git commit -m "init: audit app"
-git remote add origin https://github.com/yourname/audit-app.git
-git push -u origin main
-```
+배포 후 다음을 확인합니다.
 
-### 2단계 — Vercel 배포
-1. https://vercel.com 에서 GitHub 계정으로 로그인
-2. "New Project" → 저장소 선택 → Deploy
-3. 자동 HTTPS URL 발급 (예: `https://audit-app-xxx.vercel.app`)
+- 홈 화면 로딩 완료
+- 점검 기록 목록 표시
+- 기존 심사 열기 가능
+- Type 1 점검표에서 성숙도 영역 미표시
+- Type 2 점검표에서 성숙도 영역 표시
+- Result 선택 저장
+- Maturity 선택 저장
+- Comment 저장
+- 사진 첨부 저장
+- 심사 완료 버튼 작동
+- Word/PDF 출력 시 Type 2 양식 유지
 
-### 3단계 — 모바일 설치 (홈 화면 추가)
-
-**iOS Safari:**
-- 앱 URL 접속 → 공유 버튼(□↑) → "홈 화면에 추가" → 추가
-
-**Android Chrome:**
-- 앱 URL 접속 → 주소창 우측 ⋮ 메뉴 → "앱 설치" 또는 "홈 화면에 추가"
-
-설치 후 **인터넷 없이** 앱 아이콘으로 실행 가능합니다.
-
----
-
-## 오프라인 사용 흐름
-
-```
-1. 사무실(온라인) ──→ 앱 열기 (캐시됨)
-2. 현장(오프라인) ──→ 앱 실행 → 점검표 작성 → IndexedDB 자동 저장
-3. 사무실 복귀    ──→ [내보내기] → Excel / Word 다운로드
-                                 → Google Drive 업로드
-```
-
----
-
-## Excel 점검표 형식
-
-| A열 | B열 | C열 | D열 | E열 |
-|-----|-----|-----|-----|-----|
-| 섹션명 | 항목번호 | 점검 항목 (필수) | 참조규정 | 점검유형 |
-| 1. 운항 일반 | FLT-001 | 운항 매뉴얼은 최신본인가? | IOSA FLT 1.1.1 | OK/NG/NA |
-
-- **1행**: 헤더 (앱이 자동으로 건너뜀)
-- **C열**: 필수 — 비어있으면 해당 행 무시
-- 첫 번째 시트만 읽음
-
----
-
-## 결과 코드
-
-| 코드 | 의미 |
-|------|------|
-| OK | 적합 — 요건 충족 |
-| NG | 부적합 — 시정조치 필요 |
-| NA | 해당없음 — 적용 불가 |
-| OBS | 관찰사항 — 개선 권고 |
-
----
-
-## 내보내기 형식
-
-| 형식 | 내용 |
-|------|------|
-| Excel (.xlsx) | 요약 시트 + 전체 결과 + 부적합 목록 |
-| Word (.doc) | 결과보고서 (표 형식, 부적합 목록 포함) |
-| PDF | 인쇄 창에서 "PDF로 저장" 선택 |
-
----
-
-## Google Drive 연동 (고급 설정)
-
-실제 Drive 업로드를 위해서는 Google Cloud Console에서 OAuth2 설정이 필요합니다:
-
-1. https://console.cloud.google.com → 새 프로젝트
-2. API 및 서비스 → Drive API 활성화
-3. OAuth 동의 화면 설정
-4. 클라이언트 ID 발급 → `index.html`의 `uploadGDrive()` 함수에 적용
-
----
-
-## 아이콘 제작
-
-앱 아이콘이 없으면 PWA 설치 시 기본 아이콘이 표시됩니다.
-아래 사이트에서 무료로 제작 가능:
-- https://favicon.io — 텍스트/이모지로 빠르게 생성
-- 필요 파일: `icon-192.png`, `icon-512.png`
-
----
-
-## 기술 스택
-
-| 역할 | 기술 |
-|------|------|
-| UI 프레임워크 | Vanilla JS + CSS (의존성 최소화) |
-| 오프라인 DB | IndexedDB (내장, 추가 설치 없음) |
-| 오프라인 캐시 | Service Worker |
-| Excel 처리 | SheetJS (CDN, 오프라인 캐시됨) |
-| Word 출력 | HTML→.doc (브라우저 내장) |
-| PDF 출력 | 브라우저 인쇄 기능 |
