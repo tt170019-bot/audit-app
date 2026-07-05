@@ -596,6 +596,26 @@ function getReportTemplateLabel(type){
   return type === 'report-type-2' ? '2번 양식(현장탑승심사표)' : '1번 양식(기본 결과보고서)';
 }
 
+function getChecklistUiType(source){
+  const text = [
+    source?.checklistUiType,
+    source?.name,
+    source?.filename,
+    source?.title,
+    source?.templateName,
+    source?.templateTitle,
+    source?.templateFilename
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  // UI rule: only checklist-2 uses the maturity assessment input screen.
+  // Do not infer maturity UI from IOSA, lithium battery, Safety Performance Indicator,
+  // field audit form names, or report-type-2. Those may affect export format only.
+  if(text.includes('checklist-2') || text.includes('checklist 2') || text.includes('2번 체크리스트')) return 'maturity';
+
+  return 'standard';
+}
+
+
 // 관리자 모드
 // - 일반 사용자는 GitHub에서 동기화된 공식 점검표로 심사만 수행한다.
 // - 관리자는 URL에 ?admin=1을 붙여 점검표 업로드/삭제 등 관리 기능을 표시한다.
@@ -696,6 +716,7 @@ function normalizeTemplate(template){
     fingerprint: String(t.fingerprint || '').trim(),
     templateKey: t.templateKey || (t.filename && t.version ? `${t.filename}@@${t.version}` : ''),
     reportTemplate: inferReportTemplateType(t),
+    checklistUiType: t.checklistUiType || getChecklistUiType(t),
     sections: sectionSource.map(s => String(s || '일반').trim()).filter(Boolean),
     items
   };
@@ -937,6 +958,7 @@ async function autoLoadChecklists(){
         templateKey,
         source: 'github-api',
         reportTemplate: inferReportTemplateType(cl),
+        checklistUiType: getChecklistUiType(cl),
         active: true,
         importedAt: new Date().toISOString(),
         sections: parsed.sections,
@@ -1208,7 +1230,7 @@ async function renderTemplates(c){
     <div class="card-row">
       <div class="flex-1">
         <div class="label">${esc(t.name)}</div>
-        <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))} · ${esc(getTemplateSourceLabel(t))} · Word ${esc(getReportTemplateLabel(t.reportTemplate || inferReportTemplateType(t)))}${t.active === false ? ' · 비활성' : ''}</div>
+        <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))} · ${esc(getTemplateSourceLabel(t))} · UI ${t.checklistUiType === 'maturity' ? '성숙도' : '일반'} · Word ${esc(getReportTemplateLabel(t.reportTemplate || inferReportTemplateType(t)))}${t.active === false ? ' · 비활성' : ''}</div>
       </div>
       ${admin ? `<button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
     </div>
@@ -1358,10 +1380,11 @@ function getMaturityConsideration(item, level){
 }
 
 function isMaturityChecklistAudit(audit){
-  const savedType = audit?.reportTemplate || inferReportTemplateType(audit);
-  if(savedType === 'report-type-2') return true;
-  const text = [audit?.templateName, audit?.title].filter(Boolean).join(' ').toLowerCase();
-  return text.includes('checklist-2') || text.includes('checklist 2') || text.includes('현장탑승심사표');
+  // UI split rule: Type 2 input UI is based only on checklist identity.
+  // reportTemplate is intentionally ignored because some Type 1 checklists may use a Type 2 export form.
+  if(audit?.checklistUiType === 'maturity') return true;
+  if(audit?.checklistUiType === 'standard') return false;
+  return getChecklistUiType(audit) === 'maturity';
 }
 
 function resultLabel(result){
@@ -1691,6 +1714,7 @@ async function createAudit(){
     title, date, auditor, dept,
     templateId: tplId,
     templateName: tpl.name || '',
+    checklistUiType: tpl.checklistUiType || getChecklistUiType(tpl),
     reportTemplate: tpl.reportTemplate || inferReportTemplateType(tpl),
     status: 'progress',
     createdAt: new Date().toISOString(),
@@ -1753,6 +1777,7 @@ function handleFileSelect(file){
         version: file.lastModified ? new Date(file.lastModified).toISOString().slice(0,10) : importedAt.slice(0,10),
         source: 'manual',
         reportTemplate: inferReportTemplateType({name:file.name, filename:file.name}),
+        checklistUiType: getChecklistUiType({name:file.name, filename:file.name}),
         templateKey: `${file.name}@@manual@@${importedAt}`,
         importedAt,
         sections: [...sections],
