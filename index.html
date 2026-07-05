@@ -904,21 +904,22 @@ async function autoLoadChecklists(){
 function updateOnlineTag(){
   const tag = document.getElementById('offline-tag');
   if(!tag) return Promise.resolve(false);
-  const pingUrl = `./index.html?online-check=${Date.now()}`;
 
-  return fetch(pingUrl, { method:'HEAD', cache:'no-store' })
-    .then(() => {
-      tag.textContent = 'ONLINE';
-      tag.classList.add('is-online');
-      tag.classList.remove('is-offline');
-      return true;
-    })
-    .catch(() => {
-      tag.textContent = 'OFFLINE';
-      tag.classList.add('is-offline');
-      tag.classList.remove('is-online');
-      return false;
-    });
+  // GitHub Pages / company proxy / Service Worker 환경에서는 HEAD ping이 실패해도
+  // 실제 앱 사용은 가능한 경우가 있어 navigator.onLine을 1차 기준으로 사용한다.
+  const online = navigator.onLine !== false;
+
+  if(online){
+    tag.textContent = 'ONLINE';
+    tag.classList.add('is-online');
+    tag.classList.remove('is-offline');
+    return Promise.resolve(true);
+  }
+
+  tag.textContent = 'OFFLINE';
+  tag.classList.add('is-offline');
+  tag.classList.remove('is-online');
+  return Promise.resolve(false);
 }
 
 // ═══════════════════════════════════════════════
@@ -1811,14 +1812,10 @@ function resultSelected(item, result){
 function renderFieldAuditItem(item, index){
   const sectionTitle = esc(item.section || '일반');
   const ref = esc(item.ref || String(index + 1));
-  const question = esc(item.question || '').replace(/
-/g, '<br>');
-  const internalRef = esc(item.refStd || '').replace(/
-/g, '<br>');
-  const externalRef = esc(item.externalRef || item.external || '').replace(/
-/g, '<br>');
-  const note = esc(item.note || '').replace(/
-/g, '<br>');
+  const question = esc(item.question || '').replace(/\n/g, '<br>');
+  const internalRef = esc(item.refStd || '').replace(/\n/g, '<br>');
+  const externalRef = esc(item.externalRef || item.external || '').replace(/\n/g, '<br>');
+  const note = esc(item.note || '').replace(/\n/g, '<br>');
 
   // Type-2 Word compatibility rule:
   // Word handles HTML tables poorly when one large table uses mixed 4-column headers,
