@@ -1946,7 +1946,7 @@ function renderResultPanel(audit, item){
   return `<div class="result-panel">
     <div class="result-panel-title">Result</div>
     <div class="field-result-row">
-      ${options.map(([value,label,cls])=>`<button class="field-choice ${result===value ? cls : ''}" onclick="setResult(${audit.id},${idx},'${value}')">${label}</button>`).join('')}
+      ${options.map(([value,label,cls])=>`<button class="field-choice ${result===value ? cls : ''}" onclick="setResult(${audit.id},${idx},'${value}', event)">${label}</button>`).join('')}
     </div>
   </div>`;
 }
@@ -1965,7 +1965,7 @@ function renderMaturityPanel(audit, item){
         return `<div class="maturity-card ${selected ? 'selected' : ''}">
           <div class="maturity-card-head">
             <div class="maturity-card-title">${selected ? '■' : '□'} ${level}</div>
-            <button class="field-choice ${selected ? 'selected-ok' : ''}" onclick="setMaturityResult(${audit.id},${idx},'${level}')">선택</button>
+            <button class="field-choice ${selected ? 'selected-ok' : ''}" onclick="setMaturityResult(${audit.id},${idx},'${level}', event)">선택</button>
           </div>
           <div class="maturity-card-desc"><strong>${esc(c.title)}</strong>${c.body ? `<br>${esc(c.body)}` : ''}</div>
         </div>`;
@@ -2098,12 +2098,40 @@ function toggleCheckItem(idx){
   body.classList.toggle('hidden');
 }
 
-async function setMaturityResult(auditId, idx, maturity){
+function preserveDetailScroll(previousScrollTop, openIdx){
+  const restore = () => {
+    const c = document.getElementById('content');
+    if(c) c.scrollTop = previousScrollTop;
+    const body = document.getElementById('cb-'+openIdx);
+    if(body) body.classList.remove('hidden');
+  };
+
+  restore();
+  requestAnimationFrame(() => {
+    restore();
+    requestAnimationFrame(restore);
+  });
+  setTimeout(restore, 80);
+}
+
+function stopInputScrollJump(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  if(document.activeElement && typeof document.activeElement.blur === 'function'){
+    document.activeElement.blur();
+  }
+}
+
+async function setMaturityResult(auditId, idx, maturity, event){
+  stopInputScrollJump(event);
+
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
 
   // Preserve the current scroll position.
-  // Mobile browsers otherwise appear to jump when the checklist is re-rendered.
+  // Mobile browsers may scroll focused buttons into view after re-rendering.
   const content = document.getElementById('content');
   const previousScrollTop = content ? content.scrollTop : 0;
 
@@ -2112,19 +2140,14 @@ async function setMaturityResult(auditId, idx, maturity){
   await dbPut('audits', audit);
 
   renderChecklist(audit);
-  const body = document.getElementById('cb-'+idx);
-  if(body) body.classList.remove('hidden');
-
-  // Do not call scrollIntoView here. YES/NO/OBS/N/A and maturity input should not move the screen.
-  requestAnimationFrame(() => {
-    const c = document.getElementById('content');
-    if(c) c.scrollTop = previousScrollTop;
-  });
+  preserveDetailScroll(previousScrollTop, idx);
 
   showToast('성숙도 수준이 저장되었습니다');
 }
 
-async function setResult(auditId, idx, result){
+async function setResult(auditId, idx, result, event){
+  stopInputScrollJump(event);
+
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
 
@@ -2139,14 +2162,7 @@ async function setResult(auditId, idx, result){
   await dbPut('audits', audit);
 
   renderChecklist(audit);
-  const body = document.getElementById('cb-'+idx);
-  if(body) body.classList.remove('hidden');
-
-  // Do not call scrollIntoView here. YES/NO/OBS/N/A input should not move the screen.
-  requestAnimationFrame(() => {
-    const c = document.getElementById('content');
-    if(c) c.scrollTop = previousScrollTop;
-  });
+  preserveDetailScroll(previousScrollTop, idx);
 
   if(!wasAnswered && result) showToast('저장되었습니다');
 }
