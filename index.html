@@ -872,22 +872,13 @@ select:focus {
 
 .anchor-chip.is-complete,
 .anchor-chip.is-partial,
-.anchor-chip.is-pending {
+.anchor-chip.is-pending,
+.anchor-chip.has-issue,
+.anchor-chip.is-next,
+.anchor-chip.is-empty {
   background: var(--ads-neutral-bg);
   border-color: transparent;
   color: var(--ads-text);
-}
-
-.anchor-chip.has-issue {
-  background: var(--ads-danger-bg);
-  border-color: transparent;
-  color: var(--ads-danger-text);
-}
-
-.anchor-chip.is-next {
-  background: var(--ads-warning-bg);
-  border-color: transparent;
-  color: var(--ads-warning-text);
 }
 
 .anchor-chip.is-empty {
@@ -895,7 +886,11 @@ select:focus {
 }
 
 .anchor-chip.is-current,
-.anchor-chip.has-issue.is-current {
+.anchor-chip.has-issue.is-current,
+.anchor-chip.is-next.is-current,
+.anchor-chip.is-complete.is-current,
+.anchor-chip.is-partial.is-current,
+.anchor-chip.is-pending.is-current {
   background: var(--ads-information-bg);
   border-color: var(--ads-brand);
   box-shadow: none;
@@ -904,7 +899,11 @@ select:focus {
 }
 
 .anchor-chip.is-current .anchor-chip-count,
-.anchor-chip.has-issue.is-current .anchor-chip-count {
+.anchor-chip.has-issue.is-current .anchor-chip-count,
+.anchor-chip.is-next.is-current .anchor-chip-count,
+.anchor-chip.is-complete.is-current .anchor-chip-count,
+.anchor-chip.is-partial.is-current .anchor-chip-count,
+.anchor-chip.is-pending.is-current .anchor-chip-count {
   color: inherit;
 }
 
@@ -1254,7 +1253,7 @@ let checklistSyncState = { checked: false, reachable: null, message: '점검표 
 
 // App-level version used for service worker update detection.
 // Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v49';
+const APP_CACHE_VERSION = 'audit-app-v50';
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
