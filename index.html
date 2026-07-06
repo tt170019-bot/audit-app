@@ -850,6 +850,8 @@ select:focus {
   align-items: center;
   justify-content: center;
   gap: var(--space-050);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .anchor-chip-count {
@@ -859,36 +861,53 @@ select:focus {
 
 .anchor-chip.is-complete {
   background: var(--ads-success-bg);
-  border-color: var(--ads-success-bold);
+  border-color: transparent;
   color: var(--ads-success-text);
 }
 
 .anchor-chip.is-partial {
   background: var(--ads-information-bg);
-  border-color: var(--ads-information-bold);
+  border-color: transparent;
   color: var(--ads-information-text);
 }
 
 .anchor-chip.is-pending {
   background: var(--ads-neutral-bg);
-  border-color: var(--ads-neutral-bold);
+  border-color: transparent;
   color: var(--ads-neutral-text);
 }
 
 .anchor-chip.has-issue {
   background: var(--ads-danger-bg);
-  border-color: var(--ads-danger);
+  border-color: transparent;
   color: var(--ads-danger-text);
 }
 
 .anchor-chip.is-next {
   background: var(--ads-warning-bg);
-  border-color: var(--ads-warning-bold);
+  border-color: transparent;
   color: var(--ads-warning-text);
 }
 
 .anchor-chip.is-empty {
   opacity: 0.72;
+}
+
+.anchor-chip.is-current {
+  border-color: var(--ads-brand);
+  box-shadow: 0 0 0 var(--ui-border-width) var(--ads-brand);
+  color: var(--ads-brand);
+}
+
+.anchor-chip.has-issue.is-current {
+  border-color: var(--ads-danger);
+  box-shadow: 0 0 0 var(--ui-border-width) var(--ads-danger);
+  color: var(--ads-danger-text);
+}
+
+.anchor-chip.is-complete.is-current {
+  border-color: var(--ads-success-bold);
+  box-shadow: 0 0 0 var(--ui-border-width) var(--ads-success-bold);
 }
 
 /* ---------- Detail Section Header Completion Summary ---------- */
@@ -1113,7 +1132,7 @@ let checklistSyncState = { checked: false, reachable: null, message: '점검표 
 
 // App-level version used for service worker update detection.
 // Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v42';
+const APP_CACHE_VERSION = 'audit-app-v44';
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
@@ -2156,7 +2175,7 @@ function getSectionNavState(secItems){
 
 function renderSectionAnchorChip(sectionName, secItems, sectionIndex){
   const state = getSectionNavState(secItems);
-  return `<button class="anchor-chip ${state.className}" onclick="scrollToChecklistSection('sec-${sectionIndex}')" aria-label="${esc(sectionName)} 섹션으로 이동, ${state.answered}/${state.total} 항목 완료">
+  return `<button type="button" id="nav-sec-${sectionIndex}" data-section-index="${sectionIndex}" class="anchor-chip ${state.className}" onclick="scrollToChecklistSection('sec-${sectionIndex}')" aria-label="${esc(sectionName)} 섹션으로 이동, ${state.answered}/${state.total} 항목 완료">
     <span>${esc(sectionName)}</span>
     <span class="anchor-chip-count">${state.answered}/${state.total}</span>
   </button>`;
@@ -2165,10 +2184,71 @@ function renderSectionAnchorChip(sectionName, secItems, sectionIndex){
 function renderPendingAnchorChip(audit){
   const summary = getAuditSummary(audit);
   const pending = Math.max(summary.total - summary.answered, 0);
-  return `<button class="anchor-chip ${pending > 0 ? 'is-next' : 'is-complete'}" onclick="jumpToNext(${audit.id})" aria-label="미완료 항목 ${pending}개">
+  return `<button type="button" class="anchor-chip ${pending > 0 ? 'is-next' : 'is-complete'}" onclick="jumpToNext(${audit.id})" aria-label="미완료 항목 ${pending}개">
     <span>미완료</span>
     <span class="anchor-chip-count">${pending}</span>
   </button>`;
+}
+
+let sectionChipScrollHandler = null;
+let sectionChipScrollFrame = null;
+let currentSectionChipIndex = -1;
+
+function getCurrentChecklistSectionIndex(){
+  const headers = [...document.querySelectorAll('.detail-section-start')];
+  if(headers.length === 0) return -1;
+
+  const anchorNav = document.querySelector('.detail-anchor-nav');
+  const threshold = anchorNav ? anchorNav.getBoundingClientRect().bottom + 8 : 0;
+  let currentIndex = 0;
+
+  headers.forEach((header, index) => {
+    if(header.getBoundingClientRect().top <= threshold) currentIndex = index;
+  });
+
+  return currentIndex;
+}
+
+function setCurrentSectionChip(index, shouldAlignStart = true){
+  if(index < 0 || index === currentSectionChipIndex) return;
+  currentSectionChipIndex = index;
+
+  document.querySelectorAll('.detail-anchor-nav .anchor-chip').forEach(chip => {
+    chip.classList.remove('is-current');
+  });
+
+  const activeChip = document.getElementById('nav-sec-' + index);
+  if(!activeChip) return;
+  activeChip.classList.add('is-current');
+
+  if(shouldAlignStart){
+    activeChip.scrollIntoView({behavior:'smooth', inline:'start', block:'nearest'});
+  }
+}
+
+function updateCurrentSectionChip(shouldAlignStart = true){
+  setCurrentSectionChip(getCurrentChecklistSectionIndex(), shouldAlignStart);
+}
+
+function setupSectionChipTracking(){
+  const content = byId('content');
+  if(!content) return;
+
+  if(sectionChipScrollHandler){
+    content.removeEventListener('scroll', sectionChipScrollHandler);
+  }
+
+  currentSectionChipIndex = -1;
+  sectionChipScrollHandler = () => {
+    if(sectionChipScrollFrame) return;
+    sectionChipScrollFrame = requestAnimationFrame(() => {
+      sectionChipScrollFrame = null;
+      updateCurrentSectionChip(true);
+    });
+  };
+
+  content.addEventListener('scroll', sectionChipScrollHandler, {passive:true});
+  requestAnimationFrame(() => updateCurrentSectionChip(false));
 }
 
 function renderChecklist(audit){
@@ -2232,7 +2312,10 @@ function renderChecklist(audit){
       <button type="button" class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>
     </div>
   </div>`;
-  requestAnimationFrame(syncDetailStickyOffset);
+  requestAnimationFrame(() => {
+    syncDetailStickyOffset();
+    setupSectionChipTracking();
+  });
 }
 
 
