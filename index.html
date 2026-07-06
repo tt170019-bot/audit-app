@@ -1065,7 +1065,7 @@ let checklistSyncState = { checked: false, reachable: null, message: '점검표 
 
 // App-level version used for service worker update detection.
 // Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v40';
+const APP_CACHE_VERSION = 'audit-app-v41';
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
@@ -2167,12 +2167,24 @@ function toggleCheckItem(idx){
   body.classList.toggle('hidden');
 }
 
-function preserveDetailScroll(previousScrollTop, openIdx){
+function preserveDetailScroll(previousScrollTop, openIdx, anchorTopBefore = null){
   const restore = () => {
     const c = document.getElementById('content');
-    if(c) c.scrollTop = previousScrollTop;
+    const card = document.getElementById('ci-'+openIdx);
     const body = document.getElementById('cb-'+openIdx);
     if(body) body.classList.remove('hidden');
+
+    if(!c) return;
+
+    // Result/Maturity selection is an in-place edit.
+    // Keep the tapped card at the same viewport position after full re-render.
+    // This avoids the mobile browser's focus/scroll correction from making the page jump.
+    if(typeof anchorTopBefore === 'number' && card){
+      const anchorTopAfter = card.getBoundingClientRect().top;
+      c.scrollTop += anchorTopAfter - anchorTopBefore;
+    } else {
+      c.scrollTop = previousScrollTop;
+    }
   };
 
   restore();
@@ -2181,6 +2193,7 @@ function preserveDetailScroll(previousScrollTop, openIdx){
     requestAnimationFrame(restore);
   });
   setTimeout(restore, 80);
+  setTimeout(restore, 180);
 }
 
 function stopInputScrollJump(event){
@@ -2202,14 +2215,16 @@ async function setMaturityResult(auditId, idx, maturity, event){
   // Preserve the current scroll position.
   // Mobile browsers may scroll focused buttons into view after re-rendering.
   const content = document.getElementById('content');
+  const anchorCard = document.getElementById('ci-'+idx);
   const previousScrollTop = content ? content.scrollTop : 0;
+  const anchorTopBefore = anchorCard ? anchorCard.getBoundingClientRect().top : null;
 
   audit.items[idx].maturity = maturity;
   currentAudit = audit;
   await dbPut('audits', audit);
 
   renderChecklist(audit);
-  preserveDetailScroll(previousScrollTop, idx);
+  preserveDetailScroll(previousScrollTop, idx, anchorTopBefore);
 
   showToast('성숙도 수준이 저장되었습니다');
 }
@@ -2223,7 +2238,9 @@ async function setResult(auditId, idx, result, event){
   // Preserve the current scroll position.
   // Result input is an in-place action, not a navigation action.
   const content = document.getElementById('content');
+  const anchorCard = document.getElementById('ci-'+idx);
   const previousScrollTop = content ? content.scrollTop : 0;
+  const anchorTopBefore = anchorCard ? anchorCard.getBoundingClientRect().top : null;
 
   const wasAnswered = !!audit.items[idx].result;
   audit.items[idx].result = normalizeResultValue(result);
@@ -2231,7 +2248,7 @@ async function setResult(auditId, idx, result, event){
   await dbPut('audits', audit);
 
   renderChecklist(audit);
-  preserveDetailScroll(previousScrollTop, idx);
+  preserveDetailScroll(previousScrollTop, idx, anchorTopBefore);
 
   if(!wasAnswered && result) showToast('저장되었습니다');
 }
