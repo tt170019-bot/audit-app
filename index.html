@@ -360,25 +360,23 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .field-choice.selected-na { background: var(--ads-neutral-bg); color: var(--ads-neutral-text); }
 .field-choice.selected-obs { background: var(--ads-warning-bg); color: var(--ads-warning-text); }
 .maturity-level-list { display: grid; gap: var(--space-075); }
-.maturity-card { border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); padding: var(--space-150); background: var(--ads-surface); box-shadow: none; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease; }
+.maturity-card { border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); padding: var(--space-150); background: var(--ads-surface); box-shadow: none; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
 .maturity-card:hover { background: var(--ads-surface-container); }
-.maturity-card.selected { border: var(--ui-border-width-strong) solid var(--ads-brand); background: var(--ads-information-bg); }
+.maturity-card.selected { border-color: var(--ads-brand); background: var(--ads-information-bg); box-shadow: 0 0 0 var(--ui-border-width) var(--ads-brand); }
 .maturity-card-head { display: grid; grid-template-columns: auto minmax(7rem, 10rem) minmax(0, 1fr); align-items: start; gap: var(--space-100); margin-bottom: var(--space-075); }
 .maturity-radio { width: 1.125rem; height: 1.125rem; border: var(--ui-border-width-strong) solid var(--ads-border-bold); border-radius: var(--radius-full); margin-top: 0.0625rem; background: var(--ads-surface); box-shadow: inset 0 0 0 0.25rem var(--ads-surface); flex: 0 0 auto; }
 .maturity-card.selected .maturity-radio { border-color: var(--ads-brand); background: var(--ads-brand); }
 .maturity-card-title { min-width: 0; font-size: 0.9375rem; line-height: 1.25rem; font-weight: var(--ads-weight-semibold); color: var(--ads-text); }
 .maturity-card-summary { min-width: 0; color: var(--ads-text); font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-medium); }
 .maturity-card-desc { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: 1.125rem; padding-left: calc(1.125rem + var(--space-100) + min(10rem, max(7rem, 20vw)) + var(--space-100)); }
-@media (max-width: 47.9375rem) {
-  .maturity-card-head { grid-template-columns: auto minmax(0, 1fr); }
-  .maturity-card-summary { grid-column: 2; }
-  .maturity-card-desc { padding-left: calc(1.125rem + var(--space-100)); }
-}
 .comment-panel textarea { min-height: 3.5rem; background: var(--ads-surface); }
 .field-photo-panel { background: var(--ads-surface); }
 .field-photo-panel .photo-add { width: 6rem; min-width: 6rem; height: 4.75rem; }
 
 @media (max-width: 47.9375rem) {
+  .maturity-card-head { grid-template-columns: auto minmax(0, 1fr); }
+  .maturity-card-summary { grid-column: 2; }
+  .maturity-card-desc { padding-left: calc(1.125rem + var(--space-100)); }
   .detail-progress-head { gap: var(--space-075); }
   .detail-result-counts { gap: var(--space-050); }
   .detail-result-counts .badge { padding-inline: var(--space-050); }
@@ -639,9 +637,12 @@ let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
 let checklistSyncState = { checked: false, reachable: null, message: '점검표 서버 확인 전' };
 
-// App-level version used for service worker update detection.
-// Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v64';
+// Debug logging is disabled by default in production.
+// Add ?debug=1 to the URL when console diagnostics are needed.
+const DEBUG_MODE = new URLSearchParams(location.search).get('debug') === '1';
+function appLog(...args){ if(DEBUG_MODE) console.log(...args); }
+function appWarn(...args){ if(DEBUG_MODE) console.warn(...args); }
+function appError(...args){ if(DEBUG_MODE) console.error(...args); }
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
@@ -738,12 +739,12 @@ openDB().then(()=>{
     if(!document.hidden) updateOnlineTag();
   });
   repairStoredTemplates()
-    .catch(e => console.warn('기존 점검표 호환 보정 실패:', e))
+    .catch(e => appWarn('기존 점검표 호환 보정 실패:', e))
     .then(() => autoLoadChecklists())
-    .catch(e => console.warn('자동 점검표 로드 실패:', e))
+    .catch(e => appWarn('자동 점검표 로드 실패:', e))
     .finally(()=> switchTab('home'));
 }).catch(e=>{
-  console.error('DB 초기화 실패:', e);
+  appError('DB 초기화 실패:', e);
   document.getElementById('content').innerHTML = '<div class="empty"><h3>앱 초기화 실패</h3><p>브라우저 저장소 접근을 확인한 뒤 다시 실행하세요.</p></div>';
 });
 
@@ -837,7 +838,7 @@ async function repairStoredTemplates(){
     }
   }
 
-  if(repaired > 0) console.log(`점검표 호환 보정 완료: ${repaired}건`);
+  if(repaired > 0) appLog(`점검표 호환 보정 완료: ${repaired}건`);
   return repaired;
 }
 
@@ -925,7 +926,7 @@ async function loadChecklistIndex(){
       .sort((a,b)=>a.filename.localeCompare(b.filename, 'ko'));
   } catch(e){
     checklistSyncState = { checked: true, reachable: false, message: '온라인 상태와 별개로 GitHub 점검표 서버 접근 실패' };
-    console.warn('GitHub checklists 폴더 조회 실패. 저장된 점검표를 계속 사용합니다.', e);
+    appWarn('GitHub checklists 폴더 조회 실패. 저장된 점검표를 계속 사용합니다.', e);
     return [];
   }
 }
@@ -1006,7 +1007,7 @@ async function autoLoadChecklists(){
   let updated = 0;
 
   if(index.length === 0){
-    console.log('동기화할 GitHub 점검표가 없습니다. checklists 폴더를 확인하세요.');
+    appLog('동기화할 GitHub 점검표가 없습니다. checklists 폴더를 확인하세요.');
     return 0;
   }
 
@@ -1053,9 +1054,9 @@ async function autoLoadChecklists(){
       });
       added += 1;
       updated += existing.some(t => t.filename === cl.filename) ? 1 : 0;
-      console.log(`✅ 점검표 동기화: ${cl.name} ${cl.sha ? cl.sha.slice(0, 7) : cl.updatedAt || ''}`);
+      appLog(`점검표 동기화: ${cl.name} ${cl.sha ? cl.sha.slice(0, 7) : cl.updatedAt || ''}`);
     } catch(e){
-      console.warn(`점검표 동기화 실패: ${cl.filename}`, e);
+      appWarn(`점검표 동기화 실패: ${cl.filename}`, e);
     }
   }
 
@@ -1400,7 +1401,7 @@ async function syncChecklistsNow(){
     if(currentTab === 'templates' && c) await renderTemplates(c);
     if(currentTab === 'home') switchTab('home');
   } catch(err){
-    console.warn('수동 동기화 실패:', err);
+    appWarn('수동 동기화 실패:', err);
     showToast('동기화 실패. 저장된 점검표를 사용합니다');
   }
 }
@@ -2148,7 +2149,7 @@ async function resetTemplateData(){
       await autoLoadChecklists();
       showToast('공식 점검표를 다시 동기화했습니다');
     } catch(err){
-      console.warn('점검표 재동기화 실패:', err);
+      appWarn('점검표 재동기화 실패:', err);
       showToast('점검표 삭제 완료. 재동기화는 나중에 실행하세요');
     }
   }
@@ -2169,7 +2170,7 @@ async function resetAllLocalData(){
     try{
       await autoLoadChecklists();
     } catch(err){
-      console.warn('전체 초기화 후 점검표 재동기화 실패:', err);
+      appWarn('전체 초기화 후 점검표 재동기화 실패:', err);
     }
   }
   switchTab('home');
@@ -2434,7 +2435,7 @@ async function getAuditReportTemplateType(audit){
       const tplInferred = inferReportTemplateType(tpl);
       if(tplInferred === 'report-type-2') return 'report-type-2';
     } catch(e){
-      console.warn('보고서 양식 판별용 점검표 조회 실패:', e);
+      appWarn('보고서 양식 판별용 점검표 조회 실패:', e);
     }
   }
 
@@ -2612,7 +2613,7 @@ async function exportWord(id){
     URL.revokeObjectURL(url);
     showToast('Word 파일 저장됨');
   } catch(err){
-    console.error('Word 출력 실패:', err);
+    appError('Word 출력 실패:', err);
     showToast(err.message || 'Word 파일을 만들 수 없습니다');
   }
 }
@@ -2697,25 +2698,41 @@ function showToast(msg){
 function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 // Service Worker registration
+// sw.js uses network-first caching, so index.html cache version bumps are no longer required.
 if('serviceWorker' in navigator){
+  let swRefreshing = false;
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(swRefreshing) return;
+    swRefreshing = true;
+    window.location.reload();
+  });
+
   window.addEventListener('load',()=>{
     const base = location.pathname.replace(/\/[^\/]*$/, '/');
-    const swUrl = base + 'sw.js?v=' + encodeURIComponent(APP_CACHE_VERSION);
+    const swUrl = base + 'sw.js';
 
     navigator.serviceWorker.register(swUrl, {scope: base})
       .then(reg => {
-        console.log('SW registered:', reg.scope, APP_CACHE_VERSION);
+        appLog('SW registered:', reg.scope);
+        reg.update();
+
+        if(reg.waiting && navigator.serviceWorker.controller){
+          reg.waiting.postMessage({type:'SKIP_WAITING'});
+        }
+
         reg.addEventListener('updatefound', () => {
           const worker = reg.installing;
           if(!worker) return;
           worker.addEventListener('statechange', () => {
             if(worker.state === 'installed' && navigator.serviceWorker.controller){
-              showToast('새 버전이 준비되었습니다. 새로고침하면 적용됩니다.');
+              showToast('새 버전을 적용합니다');
+              worker.postMessage({type:'SKIP_WAITING'});
             }
           });
         });
       })
-      .catch(e => console.warn('SW error:', e));
+      .catch(e => appWarn('SW error:', e));
   });
 }
 </script>
