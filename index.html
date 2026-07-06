@@ -1023,6 +1023,56 @@ select:focus {
   text-overflow: ellipsis;
 }
 
+
+
+/* =========================================================
+   Harness Chip Density Override v49
+   Scope:
+   - Keep current/selected chip styling unchanged
+   - Flatten non-current section chips
+   - Reduce chip height and visual weight
+   - Increase horizontal chip gap
+========================================================= */
+.detail-anchor-nav {
+  gap: var(--space-100);
+  padding-top: var(--space-075);
+  padding-bottom: var(--space-075);
+}
+
+.anchor-chip:not(.is-current) {
+  min-height: 2.25rem;
+  padding-inline: var(--space-150);
+  background: var(--ads-surface-container);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--ads-text);
+}
+
+.anchor-chip:not(.is-current):hover,
+.anchor-chip:not(.is-current):active,
+.anchor-chip:not(.is-current):focus-visible {
+  background: var(--ads-surface-container-hovered);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--ads-text);
+}
+
+.anchor-chip:not(.is-current).is-next {
+  background: var(--ads-warning-bg);
+  border-color: transparent;
+  color: var(--ads-warning-text);
+}
+
+.anchor-chip:not(.is-current).has-issue {
+  background: var(--ads-danger-bg);
+  border-color: transparent;
+  color: var(--ads-danger-text);
+}
+
+.anchor-chip:not(.is-current) .anchor-chip-count {
+  margin-left: var(--space-050);
+}
+
 </style>
 </head>
 <body>
@@ -1204,7 +1254,7 @@ let checklistSyncState = { checked: false, reachable: null, message: '점검표 
 
 // App-level version used for service worker update detection.
 // Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v48';
+const APP_CACHE_VERSION = 'audit-app-v49';
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
