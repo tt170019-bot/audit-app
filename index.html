@@ -407,6 +407,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .export-title { font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-semibold); }
 .export-meta { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtle); }
 .photo-thumb-clickable { cursor: pointer; }
+.hidden { display: none !important; }
 
 
 .admin-panel { margin: var(--space-0) var(--space-150) var(--space-150); padding: var(--space-200); background: var(--ads-information-bg); border: var(--ui-border-width) solid var(--ads-information-bold); border-radius: var(--radius-large); }
@@ -1544,6 +1545,55 @@ async function renderTab(tab){
   else if(tab==='export') await renderExport(c);
 }
 
+
+// ═══════════════════════════════════════════════
+//  Audit summary helpers
+//  - Centralizes repeated YES/NO/OBS/N/A and completion calculations.
+//  - Keeps one-file delivery while reducing render/export duplication.
+// ═══════════════════════════════════════════════
+function getAuditItems(audit){
+  return Array.isArray(audit?.items) ? audit.items : [];
+}
+
+function countAuditResult(items, resultValue){
+  return items.filter(item => normalizeResultValue(item.result) === resultValue).length;
+}
+
+function getAuditSummary(audit){
+  const items = getAuditItems(audit);
+  const total = items.length;
+  const answered = items.filter(item => item.result).length;
+  const yes = countAuditResult(items, RESULT_VALUE.YES);
+  const no = countAuditResult(items, RESULT_VALUE.NO);
+  const obs = countAuditResult(items, RESULT_VALUE.OBS);
+  const na = countAuditResult(items, RESULT_VALUE.NA);
+  const percent = total ? Math.round(answered / total * 100) : 0;
+
+  return {
+    total,
+    answered,
+    percent,
+    ok: yes,
+    yes,
+    ng: no,
+    no,
+    obs,
+    na
+  };
+}
+
+function getSectionCompletion(items){
+  const safeItems = Array.isArray(items) ? items : [];
+  return {
+    total: safeItems.length,
+    answered: safeItems.filter(item => item.result).length
+  };
+}
+
+function getResultPercent(count, total){
+  return total ? `${Math.round(count / total * 100)}%` : '';
+}
+
 // ═══════════════════════════════════════════════
 //  Home tab
 // ═══════════════════════════════════════════════
@@ -1551,8 +1601,6 @@ async function renderHome(c){
   const [audits, templates] = await Promise.all([dbAll('audits'), getNormalizedTemplates()]);
   const inProgress = audits.filter(a=>a.status===AUDIT_STATUS.PROGRESS);
   const done = audits.filter(a=>a.status===AUDIT_STATUS.DONE);
-  const totalItems = audits.reduce((s,a)=>s+(a.items?.length||0),0);
-  const answered = audits.reduce((s,a)=>s+(a.items?.filter(i=>i.result).length||0),0);
 
   c.innerHTML=`
   <div class="home-hero">
@@ -1584,7 +1632,7 @@ async function renderHome(c){
   <div class="audit-item" onclick="openAudit(${a.id})">
     <div class="audit-item-head">
       <div class="audit-item-title">${esc(a.title)}</div>
-      <div class="badge badge-obs">${Math.round((a.items?.filter(i=>i.result).length||0)/(a.items?.length||1)*100)}%</div>
+      <div class="badge badge-obs">${getAuditSummary(a).percent}%</div>
     </div>
     <div class="audit-item-meta">
       <span><span class="status-dot dot-progress"></span>${esc(a.auditor||'')}</span>
@@ -1616,17 +1664,15 @@ async function renderAudits(c){
     <button class="btn btn-teal btn-sm" onclick="openNewAuditModal()">+ 새 심사</button>
   </div>
   ${audits.map(a=>{
-    const total=a.items?.length||0, ans=a.items?.filter(i=>i.result).length||0;
-    const pct=total?Math.round(ans/total*100):0;
-    const ngCnt=a.items?.filter(i=>normalizeResultValue(i.result)==='NO').length||0;
+    const summary = getAuditSummary(a);
     return`<div class="audit-item" onclick="openAudit(${a.id})">
       <div class="audit-item-head">
         <div class="audit-item-title">${esc(a.title)}</div>
         <span class="status-dot ${a.status===AUDIT_STATUS.DONE?'dot-done':a.status===AUDIT_STATUS.PROGRESS?'dot-progress':'dot-new'} audit-status-dot-large"></span>
       </div>
       <div class="audit-progress-block">
-        <div class="prog-wrap audit-progress-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
-        <div class="audit-progress-note">${ans}/${total} 항목 완료 · ${ngCnt>0?`<span class="text-danger">부적합 ${ngCnt}건</span>`:'적합'}</div>
+        <div class="prog-wrap audit-progress-wrap"><div class="prog-fill" style="width:${summary.percent}%"></div></div>
+        <div class="audit-progress-note">${summary.answered}/${summary.total} 항목 완료 · ${summary.no>0?`<span class="text-danger">부적합 ${summary.no}건</span>`:'적합'}</div>
       </div>
       <div class="audit-item-meta">
         <span>${esc(a.auditor||'')}</span>
@@ -1781,22 +1827,18 @@ async function renderExport(c){
     <h3>내보낼 심사 없음</h3><p>심사를 완료하면 Excel/Word로 내보낼 수 있습니다</p>
   </div>`:''}
   ${done.map(a=>{
-    const total=a.items?.length||0, ans=a.items?.filter(i=>i.result).length||0;
-    const ok=a.items?.filter(i=>normalizeResultValue(i.result)==='YES').length||0;
-    const ng=a.items?.filter(i=>normalizeResultValue(i.result)==='NO').length||0;
-    const na=a.items?.filter(i=>normalizeResultValue(i.result)==='N/A').length||0;
-    const obs=a.items?.filter(i=>normalizeResultValue(i.result)==='OBS').length||0;
+    const summary = getAuditSummary(a);
     return`
     <div class="card export-card">
       <div class="card-row export-title-row">
         <div class="export-title">${esc(a.title)}</div>
         <div class="export-badge-row">
-          <span class="badge badge-ok">YES ${ok}</span>
-          <span class="badge badge-ng">NO ${ng}</span>
-          <span class="badge badge-na">N/A ${na}</span>
-          <span class="badge badge-obs">OBS ${obs}</span>
+          <span class="badge badge-ok">YES ${summary.yes}</span>
+          <span class="badge badge-ng">NO ${summary.no}</span>
+          <span class="badge badge-na">N/A ${summary.na}</span>
+          <span class="badge badge-obs">OBS ${summary.obs}</span>
         </div>
-        <div class="export-meta">${ans}/${total}항목 완료 · ${esc(a.auditor||'')} · ${esc(a.date||'')}</div>
+        <div class="export-meta">${summary.answered}/${summary.total}항목 완료 · ${esc(a.auditor||'')} · ${esc(a.date||'')}</div>
       </div>
       <div class="card-row export-badge-row">
         <button class="btn btn-ghost btn-sm flex-1" onclick="exportExcel(${a.id})">
@@ -2041,14 +2083,8 @@ function renderFieldChecklistItem(audit, item){
 }
 function renderChecklist(audit){
   const c = document.getElementById('content');
-  const items = audit.items||[];
-  const total = items.length;
-  const ans = items.filter(i=>i.result).length;
-  const pct = total ? Math.round(ans/total*100) : 0;
-  const ok = items.filter(i=>normalizeResultValue(i.result)==='YES').length;
-  const ng = items.filter(i=>normalizeResultValue(i.result)==='NO').length;
-  const na = items.filter(i=>normalizeResultValue(i.result)==='N/A').length;
-  const obs = items.filter(i=>normalizeResultValue(i.result)==='OBS').length;
+  const items = getAuditItems(audit);
+  const summary = getAuditSummary(audit);
 
   const sections = {};
   items.forEach((item,idx)=>{
@@ -2071,15 +2107,15 @@ function renderChecklist(audit){
       </div>
       <div class="detail-progress">
         <div class="detail-progress-head">
-          <span class="detail-progress-text">${ans}/${total} 항목 완료 (${pct}%)</span>
+          <span class="detail-progress-text">${summary.answered}/${summary.total} 항목 완료 (${summary.percent}%)</span>
           <div class="result-count-row detail-result-counts">
-            <span class="badge badge-ok">YES ${ok}</span>
-            <span class="badge badge-ng">NO ${ng}</span>
-            <span class="badge badge-na">N/A ${na}</span>
-            <span class="badge badge-obs">OBS ${obs}</span>
+            <span class="badge badge-ok">YES ${summary.yes}</span>
+            <span class="badge badge-ng">NO ${summary.no}</span>
+            <span class="badge badge-na">N/A ${summary.na}</span>
+            <span class="badge badge-obs">OBS ${summary.obs}</span>
           </div>
         </div>
-        <div class="prog-wrap detail-prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
+        <div class="prog-wrap detail-prog-wrap"><div class="prog-fill" style="width:${summary.percent}%"></div></div>
       </div>
     </div>
 
@@ -2093,7 +2129,7 @@ function renderChecklist(audit){
         ${sectionEntries.map(([sec,secItems], sectionIndex)=>`
           <div class="section-header detail-section-start" id="sec-${sectionIndex}">
             <span class="detail-section-title">${esc(sec)}</span>
-            <span class="check-section-summary check-section-summary-inline">${secItems.filter(i=>i.result).length}/${secItems.length} 항목 완료</span>
+            <span class="check-section-summary check-section-summary-inline">${getSectionCompletion(secItems).answered}/${getSectionCompletion(secItems).total} 항목 완료</span>
           </div>
           ${secItems.map(item=>isMaturityChecklistAudit(audit) ? renderFieldChecklistItem(audit, item) : renderStandardChecklistItem(audit, item)).join('')}
         `).join('')}
@@ -2491,11 +2527,8 @@ async function exportExcel(id){
   const wb = XLSX.utils.book_new();
 
   // Summary sheet
-  const ok=audit.items.filter(i=>normalizeResultValue(i.result)==='YES').length;
-  const ng=audit.items.filter(i=>normalizeResultValue(i.result)==='NO').length;
-  const na=audit.items.filter(i=>normalizeResultValue(i.result)==='N/A').length;
-  const obs=audit.items.filter(i=>normalizeResultValue(i.result)==='OBS').length;
-  const total=audit.items.length;
+  const summary = getAuditSummary(audit);
+  const items = getAuditItems(audit);
 
   const sumData=[
     ['심사 요약'],
@@ -2507,11 +2540,11 @@ async function exportExcel(id){
     ['작성일', new Date().toLocaleDateString('ko-KR')],
     [],
     ['구분','건수','비율'],
-    ['YES', ok, total?Math.round(ok/total*100)+'%':''],
-    ['NO', ng, total?Math.round(ng/total*100)+'%':''],
-    ['N/A', na, total?Math.round(na/total*100)+'%':''],
-    ['OBS', obs, total?Math.round(obs/total*100)+'%':''],
-    ['합계', total, '100%'],
+    ['YES', summary.yes, getResultPercent(summary.yes, summary.total)],
+    ['NO', summary.no, getResultPercent(summary.no, summary.total)],
+    ['N/A', summary.na, getResultPercent(summary.na, summary.total)],
+    ['OBS', summary.obs, getResultPercent(summary.obs, summary.total)],
+    ['합계', summary.total, '100%'],
   ];
   const wsSum = XLSX.utils.aoa_to_sheet(sumData);
   wsSum['!cols']=[{wch:20},{wch:12},{wch:10}];
@@ -2519,7 +2552,7 @@ async function exportExcel(id){
 
   // Detail sheet
   const detailData=[['섹션','항목번호','점검 항목','참조규정','결과','비고']];
-  audit.items.forEach(item=>{
+  items.forEach(item=>{
     detailData.push([item.section||'',item.ref||'',item.question||'',item.refStd||'',normalizeResultValue(item.result)||'',item.note||'']);
   });
   const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
@@ -2527,7 +2560,7 @@ async function exportExcel(id){
   XLSX.utils.book_append_sheet(wb, wsDetail, '점검결과');
 
   // NG sheet
-  const ngItems = audit.items.filter(i=>normalizeResultValue(i.result)==='NO');
+  const ngItems = items.filter(i=>normalizeResultValue(i.result)===RESULT_VALUE.NO);
   if(ngItems.length>0){
     const ngData=[['섹션','항목번호','부적합 내용','세부사항']];
     ngItems.forEach(item=>{
@@ -2586,13 +2619,8 @@ function loadReportTemplate(type){
 }
 
 function getResultSummary(audit){
-  const items = audit.items || [];
-  const total = items.length;
-  const ok = items.filter(i=>normalizeResultValue(i.result)==='YES').length;
-  const ng = items.filter(i=>normalizeResultValue(i.result)==='NO').length;
-  const na = items.filter(i=>normalizeResultValue(i.result)==='N/A').length;
-  const obs = items.filter(i=>normalizeResultValue(i.result)==='OBS').length;
-  return {total, ok, ng, na, obs};
+  // Compatibility alias for existing report-generation code.
+  return getAuditSummary(audit);
 }
 
 function renderSummaryRows(audit){
