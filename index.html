@@ -2828,8 +2828,6 @@ async function renderNewAuditPage(c){
   if(!c) return;
   newAuditTemplateCache = sortTemplatesForDisplay((await getNormalizedTemplates()).filter(t => t.active !== false));
   const today = new Date().toISOString().slice(0,10);
-  const firstTemplate = newAuditTemplateCache.find(t => t.items?.length);
-  lastGeneratedAuditTitle = buildDefaultAuditTitle('', firstTemplate?.name || '', today);
 
   c.innerHTML = `
   <div class="new-audit-shell">
@@ -2845,47 +2843,28 @@ async function renderNewAuditPage(c){
 
     <div class="new-audit-content">
       <div class="new-audit-card">
-        <div class="new-audit-card-head">
-          <div class="new-audit-card-title">기본 정보</div>
+        <div class="new-audit-field">
+          <label class="new-audit-label" for="na-title">심사 제목</label>
+          <input type="text" id="na-title" placeholder="예: 2024년 상반기 운항 심사">
         </div>
         <div class="new-audit-field">
-          <label class="new-audit-label" for="na-dept">피심사부서</label>
-          <input type="text" id="na-dept" placeholder="예: CAB" autocomplete="organization" oninput="updateNewAuditDraft()">
-        </div>
-        <div class="new-audit-field">
-          <label class="new-audit-label" for="na-template">점검표</label>
-          <select id="na-template" onchange="updateNewAuditDraft()">
+          <label class="new-audit-label" for="na-template">점검표 선택</label>
+          <select id="na-template">
             <option value="">— 점검표를 선택하세요 —</option>
-            ${newAuditTemplateCache.map(t=>`<option value="${t.id}" ${firstTemplate && t.id === firstTemplate.id ? 'selected' : ''} ${t.items.length ? '' : 'disabled'}>${esc(t.name)} · ${esc(getTemplateVersionLabel(t))}${t.items.length ? '' : ' (항목 없음)'}</option>`).join('')}
+            ${newAuditTemplateCache.map(t=>`<option value="${t.id}" ${t.items.length ? '' : 'disabled'}>${esc(t.name)} · ${esc(getTemplateVersionLabel(t))}${t.items.length ? '' : ' (항목 없음)'}</option>`).join('')}
           </select>
         </div>
         <div class="new-audit-field">
-          <label class="new-audit-label" for="na-title">심사명</label>
-          <input type="text" id="na-title" value="${esc(lastGeneratedAuditTitle)}" oninput="lastGeneratedAuditTitle=''" placeholder="자동생성">
+          <label class="new-audit-label" for="na-date">심사 일자</label>
+          <input type="date" id="na-date" value="${today}">
         </div>
         <div class="new-audit-field">
-          <label class="new-audit-label" for="na-date">심사일</label>
-          <input type="date" id="na-date" value="${today}" onchange="updateNewAuditDraft()">
+          <label class="new-audit-label" for="na-auditor">심사원</label>
+          <input type="text" id="na-auditor" placeholder="홍길동">
         </div>
-        <input type="hidden" id="na-auditor" value="">
-      </div>
-
-      <div class="new-audit-card">
-        <div class="new-audit-card-head">
-          <div class="new-audit-card-title">선택 정보</div>
-          <div class="new-audit-card-desc">부서를 선택하면 아래 정보가 자동으로 갱신됩니다.</div>
-        </div>
-        <div class="new-audit-summary-row">
-          <span class="new-audit-summary-label">부서</span>
-          <span class="new-audit-summary-value" id="na-preview-dept">미선택</span>
-        </div>
-        <div class="new-audit-summary-row">
-          <span class="new-audit-summary-label">점검표</span>
-          <span class="new-audit-summary-value" id="na-preview-template">${esc(firstTemplate?.name || '미선택')}</span>
-        </div>
-        <div class="new-audit-summary-row">
-          <span class="new-audit-summary-label">점검항목</span>
-          <span class="new-audit-summary-value" id="na-preview-count">${firstTemplate?.items?.length ? `${firstTemplate.items.length}개` : '-'}</span>
+        <div class="new-audit-field">
+          <label class="new-audit-label" for="na-dept">피심사 부서</label>
+          <input type="text" id="na-dept" placeholder="운항부">
         </div>
       </div>
     </div>
@@ -2895,8 +2874,6 @@ async function renderNewAuditPage(c){
       <button type="button" class="btn btn-teal flex-2" onclick="createAudit()">시작하기</button>
     </div>
   </div>`;
-
-  requestAnimationFrame(updateNewAuditDraft);
 }
 
 async function createAudit(){
