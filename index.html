@@ -639,7 +639,7 @@ let checklistSyncState = { checked: false, reachable: null, message: '점검표 
 
 // App-level version used for service worker update detection.
 // Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v57';
+const APP_CACHE_VERSION = 'audit-app-v58';
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
@@ -1483,22 +1483,28 @@ window.addEventListener('resize', () => {
   if(currentAudit) syncDetailStickyOffset();
 });
 
+function getChecklistScrollContainer(){
+  // In tablet split view, the actual scrollable area is .detail-content.
+  // In legacy/mobile fallback, #content remains the scroll container.
+  return document.querySelector('.detail-content') || byId('content');
+}
+
 function scrollToChecklistSection(sectionId){
   syncDetailStickyOffset();
-  const content = byId('content');
+  const scroller = getChecklistScrollContainer();
   const target = document.getElementById(sectionId);
-  if(!content || !target) return;
+  if(!scroller || !target) return;
 
-  const shell = document.querySelector('.detail-shell');
-  const stickyOffset = shell ? parseFloat(getComputedStyle(shell).getPropertyValue('--detail-sticky-offset')) || 0 : 0;
   const anchorNav = document.querySelector('.detail-anchor-nav');
-  const navHeight = anchorNav ? anchorNav.getBoundingClientRect().height : 0;
+  const navHeight = anchorNav && getComputedStyle(anchorNav).display !== 'none'
+    ? anchorNav.getBoundingClientRect().height
+    : 0;
   const extraGap = 8;
-  const contentTop = content.getBoundingClientRect().top;
+  const scrollerTop = scroller.getBoundingClientRect().top;
   const targetTop = target.getBoundingClientRect().top;
-  const destination = content.scrollTop + targetTop - contentTop - stickyOffset - navHeight - extraGap;
+  const destination = scroller.scrollTop + targetTop - scrollerTop - navHeight - extraGap;
 
-  content.scrollTo({
+  scroller.scrollTo({
     top: Math.max(0, destination),
     behavior: 'smooth'
   });
@@ -1769,15 +1775,18 @@ function updateCurrentSectionChip(shouldAlignStart = true){
   setCurrentSectionChip(getCurrentChecklistSectionIndex(), shouldAlignStart);
 }
 
-function setupSectionChipTracking(){
-  const content = byId('content');
-  if(!content) return;
+let sectionChipScrollContainer = null;
 
-  if(sectionChipScrollHandler){
-    content.removeEventListener('scroll', sectionChipScrollHandler);
+function setupSectionChipTracking(){
+  const scroller = getChecklistScrollContainer();
+  if(!scroller) return;
+
+  if(sectionChipScrollHandler && sectionChipScrollContainer){
+    sectionChipScrollContainer.removeEventListener('scroll', sectionChipScrollHandler);
   }
 
   currentSectionChipIndex = -1;
+  sectionChipScrollContainer = scroller;
   sectionChipScrollHandler = () => {
     if(sectionChipScrollFrame) return;
     sectionChipScrollFrame = requestAnimationFrame(() => {
@@ -1786,7 +1795,7 @@ function setupSectionChipTracking(){
     });
   };
 
-  content.addEventListener('scroll', sectionChipScrollHandler, {passive:true});
+  scroller.addEventListener('scroll', sectionChipScrollHandler, {passive:true});
   requestAnimationFrame(() => updateCurrentSectionChip(false));
 }
 
@@ -1875,7 +1884,7 @@ function toggleCheckItem(idx){
 
 function preserveDetailScroll(previousScrollTop, openIdx, anchorTopBefore = null){
   const restore = () => {
-    const c = document.getElementById('content');
+    const c = getChecklistScrollContainer();
     const card = document.getElementById('ci-'+openIdx);
     const body = document.getElementById('cb-'+openIdx);
     if(body) body.classList.remove('hidden');
@@ -1920,7 +1929,7 @@ async function setMaturityResult(auditId, idx, maturity, event){
 
   // Preserve the current scroll position.
   // Mobile browsers may scroll focused buttons into view after re-rendering.
-  const content = document.getElementById('content');
+  const content = getChecklistScrollContainer();
   const anchorCard = document.getElementById('ci-'+idx);
   const previousScrollTop = content ? content.scrollTop : 0;
   const anchorTopBefore = anchorCard ? anchorCard.getBoundingClientRect().top : null;
@@ -1943,7 +1952,7 @@ async function setResult(auditId, idx, result, event){
 
   // Preserve the current scroll position.
   // Result input is an in-place action, not a navigation action.
-  const content = document.getElementById('content');
+  const content = getChecklistScrollContainer();
   const anchorCard = document.getElementById('ci-'+idx);
   const previousScrollTop = content ? content.scrollTop : 0;
   const anchorTopBefore = anchorCard ? anchorCard.getBoundingClientRect().top : null;
