@@ -192,10 +192,8 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .ans-row { display: flex; gap: var(--space-100); flex-wrap: wrap; }
 .ans-btn { flex: 1; min-width: var(--space-800); min-height: var(--ui-button-small-height); border: var(--ui-border-width) solid var(--ads-border-input); background: var(--ads-surface); color: var(--ads-text-subtle); border-radius: var(--radius-medium); padding-inline: var(--space-100); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; text-align: center; }
 .ans-btn:hover { background: var(--ads-surface-container); }
-.ans-btn.sel-ok { background: var(--ads-success-bg); border-color: var(--ads-success-bold); color: var(--ads-success-text); }
-.ans-btn.sel-ng { background: var(--ads-danger-bg); border-color: var(--ads-danger); color: var(--ads-danger-text); }
-.ans-btn.sel-na { background: var(--ads-neutral-bg); border-color: var(--ads-neutral-bold); color: var(--ads-neutral-text); }
-.ans-btn.sel-obs { background: var(--ads-warning-bg); border-color: var(--ads-warning-bold); color: var(--ads-warning-text); }
+.ans-btn.sel-ok, .ans-btn.sel-ng, .ans-btn.sel-na, .ans-btn.sel-obs { background: var(--ads-information-bg); border-color: var(--ads-brand); color: var(--ads-text); }
+
 
 /* Progress */
 .prog-wrap { height: var(--ui-progress-height); background: var(--ads-surface-container); border-radius: var(--radius-full); overflow: hidden; margin: var(--space-0) var(--space-150) var(--space-050); }
@@ -338,9 +336,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 /* Checklist cards */
 .field-check-card { margin: var(--space-0) var(--space-150) var(--space-150); background: var(--ads-surface); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-xxlarge); overflow: hidden; box-shadow: none; }
 .field-check-card.answered { border-color: var(--ads-border-bold); }
-.field-check-card:has(.selected-ok) { border-color: var(--ads-success-bold); }
-.field-check-card:has(.selected-ng) { border-color: var(--ads-danger); }
-.field-check-card:has(.selected-obs) { border-color: var(--ads-warning-bold); }
+.field-check-card:has(.field-choice[class*="selected-"]) { border-color: var(--ads-border-bold); }
 .field-card-toggle { cursor: default; }
 .check-input-card { padding: var(--space-200); cursor: default; }
 .check-input-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); margin-bottom: var(--space-100); }
@@ -358,10 +354,14 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); width: 100%; }
 .field-choice { min-height: 2.625rem; padding-inline: var(--space-100); border: var(--ui-border-width) solid var(--ads-border-input); border-radius: var(--radius-full); background: var(--ads-surface); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); cursor: pointer; }
 .field-choice:hover { border-color: var(--ads-border-bold); }
-.field-choice.selected-ok { background: var(--ads-success-bg); border-color: var(--ads-success-bold); color: var(--ads-success-text); }
-.field-choice.selected-ng { background: var(--ads-danger-bg); border-color: var(--ads-danger); color: var(--ads-danger-text); }
-.field-choice.selected-na { background: var(--ads-neutral-bg); border-color: var(--ads-neutral-bold); color: var(--ads-neutral-text); }
-.field-choice.selected-obs { background: var(--ads-warning-bg); border-color: var(--ads-warning-bold); color: var(--ads-warning-text); }
+.field-choice.selected-ok,
+.field-choice.selected-ng,
+.field-choice.selected-na,
+.field-choice.selected-obs {
+  background: var(--ads-information-bg);
+  border-color: var(--ads-brand);
+  color: var(--ads-text);
+}
 .maturity-level-list { display: grid; gap: var(--space-075); }
 .maturity-card { border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-xxlarge); padding: var(--space-150); background: var(--ads-surface); box-shadow: none; }
 .maturity-card.selected { border: var(--ui-border-width-strong) solid var(--ads-brand); background: var(--ads-information-bg); }
@@ -370,7 +370,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .maturity-card-desc { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: 1.35; }
 .maturity-card-desc strong { display: block; margin-bottom: var(--space-025); }
 .maturity-card-head .field-choice { flex: 0 0 46%; min-height: 2.625rem; padding-inline: var(--space-150); }
-.maturity-card-head .field-choice.selected-ok { background: var(--ads-brand); border-color: var(--ads-brand); color: var(--ads-text-inverse); }
+.maturity-card-head .field-choice.selected-ok { background: var(--ads-information-bg); border-color: var(--ads-brand); color: var(--ads-text); }
 .comment-panel textarea { min-height: 3.5rem; background: var(--ads-surface); }
 .field-photo-panel { background: var(--ads-surface); }
 .field-photo-panel .photo-add { width: 6rem; min-width: 6rem; height: 4.75rem; }
