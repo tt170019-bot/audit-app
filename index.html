@@ -1015,6 +1015,55 @@ select:focus {
   }
 }
 
+
+/* =========================================================
+   Final Section Navigation Neutral Override v54
+   Purpose:
+   - Section navigation chips are navigation controls, not result/status badges.
+   - YES/NO/OBS/N/A state must not change section chip color.
+   - Current section uses font weight only.
+   - This block intentionally sits last to override earlier/legacy chip colors.
+========================================================= */
+.detail-anchor-nav button.anchor-chip,
+.detail-anchor-nav button.anchor-chip[class],
+.detail-anchor-nav button.anchor-chip.is-neutral,
+.detail-anchor-nav button.anchor-chip.is-current,
+.detail-anchor-nav button.anchor-chip.is-complete,
+.detail-anchor-nav button.anchor-chip.is-partial,
+.detail-anchor-nav button.anchor-chip.is-pending,
+.detail-anchor-nav button.anchor-chip.has-issue,
+.detail-anchor-nav button.anchor-chip.is-next,
+.detail-anchor-nav button.anchor-chip.is-empty,
+.detail-anchor-nav button.anchor-chip.badge-ok,
+.detail-anchor-nav button.anchor-chip.badge-ng,
+.detail-anchor-nav button.anchor-chip.badge-na,
+.detail-anchor-nav button.anchor-chip.badge-obs,
+.detail-anchor-nav button.anchor-chip:hover,
+.detail-anchor-nav button.anchor-chip:active,
+.detail-anchor-nav button.anchor-chip:focus,
+.detail-anchor-nav button.anchor-chip:focus-visible {
+  background: var(--ads-surface-container) !important;
+  border-color: transparent !important;
+  color: var(--ads-text) !important;
+  box-shadow: none !important;
+}
+
+.detail-anchor-nav button.anchor-chip:hover,
+.detail-anchor-nav button.anchor-chip:active,
+.detail-anchor-nav button.anchor-chip:focus-visible {
+  background: var(--ads-surface-container-hovered) !important;
+}
+
+.detail-anchor-nav button.anchor-chip.is-current {
+  font-weight: var(--ads-weight-semibold) !important;
+}
+
+.detail-anchor-nav button.anchor-chip .anchor-chip-label,
+.detail-anchor-nav button.anchor-chip .anchor-chip-count {
+  color: inherit !important;
+}
+
+
 </style>
 </head>
 <body>
@@ -1196,7 +1245,7 @@ let checklistSyncState = { checked: false, reachable: null, message: '점검표 
 
 // App-level version used for service worker update detection.
 // Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v53';
+const APP_CACHE_VERSION = 'audit-app-v54';
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
