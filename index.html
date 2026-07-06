@@ -848,13 +848,23 @@ select:focus {
 .anchor-chip {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-050);
+  justify-content: space-between;
+  gap: var(--space-100);
+  min-height: 2.25rem;
+  max-width: 12rem;
+  padding-inline: var(--space-150);
   border-color: transparent;
   box-shadow: none;
 }
 
+.anchor-chip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .anchor-chip-count {
+  margin-left: auto;
   font-weight: var(--ads-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
@@ -894,20 +904,23 @@ select:focus {
 }
 
 .anchor-chip.is-current {
-  border-color: var(--ads-brand);
-  box-shadow: 0 0 0 var(--ui-border-width) var(--ads-brand);
-  color: var(--ads-brand);
+  background: var(--ads-brand);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--ads-text-inverse);
+  font-weight: var(--ads-weight-semibold);
 }
 
 .anchor-chip.has-issue.is-current {
-  border-color: var(--ads-danger);
-  box-shadow: 0 0 0 var(--ui-border-width) var(--ads-danger);
-  color: var(--ads-danger-text);
+  background: var(--ads-danger);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--ads-text-inverse);
 }
 
-.anchor-chip.is-complete.is-current {
-  border-color: var(--ads-success-bold);
-  box-shadow: 0 0 0 var(--ui-border-width) var(--ads-success-bold);
+.anchor-chip.is-current .anchor-chip-count,
+.anchor-chip.has-issue.is-current .anchor-chip-count {
+  color: inherit;
 }
 
 /* ---------- Detail Section Header Completion Summary ---------- */
@@ -1132,7 +1145,7 @@ let checklistSyncState = { checked: false, reachable: null, message: '점검표 
 
 // App-level version used for service worker update detection.
 // Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v44';
+const APP_CACHE_VERSION = 'audit-app-v45';
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
@@ -2173,10 +2186,18 @@ function getSectionNavState(secItems){
   return { ...completion, className: 'is-partial' };
 }
 
+function getSectionChipLabel(sectionName){
+  // Section headers often include an ordinal prefix such as "5. 지상 조업".
+  // The chip already communicates position through horizontal order, so remove
+  // the prefix to reduce numeric noise while keeping the original section title below.
+  return String(sectionName || '').replace(/^\s*\d+\s*[.)]\s*/, '').trim() || String(sectionName || '일반');
+}
+
 function renderSectionAnchorChip(sectionName, secItems, sectionIndex){
   const state = getSectionNavState(secItems);
+  const label = getSectionChipLabel(sectionName);
   return `<button type="button" id="nav-sec-${sectionIndex}" data-section-index="${sectionIndex}" class="anchor-chip ${state.className}" onclick="scrollToChecklistSection('sec-${sectionIndex}')" aria-label="${esc(sectionName)} 섹션으로 이동, ${state.answered}/${state.total} 항목 완료">
-    <span>${esc(sectionName)}</span>
+    <span class="anchor-chip-label">${esc(label)}</span>
     <span class="anchor-chip-count">${state.answered}/${state.total}</span>
   </button>`;
 }
@@ -2185,7 +2206,7 @@ function renderPendingAnchorChip(audit){
   const summary = getAuditSummary(audit);
   const pending = Math.max(summary.total - summary.answered, 0);
   return `<button type="button" class="anchor-chip ${pending > 0 ? 'is-next' : 'is-complete'}" onclick="jumpToNext(${audit.id})" aria-label="미완료 항목 ${pending}개">
-    <span>미완료</span>
+    <span class="anchor-chip-label">미완료</span>
     <span class="anchor-chip-count">${pending}</span>
   </button>`;
 }
