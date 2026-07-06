@@ -1245,7 +1245,7 @@ let checklistSyncState = { checked: false, reachable: null, message: '점검표 
 
 // App-level version used for service worker update detection.
 // Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v54';
+const APP_CACHE_VERSION = 'audit-app-v55';
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
@@ -2039,6 +2039,10 @@ async function renderExport(c){
         <button type="button" class="btn btn-ghost btn-sm flex-1" onclick="exportExcel(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Excel
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm flex-1" onclick="exportTopsChecklistExcel(${a.id})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          TOPS Excel
         </button>
         <button type="button" class="btn btn-ghost btn-sm flex-1" onclick="exportWord(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
@@ -2901,6 +2905,86 @@ async function exportExcel(id){
   const fname = `${audit.title}_${audit.date||'결과'}.xlsx`;
   XLSX.writeFile(wb, fname);
   showToast('Excel 파일 저장됨');
+}
+
+
+function getTopsChecklistHeaders(){
+  // Matches the uploaded TOPS AUDIT Checklist bulk-registration template.
+  return ['ITEM','ITEM_NO','REQUIREMENT','INTERNAL_REF','EXTERNAL_REF','GUIDANCE','S','U/S','N/A','N/O','OBS','Comments'];
+}
+
+function getTopsResultMarks(result){
+  const r = normalizeResultValue(result);
+  return {
+    s: r === 'YES' ? 'Y' : '',
+    us: r === 'NO' ? 'Y' : '',
+    na: r === 'N/A' ? 'Y' : '',
+    no: r === 'N/O' ? 'Y' : '',
+    obs: r === 'OBS' ? 'Y' : ''
+  };
+}
+
+function getTopsGuidanceText(item){
+  return String(
+    item?.guidance ??
+    item?.guidanceText ??
+    item?.['GUIDANCE'] ??
+    ''
+  ).trim();
+}
+
+function buildTopsChecklistRows(audit){
+  const rows = [getTopsChecklistHeaders()];
+  getAuditItems(audit).forEach((item, index)=>{
+    const marks = getTopsResultMarks(item.result);
+    rows.push([
+      item.section || '',
+      item.ref || String(index + 1),
+      item.question || '',
+      item.refStd || '',
+      item.externalRef || item.external || '',
+      getTopsGuidanceText(item),
+      marks.s,
+      marks.us,
+      marks.na,
+      marks.no,
+      marks.obs,
+      item.note || ''
+    ]);
+  });
+  return rows;
+}
+
+async function exportTopsChecklistExcel(id){
+  const audit = await dbGet('audits', id);
+  if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
+
+  const rows = buildTopsChecklistRows(audit);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  ws['!cols'] = [
+    {wch:18}, // ITEM
+    {wch:12}, // ITEM_NO
+    {wch:56}, // REQUIREMENT
+    {wch:28}, // INTERNAL_REF
+    {wch:28}, // EXTERNAL_REF
+    {wch:38}, // GUIDANCE
+    {wch:8},  // S
+    {wch:8},  // U/S
+    {wch:8},  // N/A
+    {wch:8},  // N/O
+    {wch:8},  // OBS
+    {wch:40}  // Comments
+  ];
+  ws['!autofilter'] = { ref: `A1:L${Math.max(rows.length, 1)}` };
+
+  XLSX.utils.book_append_sheet(wb, ws, 'CheckList');
+
+  const safeTitle = String(audit.title || 'TOPS_AUDIT_Checklist').replace(/[\\/:*?"<>|]/g, '_');
+  const safeDate = String(audit.date || new Date().toISOString().slice(0,10)).replace(/[\\/:*?"<>|]/g, '_');
+  XLSX.writeFile(wb, `${safeTitle}_${safeDate}_TOPS_CheckList.xlsx`);
+  showToast('TOPS Checklist Excel 저장됨');
 }
 
 // ═══════════════════════════════════════════════
