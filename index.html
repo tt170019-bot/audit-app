@@ -209,8 +209,6 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .check-num { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-brand); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-050); letter-spacing: 0.02em; }
 .check-q { font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-medium); color: var(--ads-text); }
 .check-ref { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtle); margin-top: var(--space-050); }
-.check-body { padding: var(--space-150) var(--space-200) var(--space-200); border-top: var(--ui-border-width) solid var(--ads-border); }
-.check-body.hidden { display: none; }
 .check-label { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtle); font-weight: var(--ads-weight-medium); margin-bottom: var(--space-075); margin-top: var(--space-150); }
 .check-label:first-child { margin-top: var(--space-0); }
 
@@ -295,9 +293,9 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 
 
 
-/* Mobile detail view - harness v1 */
+/* Detail / checklist layout */
 .detail-shell { --detail-sticky-offset: 0px; min-height: 100%; display: flex; flex-direction: column; background: var(--ads-surface-sunken); }
-.detail-top { position: sticky; top: 0; z-index: 160; background: var(--ads-surface); border-bottom: var(--ui-border-width) solid var(--ads-border); padding: calc(var(--space-100) + env(safe-area-inset-top, 0)) var(--mobile-page-padding) var(--space-150); }
+.detail-top { position: sticky; top: 0; z-index: 160; background: var(--ads-surface); border-bottom: var(--ui-border-width) solid var(--ads-border); padding: calc(var(--space-100) + env(safe-area-inset-top, 0)) var(--mobile-page-padding) var(--space-150); box-shadow: none; }
 .detail-top-row { display: flex; align-items: center; gap: var(--space-100); }
 .detail-back { flex: 0 0 auto; width: var(--touch-target-min); min-height: var(--touch-target-min); padding-inline: var(--space-0); border-radius: var(--radius-full); }
 .detail-title-wrap { min-width: 0; flex: 1; }
@@ -309,18 +307,19 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-result-counts { margin-top: 0; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .detail-result-counts::-webkit-scrollbar { display: none; }
 .detail-prog-wrap { margin: 0; }
-@media (max-width: 47.9375rem) {
-  .detail-progress-head { gap: var(--space-075); }
-  .detail-result-counts { gap: var(--space-050); }
-  .detail-result-counts .badge { padding-inline: var(--space-050); }
-}
-.detail-anchor-nav { position: sticky; top: var(--detail-sticky-offset); z-index: 150; display: flex; gap: var(--space-075); overflow-x: auto; padding: var(--space-100) var(--mobile-page-padding); background: var(--ads-surface-sunken); border-bottom: var(--ui-border-width) solid var(--ads-border); box-shadow: 0 1px 0 rgba(9, 30, 66, 0.08); scrollbar-width: none; }
+.detail-anchor-nav { position: sticky; top: var(--detail-sticky-offset); z-index: 150; display: flex; gap: var(--space-100); overflow-x: auto; padding: var(--space-075) var(--mobile-page-padding); background: var(--ads-surface); border-bottom: var(--ui-border-width) solid var(--ads-border); box-shadow: none; scrollbar-width: none; scroll-snap-type: x proximity; }
 .detail-anchor-nav::-webkit-scrollbar { display: none; }
-.anchor-chip { min-height: var(--touch-target-min); padding-inline: var(--space-150); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-full); background: var(--ads-surface); color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); white-space: nowrap; cursor: pointer; }
-.anchor-chip:active, .anchor-chip:focus-visible { background: var(--ads-information-bg); border-color: var(--ads-information-bold); color: var(--ads-information-text); }
+.anchor-chip { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: var(--space-075); min-height: 2.25rem; max-width: 12rem; padding-inline: var(--space-150); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); white-space: nowrap; cursor: pointer; scroll-snap-align: start; }
+.anchor-chip:hover, .anchor-chip:active, .anchor-chip:focus-visible { background: var(--ads-surface-container-hovered); color: var(--ads-text); }
+.anchor-chip.is-current { font-weight: var(--ads-weight-semibold); }
+.anchor-chip-label { min-width: 0; max-width: 8.5rem; overflow: hidden; text-overflow: ellipsis; color: inherit; }
+.anchor-chip-count { margin-left: auto; color: inherit; font-weight: var(--ads-weight-semibold); font-variant-numeric: tabular-nums; }
+.detail-body { display: block; }
+.detail-sidebar { display: none; }
 .detail-content { flex: 1; padding-bottom: calc(var(--mobile-action-height) + var(--space-500) + env(safe-area-inset-bottom, 0)); }
+.detail-checklist-column { min-width: 0; }
 .detail-scroll-tail { height: max(18rem, 48vh); flex: 0 0 auto; }
-.detail-summary-card { margin: var(--space-150); background: var(--ads-surface); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); overflow: hidden; }
+.detail-summary-card { margin: var(--space-150); background: var(--ads-surface); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-xxlarge); overflow: hidden; }
 .detail-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-0); }
 .detail-summary-cell { padding: var(--space-150); border-right: var(--ui-border-width) solid var(--ads-border); border-bottom: var(--ui-border-width) solid var(--ads-border); }
 .detail-summary-cell:nth-child(2n) { border-right: 0; }
@@ -330,56 +329,89 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-bottom-action { position: fixed; left: 0; right: 0; bottom: 0; z-index: 180; display: flex; gap: var(--space-100); padding: var(--space-150) var(--mobile-page-padding) calc(var(--space-150) + env(safe-area-inset-bottom, 0)); background: var(--ads-surface); border-top: var(--ui-border-width) solid var(--ads-border); box-shadow: var(--shadow-overflow); }
 .detail-bottom-action .btn { min-height: var(--mobile-action-height); }
 .detail-section-start { scroll-margin-top: calc(var(--detail-sticky-offset) + var(--touch-target-min) + var(--space-400)); }
+.section-header.detail-section-start { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); }
+.detail-section-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .check-section-summary { margin: var(--space-0) var(--space-150) var(--space-100); color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
+.check-section-summary-inline { margin: 0; padding-inline: 0; min-height: 1.25rem; display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; color: var(--ads-text-subtle); font-weight: var(--ads-weight-medium); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .result-count-row { display: flex; gap: var(--space-075); flex-wrap: wrap; margin-top: var(--space-100); }
-@media (min-width: 56.25rem) {
-  .detail-shell { max-width: 72rem; margin: 0 auto; }
-  .detail-content { padding-inline: var(--space-200); }
-  .detail-checklist-column { min-width: 0; max-width: 52rem; margin-inline: auto; }
-  .detail-bottom-action { left: 50%; transform: translateX(-50%); max-width: 72rem; border-inline: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large) var(--radius-large) 0 0; }
-}
 
-
-
-/* Field audit checklist legacy table CSS removed: single-card mobile/tablet UI is the active implementation. */
-
-
-/* Card checklist input view - table UI removed for mobile/tablet */
-.field-check-card { margin: var(--space-0) var(--space-150) var(--space-200); background: var(--ads-surface); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-xlarge); overflow: hidden; box-shadow: var(--shadow-raised); }
+/* Checklist cards */
+.field-check-card { margin: var(--space-0) var(--space-150) var(--space-150); background: var(--ads-surface); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-xxlarge); overflow: hidden; box-shadow: none; }
 .field-check-card.answered { border-color: var(--ads-border-bold); }
-.check-input-card { padding: var(--space-200); cursor: pointer; }
-.check-input-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-150); margin-bottom: var(--space-100); }
-.check-input-no { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; min-height: 1.75rem; padding-inline: var(--space-100); border-radius: var(--radius-full); background: var(--ads-information-bg); color: var(--ads-information-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); }
-.check-input-section { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); text-align: right; }
+.field-check-card:has(.selected-ok) { border-color: var(--ads-success-bold); }
+.field-check-card:has(.selected-ng) { border-color: var(--ads-danger); }
+.field-check-card:has(.selected-obs) { border-color: var(--ads-warning-bold); }
+.field-card-toggle { cursor: default; }
+.check-input-card { padding: var(--space-200); cursor: default; }
+.check-input-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); margin-bottom: var(--space-100); }
+.check-input-no { min-width: auto; min-height: auto; padding-inline: 0; border: 0; border-radius: 0; background: transparent; color: var(--ads-brand); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); letter-spacing: 0.01em; }
+.check-input-section { flex: 1; text-align: center; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); }
+.check-input-top .badge { min-height: 1.375rem; padding-inline: var(--space-075); border-radius: var(--radius-full); }
 .check-input-question { color: var(--ads-text); font-size: var(--ads-body-size); line-height: 1.45; font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-150); }
 .check-input-refs { display: grid; gap: var(--space-075); }
 .check-ref-line { display: flex; gap: var(--space-075); align-items: flex-start; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
 .check-ref-label { flex: 0 0 auto; color: var(--ads-text-subtlest); font-weight: var(--ads-weight-semibold); }
-.check-body { padding: var(--space-0) var(--space-200) var(--space-200); border-top: var(--ui-border-width) solid var(--ads-border); }
-.result-panel, .comment-panel, .maturity-panel, .field-photo-panel { padding-top: var(--space-200); }
-.result-panel-title, .maturity-panel-title, .comment-panel-title { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-100); }
-.field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); }
-.field-choice { min-height: var(--touch-target-min); padding-inline: var(--space-100); border: var(--ui-border-width) solid var(--ads-border-input); border-radius: var(--radius-full); background: var(--ads-surface); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); cursor: pointer; }
+.check-body { display: block; padding: var(--space-0) var(--space-200) var(--space-200); border-top: var(--ui-border-width) solid var(--ads-border); }
+.check-body.hidden { display: block; }
+.result-panel, .comment-panel, .maturity-panel, .field-photo-panel { padding-top: var(--space-150); }
+.result-panel-title, .maturity-panel-title, .comment-panel-title, .check-label { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-075); }
+.field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); max-width: 36rem; margin-right: auto; }
+.field-choice { min-height: 2.625rem; padding-inline: var(--space-100); border: var(--ui-border-width) solid var(--ads-border-input); border-radius: var(--radius-full); background: var(--ads-surface); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); cursor: pointer; }
+.field-choice:hover { border-color: var(--ads-border-bold); }
 .field-choice.selected-ok { background: var(--ads-success-bg); border-color: var(--ads-success-bold); color: var(--ads-success-text); }
 .field-choice.selected-ng { background: var(--ads-danger-bg); border-color: var(--ads-danger); color: var(--ads-danger-text); }
 .field-choice.selected-na { background: var(--ads-neutral-bg); border-color: var(--ads-neutral-bold); color: var(--ads-neutral-text); }
 .field-choice.selected-obs { background: var(--ads-warning-bg); border-color: var(--ads-warning-bold); color: var(--ads-warning-text); }
-.maturity-level-list { display: grid; gap: var(--space-100); }
-.maturity-card { border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); padding: var(--space-150); background: var(--ads-surface); }
-.maturity-card.selected { border-color: var(--ads-brand); background: var(--ads-information-bg); }
-.maturity-card-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-100); margin-bottom: var(--space-075); }
-.maturity-card-title { font-weight: var(--ads-weight-semibold); color: var(--ads-text); }
+.maturity-level-list { display: grid; gap: var(--space-075); }
+.maturity-card { border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-xxlarge); padding: var(--space-150); background: var(--ads-surface); box-shadow: none; }
+.maturity-card.selected { border: var(--ui-border-width-strong) solid var(--ads-brand); background: var(--ads-information-bg); }
+.maturity-card-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-075); margin-bottom: var(--space-050); }
+.maturity-card-title { flex: 1; min-width: 0; font-weight: var(--ads-weight-semibold); color: var(--ads-text); }
 .maturity-card-desc { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: 1.35; }
-.comment-panel textarea { min-height: 4rem; }
-.field-photo-panel { border-top: 0; background: var(--ads-surface); }
+.maturity-card-desc strong { display: block; margin-bottom: var(--space-025); }
+.maturity-card-head .field-choice { flex: 0 0 46%; min-height: 2.625rem; padding-inline: var(--space-150); }
+.maturity-card-head .field-choice.selected-ok { background: var(--ads-brand); border-color: var(--ads-brand); color: var(--ads-text-inverse); }
+.comment-panel textarea { min-height: 3.5rem; background: var(--ads-surface); }
+.field-photo-panel { background: var(--ads-surface); }
 .field-photo-panel .photo-add { width: 6rem; min-width: 6rem; height: 4.75rem; }
+
 @media (max-width: 47.9375rem) {
-  .field-check-card { margin-inline: var(--space-100); margin-bottom: var(--space-200); }
+  .detail-progress-head { gap: var(--space-075); }
+  .detail-result-counts { gap: var(--space-050); }
+  .detail-result-counts .badge { padding-inline: var(--space-050); }
+  .field-check-card { margin-left: var(--space-100); margin-right: var(--space-100); margin-bottom: var(--space-150); }
   .field-result-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .check-input-card { padding: var(--space-200); }
 }
+
 @media (min-width: 48rem) {
-  .detail-checklist-column { max-width: 46rem; }
+  #content { max-width: none; width: 100%; }
+  .detail-shell { max-width: none; width: 100%; margin: 0; }
+  .detail-anchor-nav { display: none; }
+  .detail-body { display: grid; grid-template-columns: 14rem minmax(0, 1fr); align-items: start; }
+  .detail-sidebar { position: sticky; top: var(--detail-sticky-offset); z-index: 120; display: flex; flex-direction: column; gap: var(--space-050); min-height: calc(100vh - var(--detail-sticky-offset)); max-height: calc(100vh - var(--detail-sticky-offset)); overflow-y: auto; padding: var(--space-150) var(--space-100) calc(var(--mobile-action-height) + var(--space-400)); background: var(--ads-surface); border-right: var(--ui-border-width) solid var(--ads-border); scrollbar-width: thin; }
+  .detail-sidebar-label { padding: var(--space-050) var(--space-100) var(--space-075); color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); letter-spacing: 0.04em; }
+  .detail-sidebar .anchor-chip { width: 100%; max-width: none; justify-content: space-between; min-height: var(--touch-target-min); padding-inline: var(--space-150); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-large); background: transparent; color: var(--ads-text-subtle); text-align: left; }
+  .detail-sidebar .anchor-chip:hover, .detail-sidebar .anchor-chip:focus-visible { background: var(--ads-surface-container); color: var(--ads-text); }
+  .detail-sidebar .anchor-chip.is-current { background: var(--ads-information-bg); color: var(--ads-information-text); font-weight: var(--ads-weight-semibold); }
+  .detail-sidebar .anchor-chip-label { max-width: 9rem; }
+  .detail-content { min-width: 0; padding-inline: var(--space-200); padding-bottom: calc(var(--mobile-action-height) + var(--space-500) + env(safe-area-inset-bottom, 0)); }
+  .detail-checklist-column { max-width: 52rem; margin-inline: auto; padding-top: var(--space-150); }
+  .detail-bottom-action { left: 14rem; right: 0; max-width: none; transform: none; border-inline: 0; border-radius: 0; }
+  .field-check-card { margin-inline: 0; }
+  .modal-sheet { max-width: 40rem; border-radius: var(--radius-xxlarge); margin-bottom: var(--space-300); }
+  #tabbar { justify-content: center; }
+  .tab-btn { max-width: 10rem; }
+}
+
+@media (min-width: 64rem) {
+  .detail-body { grid-template-columns: 16rem minmax(0, 1fr); }
+  .detail-sidebar { padding-inline: var(--space-150); }
+  .detail-sidebar .anchor-chip-label { max-width: 11rem; }
+  .detail-bottom-action { left: 16rem; }
+}
+
+@media (min-width: 80rem) {
+  .detail-checklist-column { max-width: 58rem; }
 }
 
 /* Offline status / PWA helpers */
@@ -424,646 +456,6 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .icon { display: inline-flex; align-items: center; justify-content: center; }
 @media (min-width: 48rem) { .modal-sheet { max-width: 40rem; border-radius: var(--radius-xxlarge); margin-bottom: var(--space-300); } #content { max-width: 48rem; width: 100%; margin-inline: auto; } #tabbar { justify-content: center; } .tab-btn { max-width: 10rem; } }
 @media (min-width: 56.25rem) { #content { max-width: 72rem; } }
-
-
-/* =========================================================
-   Final Harness UI Consistency Override
-   Version: 2026-07-06
-   Scope:
-   - Radius consistency
-   - Spacing consistency
-   - Result/state color consistency
-   - Compact section navigation
-   - Compact maturity assessment
-   - Border/shadow consistency
-   Excluded:
-   - Font-size changes
-   - JavaScript / IndexedDB / export / service worker logic
-========================================================= */
-
-:root {
-  --radius-card-final: var(--radius-xxlarge);
-  --radius-control-final: var(--radius-xxlarge);
-  --radius-pill-final: var(--radius-full);
-
-  --border-final: var(--ui-border-width) solid var(--ads-border);
-  --border-final-strong: var(--ui-border-width) solid var(--ads-border-bold);
-  --border-final-selected: var(--ui-border-width-strong) solid var(--ads-brand);
-
-  --shadow-final-rest: none;
-  --shadow-final-active: var(--shadow-raised);
-}
-
-/* ---------- Surface / Radius ---------- */
-.card,
-.check-card,
-.audit-item,
-.stat-card,
-.field-check-card,
-.detail-summary-card,
-.admin-panel,
-.template-format-card,
-.template-sync-card,
-.export-card,
-.upload-zone,
-.maturity-card {
-  border-radius: var(--radius-card-final);
-  border: var(--border-final);
-}
-
-input[type=text],
-input[type=date],
-input[type=number],
-textarea,
-select,
-.modal-sheet,
-.photo-thumb,
-.photo-add {
-  border-radius: var(--radius-control-final);
-}
-
-.btn,
-.field-choice,
-.ans-btn,
-.anchor-chip,
-.badge,
-.lozenge,
-.dDay,
-.status-badge,
-.status-chip,
-.check-input-no {
-  border-radius: var(--radius-pill-final);
-}
-
-/* ---------- Border / Focus ---------- */
-.btn,
-.field-choice,
-.ans-btn,
-.anchor-chip,
-input[type=text],
-input[type=date],
-input[type=number],
-textarea,
-select {
-  border: var(--border-final);
-}
-
-.btn:hover,
-.field-choice:hover,
-.ans-btn:hover,
-.anchor-chip:hover,
-.audit-item:hover,
-.audit-item:active {
-  border-color: var(--ads-border-bold);
-}
-
-.btn:focus-visible,
-.field-choice:focus-visible,
-.ans-btn:focus-visible,
-.anchor-chip:focus-visible,
-input:focus,
-textarea:focus,
-select:focus {
-  border-color: var(--ads-brand);
-  box-shadow: 0 0 0 var(--ui-border-width) var(--ads-brand);
-}
-
-/* ---------- Shadow ---------- */
-.field-check-card,
-.audit-item,
-.stat-card,
-.card,
-.detail-summary-card,
-.maturity-card {
-  box-shadow: var(--shadow-final-rest);
-}
-
-.field-check-card.answered,
-.maturity-card.selected,
-.audit-item:active {
-  box-shadow: var(--shadow-final-active);
-}
-
-/* ---------- Sticky Header / Section Navigation ---------- */
-.detail-top {
-  background: var(--ads-surface);
-  border-bottom: var(--border-final);
-  box-shadow: none;
-}
-
-.detail-anchor-nav {
-  background: var(--ads-surface);
-  border-bottom: var(--border-final);
-  box-shadow: none;
-  gap: var(--space-050);
-  padding: var(--space-075) var(--mobile-page-padding);
-}
-
-.anchor-chip {
-  min-height: 2.375rem;
-  padding-inline: var(--space-150);
-  background: var(--ads-surface);
-  color: var(--ads-text-subtle);
-  line-height: 1.125rem;
-  font-weight: var(--ads-weight-medium);
-}
-
-.anchor-chip:active,
-.anchor-chip:focus-visible {
-  background: var(--ads-information-bg);
-  border-color: var(--ads-brand);
-  color: var(--ads-brand);
-}
-
-/* ---------- Button Hierarchy ---------- */
-/* btn-teal is retained as a compatibility alias for existing markup. */
-.btn-primary,
-.btn-teal,
-.detail-bottom-action .btn-teal {
-  background: var(--ads-brand);
-  border-color: var(--ads-brand);
-  color: var(--ads-text-inverse);
-}
-
-.btn-primary:hover,
-.btn-teal:hover,
-.detail-bottom-action .btn-teal:hover {
-  background: var(--ads-brand-hovered);
-  border-color: var(--ads-brand-hovered);
-}
-
-.btn-ghost,
-.detail-bottom-action .btn-ghost {
-  background: var(--ads-surface-container);
-  border-color: transparent;
-  color: var(--ads-text);
-}
-
-.btn-danger {
-  background: var(--ads-danger);
-  border-color: var(--ads-danger);
-  color: var(--ads-text-inverse);
-}
-
-/* ---------- Result State Colors ---------- */
-.field-choice.selected-ok,
-.ans-btn.sel-ok,
-.badge-ok {
-  background: var(--ads-success-bg);
-  border-color: var(--ads-success-bold);
-  color: var(--ads-success-text);
-}
-
-.field-choice.selected-ng,
-.ans-btn.sel-ng,
-.badge-ng {
-  background: var(--ads-danger-bg);
-  border-color: var(--ads-danger);
-  color: var(--ads-danger-text);
-}
-
-.field-choice.selected-obs,
-.ans-btn.sel-obs,
-.badge-obs {
-  background: var(--ads-warning-bg);
-  border-color: var(--ads-warning-bold);
-  color: var(--ads-warning-text);
-}
-
-.field-choice.selected-na,
-.ans-btn.sel-na,
-.badge-na {
-  background: var(--ads-neutral-bg);
-  border-color: var(--ads-neutral-bold);
-  color: var(--ads-neutral-text);
-}
-
-/* Maturity selection is a selection state, not a YES/success state. */
-.maturity-card.selected {
-  background: var(--ads-information-bg);
-  border: var(--border-final-selected);
-}
-
-.maturity-card.selected .maturity-card-title,
-.maturity-card.selected .maturity-card-desc {
-  color: var(--ads-text);
-}
-
-.maturity-card-head .field-choice.selected-ok {
-  background: var(--ads-brand);
-  border-color: var(--ads-brand);
-  color: var(--ads-text-inverse);
-}
-
-.maturity-card-head .field-choice.selected-ok:hover,
-.maturity-card-head .field-choice.selected-ok:focus-visible {
-  background: var(--ads-brand-hovered);
-  border-color: var(--ads-brand-hovered);
-  color: var(--ads-text-inverse);
-}
-
-/* ---------- Spacing Rhythm: 4 / 8 / 12 / 16 / 24 / 32 ---------- */
-.card,
-.audit-item,
-.check-card,
-.field-check-card,
-.export-card,
-.template-format-card,
-.template-sync-card,
-.admin-panel {
-  margin-left: var(--space-150);
-  margin-right: var(--space-150);
-  margin-bottom: var(--space-150);
-}
-
-.card-row,
-.audit-item,
-.stat-card,
-.check-input-card,
-.modal-body,
-.modal-actions,
-.admin-panel {
-  padding: var(--space-200);
-}
-
-.detail-top,
-.detail-bottom-action,
-.quick-actions,
-.check-actions {
-  gap: var(--space-100);
-}
-
-.check-input-top,
-.audit-item-head,
-.result-count-row,
-.field-result-row,
-.template-actions,
-.export-badge-row,
-.photo-row {
-  gap: var(--space-100);
-}
-
-/* ---------- Result Panel Compactness ---------- */
-.result-panel,
-.maturity-panel,
-.comment-panel,
-.field-photo-panel {
-  padding-top: var(--space-150);
-}
-
-.result-panel-title,
-.maturity-panel-title,
-.comment-panel-title,
-.check-label {
-  margin-bottom: var(--space-075);
-}
-
-.field-result-row {
-  gap: var(--space-075);
-}
-
-.field-result-row .field-choice {
-  min-height: 2.625rem;
-}
-
-/* ---------- Maturity Compactness ---------- */
-.maturity-level-list {
-  gap: var(--space-075);
-}
-
-.maturity-card {
-  padding: var(--space-150);
-  background: var(--ads-surface);
-}
-
-.maturity-card-head {
-  gap: var(--space-075);
-  margin-bottom: var(--space-050);
-  align-items: center;
-}
-
-.maturity-card-title {
-  flex: 1;
-  min-width: 0;
-}
-
-.maturity-card-head .field-choice {
-  flex: 0 0 46%;
-  min-height: 2.625rem;
-  padding-inline: var(--space-150);
-}
-
-.maturity-card-desc strong {
-  display: block;
-  margin-bottom: var(--space-025);
-}
-
-/* ---------- Comment / Photo ---------- */
-.comment-panel textarea {
-  min-height: 3.5rem;
-}
-
-.field-photo-panel,
-.comment-panel textarea {
-  background: var(--ads-surface);
-}
-
-/* ---------- Lozenge Width ---------- */
-.badge,
-.lozenge,
-.dDay,
-.status-badge,
-.status-chip {
-  width: max-content;
-  flex: 0 0 auto;
-}
-
-/* ---------- Mobile ---------- */
-@media (max-width: 47.9375rem) {
-  .card,
-  .audit-item,
-  .check-card,
-  .field-check-card,
-  .export-card,
-  .template-format-card,
-  .template-sync-card,
-  .admin-panel {
-    margin-left: var(--space-100);
-    margin-right: var(--space-100);
-    margin-bottom: var(--space-150);
-  }
-
-  .card-row,
-  .audit-item,
-  .stat-card,
-  .check-input-card,
-  .modal-body,
-  .modal-actions,
-  .admin-panel {
-    padding: var(--space-200);
-  }
-
-  .detail-anchor-nav {
-    padding: var(--space-075) var(--mobile-page-padding);
-    gap: var(--space-050);
-  }
-
-  .anchor-chip {
-    min-height: 2.375rem;
-    padding-inline: var(--space-150);
-  }
-
-  .maturity-card {
-    padding: var(--space-150);
-  }
-
-  .maturity-card-head .field-choice {
-    flex-basis: 46%;
-    min-height: 2.625rem;
-  }
-}
-
-
-/* =========================================================
-   Checklist width and result button group balance
-   Version: 2026-07-06
-   Scope:
-   - Expand checklist card column for large screens
-   - Limit result button group width instead of individual buttons
-   - Preserve mobile behavior and bottom action bar width
-========================================================= */
-@media (min-width: 56.25rem) {
-  .detail-checklist-column {
-    max-width: 52rem;
-  }
-
-  .field-result-row {
-    max-width: 36rem;
-    margin-right: auto;
-  }
-}
-
-
-
-
-/* =========================================================
-   Harness UI Cleanup Override v53
-   Scope:
-   - Consolidate duplicated chip CSS from v42-v52
-   - Keep section navigation chips neutral in all result states
-   - Indicate current section with font weight only, not color
-   - Keep item reference as plain text, not a chip
-   - Keep section header progress as right-aligned text only
-   - Reduce excessive border/shadow emphasis in checklist cards
-========================================================= */
-
-/* Section navigation: horizontal, compact, neutral */
-.detail-anchor-nav {
-  background: var(--ads-surface);
-  border-bottom: var(--border-final);
-  box-shadow: none;
-  display: flex;
-  gap: var(--space-100);
-  overflow-x: auto;
-  padding: var(--space-075) var(--mobile-page-padding);
-  scrollbar-width: none;
-  scroll-snap-type: x proximity;
-}
-
-.detail-anchor-nav::-webkit-scrollbar {
-  display: none;
-}
-
-.detail-anchor-nav .anchor-chip,
-.detail-anchor-nav .anchor-chip.is-neutral,
-.detail-anchor-nav .anchor-chip.is-current,
-.detail-anchor-nav .anchor-chip.is-complete,
-.detail-anchor-nav .anchor-chip.is-partial,
-.detail-anchor-nav .anchor-chip.is-pending,
-.detail-anchor-nav .anchor-chip.has-issue,
-.detail-anchor-nav .anchor-chip.is-next,
-.detail-anchor-nav .anchor-chip.is-empty,
-.detail-anchor-nav .anchor-chip:hover,
-.detail-anchor-nav .anchor-chip:active,
-.detail-anchor-nav .anchor-chip:focus-visible {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-075);
-  min-height: 2.25rem;
-  max-width: 12rem;
-  padding-inline: var(--space-150);
-  border: var(--ui-border-width) solid transparent !important;
-  border-radius: var(--radius-full);
-  background: var(--ads-surface-container) !important;
-  box-shadow: none !important;
-  color: var(--ads-text) !important;
-  font-size: var(--ads-body-small-size);
-  line-height: var(--ads-body-small-line);
-  font-weight: var(--ads-weight-medium);
-  white-space: nowrap;
-  cursor: pointer;
-  scroll-snap-align: start;
-}
-
-.detail-anchor-nav .anchor-chip:hover,
-.detail-anchor-nav .anchor-chip:active,
-.detail-anchor-nav .anchor-chip:focus-visible {
-  background: var(--ads-surface-container-hovered) !important;
-}
-
-.detail-anchor-nav .anchor-chip.is-current {
-  font-weight: var(--ads-weight-semibold) !important;
-}
-
-.detail-anchor-nav .anchor-chip-label {
-  min-width: 0;
-  max-width: 8.5rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: inherit !important;
-}
-
-.detail-anchor-nav .anchor-chip-count {
-  margin-left: auto;
-  color: inherit !important;
-  font-weight: var(--ads-weight-semibold);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Checklist item header: item number is a text label, not a chip */
-.check-input-no {
-  min-width: auto !important;
-  min-height: auto !important;
-  padding-inline: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  color: var(--ads-brand) !important;
-  font-size: var(--ads-body-small-size);
-  line-height: var(--ads-body-small-line);
-  font-weight: var(--ads-weight-semibold);
-  letter-spacing: 0.01em;
-}
-
-.check-input-top {
-  align-items: center;
-  gap: var(--space-100);
-}
-
-.check-input-section {
-  flex: 1;
-  text-align: center;
-  color: var(--ads-text-subtle);
-  font-weight: var(--ads-weight-medium);
-}
-
-.check-input-top .badge {
-  min-height: 1.375rem;
-  padding-inline: var(--space-075);
-  border-radius: var(--radius-full);
-}
-
-/* Checklist cards: avoid excessive visual emphasis */
-.field-check-card,
-.field-check-card.answered {
-  border-color: var(--ads-border-bold);
-  box-shadow: none;
-}
-
-/* Section headers: one-line title + right-aligned progress text */
-.section-header.detail-section-start {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-100);
-}
-
-.detail-section-title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.check-section-summary-inline {
-  margin: 0;
-  padding-inline: 0;
-  min-height: 1.25rem;
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: flex-end;
-  border-radius: 0;
-  background: transparent;
-  color: var(--ads-text-subtle);
-  font-size: var(--ads-body-small-size);
-  line-height: var(--ads-body-small-line);
-  font-weight: var(--ads-weight-medium);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-@media (max-width: 23rem) {
-  .section-header.detail-section-start {
-    display: flex;
-  }
-
-  .detail-section-title {
-    white-space: nowrap;
-  }
-}
-
-
-/* =========================================================
-   Final Section Navigation Neutral Override v54
-   Purpose:
-   - Section navigation chips are navigation controls, not result/status badges.
-   - YES/NO/OBS/N/A state must not change section chip color.
-   - Current section uses font weight only.
-   - This block intentionally sits last to override earlier/legacy chip colors.
-========================================================= */
-.detail-anchor-nav button.anchor-chip,
-.detail-anchor-nav button.anchor-chip[class],
-.detail-anchor-nav button.anchor-chip.is-neutral,
-.detail-anchor-nav button.anchor-chip.is-current,
-.detail-anchor-nav button.anchor-chip.is-complete,
-.detail-anchor-nav button.anchor-chip.is-partial,
-.detail-anchor-nav button.anchor-chip.is-pending,
-.detail-anchor-nav button.anchor-chip.has-issue,
-.detail-anchor-nav button.anchor-chip.is-next,
-.detail-anchor-nav button.anchor-chip.is-empty,
-.detail-anchor-nav button.anchor-chip.badge-ok,
-.detail-anchor-nav button.anchor-chip.badge-ng,
-.detail-anchor-nav button.anchor-chip.badge-na,
-.detail-anchor-nav button.anchor-chip.badge-obs,
-.detail-anchor-nav button.anchor-chip:hover,
-.detail-anchor-nav button.anchor-chip:active,
-.detail-anchor-nav button.anchor-chip:focus,
-.detail-anchor-nav button.anchor-chip:focus-visible {
-  background: var(--ads-surface-container) !important;
-  border-color: transparent !important;
-  color: var(--ads-text) !important;
-  box-shadow: none !important;
-}
-
-.detail-anchor-nav button.anchor-chip:hover,
-.detail-anchor-nav button.anchor-chip:active,
-.detail-anchor-nav button.anchor-chip:focus-visible {
-  background: var(--ads-surface-container-hovered) !important;
-}
-
-.detail-anchor-nav button.anchor-chip.is-current {
-  font-weight: var(--ads-weight-semibold) !important;
-}
-
-.detail-anchor-nav button.anchor-chip .anchor-chip-label,
-.detail-anchor-nav button.anchor-chip .anchor-chip-count {
-  color: inherit !important;
-}
-
-
 
 
 </style>
@@ -2196,7 +1588,7 @@ function renderRequirementTable(audit, item){
   const result = normalizeResultValue(item.result || '');
   const resultBadge = result ? `<span class="badge ${resultClass(result)}">${result}</span>` : `<span class="badge badge-na">미완료</span>`;
 
-  return `<div class="check-input-card field-card-toggle" onclick="toggleCheckItem(${idx})" tabindex="0" aria-label="점검항목 열기">
+  return `<div class="check-input-card field-card-toggle" tabindex="0" aria-label="점검항목">
     <div class="check-input-top">
       <span class="check-input-no">${ref}</span>
       <div class="check-input-section">${sectionTitle}</div>
@@ -2279,7 +1671,7 @@ function renderStandardChecklistItem(audit, item){
   const result = item.result || '';
   return `<div class="field-check-card ${result?'answered':''}" id="ci-${idx}">
     ${renderRequirementTable(audit, item)}
-    <div class="check-body hidden" id="cb-${idx}">
+    <div class="check-body" id="cb-${idx}">
       ${renderResultPanel(audit, item)}
       ${renderCommentPanel(audit, item)}
       ${renderEvidencePanel(audit, item)}
@@ -2292,7 +1684,7 @@ function renderFieldChecklistItem(audit, item){
   const idx = item._idx;
   return `<div class="field-check-card ${result?'answered':''}" id="ci-${idx}">
     ${renderRequirementTable(audit, item)}
-    <div class="check-body hidden" id="cb-${idx}">
+    <div class="check-body" id="cb-${idx}">
       ${renderResultPanel(audit, item)}
       ${renderMaturityPanel(audit, item)}
       ${renderCommentPanel(audit, item)}
@@ -2314,10 +1706,11 @@ function getSectionChipLabel(sectionName){
   return String(sectionName || '').replace(/^\s*\d+\s*[.)]\s*/, '').trim() || String(sectionName || '일반');
 }
 
-function renderSectionAnchorChip(sectionName, secItems, sectionIndex){
+function renderSectionAnchorChip(sectionName, secItems, sectionIndex, idPrefix = 'nav-sec-'){
   const state = getSectionNavState(secItems);
   const label = getSectionChipLabel(sectionName);
-  return `<button type="button" id="nav-sec-${sectionIndex}" data-section-index="${sectionIndex}" class="anchor-chip ${state.className}" onclick="scrollToChecklistSection('sec-${sectionIndex}')" aria-label="${esc(sectionName)} 섹션으로 이동, ${state.answered}/${state.total} 항목 완료">
+  const chipId = `${idPrefix}${sectionIndex}`;
+  return `<button type="button" id="${chipId}" data-section-index="${sectionIndex}" class="anchor-chip ${state.className}" onclick="scrollToChecklistSection('sec-${sectionIndex}')" aria-label="${esc(sectionName)} 섹션으로 이동, ${state.answered}/${state.total} 항목 완료">
     <span class="anchor-chip-label">${esc(label)}</span>
     <span class="anchor-chip-count">${state.answered}/${state.total}</span>
   </button>`;
@@ -2355,16 +1748,20 @@ function setCurrentSectionChip(index, shouldAlignStart = true){
   if(index < 0 || index === currentSectionChipIndex) return;
   currentSectionChipIndex = index;
 
-  document.querySelectorAll('.detail-anchor-nav .anchor-chip').forEach(chip => {
+  document.querySelectorAll('.detail-anchor-nav .anchor-chip, .detail-sidebar .anchor-chip').forEach(chip => {
     chip.classList.remove('is-current');
   });
 
-  const activeChip = document.getElementById('nav-sec-' + index);
-  if(!activeChip) return;
-  activeChip.classList.add('is-current');
+  const activeChips = [
+    document.getElementById('nav-mobile-' + index),
+    document.getElementById('nav-side-' + index)
+  ].filter(Boolean);
+
+  if(activeChips.length === 0) return;
+  activeChips.forEach(chip => chip.classList.add('is-current'));
 
   if(shouldAlignStart){
-    activeChip.scrollIntoView({behavior:'smooth', inline:'start', block:'nearest'});
+    activeChips.forEach(chip => chip.scrollIntoView({behavior:'smooth', inline:'start', block:'nearest'}));
   }
 }
 
@@ -2432,21 +1829,29 @@ function renderChecklist(audit){
     </div>
 
     <div class="detail-anchor-nav" aria-label="점검 섹션 이동">
-      ${sectionEntries.map(([sec, secItems], i)=>renderSectionAnchorChip(sec, secItems, i)).join('')}
+      ${sectionEntries.map(([sec, secItems], i)=>renderSectionAnchorChip(sec, secItems, i, 'nav-mobile-')).join('')}
       ${renderPendingAnchorChip(audit)}
     </div>
 
-    <div class="detail-content">
-      <div class="detail-checklist-column">
-        ${sectionEntries.map(([sec,secItems], sectionIndex)=>`
-          <div class="section-header detail-section-start" id="sec-${sectionIndex}">
-            <span class="detail-section-title">${esc(sec)}</span>
-            <span class="check-section-summary check-section-summary-inline">${getSectionCompletion(secItems).answered}/${getSectionCompletion(secItems).total}</span>
-          </div>
-          ${secItems.map(item=>isMaturityChecklistAudit(audit) ? renderFieldChecklistItem(audit, item) : renderStandardChecklistItem(audit, item)).join('')}
-        `).join('')}
+    <div class="detail-body">
+      <aside class="detail-sidebar" aria-label="점검 섹션 사이드바">
+        <div class="detail-sidebar-label">SECTION</div>
+        ${sectionEntries.map(([sec, secItems], i)=>renderSectionAnchorChip(sec, secItems, i, 'nav-side-')).join('')}
+        ${renderPendingAnchorChip(audit)}
+      </aside>
+
+      <div class="detail-content">
+        <div class="detail-checklist-column">
+          ${sectionEntries.map(([sec,secItems], sectionIndex)=>`
+            <div class="section-header detail-section-start" id="sec-${sectionIndex}">
+              <span class="detail-section-title">${esc(sec)}</span>
+              <span class="check-section-summary check-section-summary-inline">${getSectionCompletion(secItems).answered}/${getSectionCompletion(secItems).total}</span>
+            </div>
+            ${secItems.map(item=>isMaturityChecklistAudit(audit) ? renderFieldChecklistItem(audit, item) : renderStandardChecklistItem(audit, item)).join('')}
+          `).join('')}
+        </div>
+        <div class="detail-scroll-tail" aria-hidden="true"></div>
       </div>
-      <div class="detail-scroll-tail" aria-hidden="true"></div>
     </div>
 
     <div class="detail-bottom-action">
