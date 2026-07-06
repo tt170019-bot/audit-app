@@ -355,7 +355,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .check-body.hidden { display: block; }
 .result-panel, .comment-panel, .maturity-panel, .field-photo-panel { padding-top: var(--space-150); }
 .result-panel-title, .maturity-panel-title, .comment-panel-title, .check-label { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-075); }
-.field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); max-width: 36rem; margin-right: auto; }
+.field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); width: 100%; }
 .field-choice { min-height: 2.625rem; padding-inline: var(--space-100); border: var(--ui-border-width) solid var(--ads-border-input); border-radius: var(--radius-full); background: var(--ads-surface); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); cursor: pointer; }
 .field-choice:hover { border-color: var(--ads-border-bold); }
 .field-choice.selected-ok { background: var(--ads-success-bg); border-color: var(--ads-success-bold); color: var(--ads-success-text); }
@@ -639,7 +639,7 @@ let checklistSyncState = { checked: false, reachable: null, message: '점검표 
 
 // App-level version used for service worker update detection.
 // Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v58';
+const APP_CACHE_VERSION = 'audit-app-v59';
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
