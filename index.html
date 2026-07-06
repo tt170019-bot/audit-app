@@ -340,55 +340,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 
 
 
-/* Field audit checklist input view */
-.field-check-card { margin: var(--space-0) var(--space-150) var(--space-150); background: var(--ads-surface); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); overflow: hidden; }
-.field-check-card.answered { border-color: var(--ads-border-bold); }
-.field-check-card table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.field-check-card td, .field-check-card th { border: var(--ui-border-width) solid #000000; padding: var(--space-150); vertical-align: top; word-break: keep-all; overflow-wrap: anywhere; }
-.field-check-top { border-bottom: 0; }
-.field-check-top th { background: #d9d9d9; color: #000000; text-align: center; font-family: "Times New Roman", var(--font-family-ui), serif; font-size: var(--ads-body-small-size); line-height: 1.15; font-weight: var(--ads-weight-bold); }
-.field-check-section-title { background: #ffffff; color: #000000; font-weight: var(--ads-weight-bold); font-size: var(--ads-body-size); line-height: var(--ads-body-line); }
-.field-check-no { text-align: center; vertical-align: middle !important; font-weight: var(--ads-weight-bold); color: #000000; }
-.field-check-question { color: #000000; font-weight: var(--ads-weight-medium); line-height: 1.45; }
-.field-check-ref { color: #000000; font-size: var(--ads-body-small-size); line-height: 1.35; }
-.field-check-maturity { border-top: 0; border-bottom: 0; }
-.field-check-side { background: #d9d9d9; text-align: center; vertical-align: middle !important; font-family: "Times New Roman", var(--font-family-ui), serif; font-size: var(--ads-body-size); line-height: 1.15; font-weight: var(--ads-weight-bold); color: #000000; }
-.field-check-head { background: #d9d9d9; text-align: center; vertical-align: middle !important; color: #000000; font-weight: var(--ads-weight-bold); }
-.field-check-level { color: #000000; font-family: "Times New Roman", var(--font-family-ui), serif; font-weight: var(--ads-weight-bold); vertical-align: middle !important; }
-.field-check-consider { color: #000000; font-size: var(--ads-body-small-size); line-height: 1.35; }
-.field-check-consider strong { display: block; margin-bottom: var(--space-025); }
-.field-check-actions { display: flex; flex-wrap: wrap; gap: var(--space-075); margin-top: var(--space-075); }
-.field-choice { min-height: var(--touch-target-min); padding-inline: var(--space-150); border: var(--ui-border-width) solid var(--ads-border-input); border-radius: var(--radius-medium); background: var(--ads-surface); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); cursor: pointer; }
-.field-choice:active, .field-choice:focus-visible { border-color: var(--ads-border-focused); box-shadow: 0 0 0 var(--ui-border-width) var(--ads-border-focused); }
-.field-choice.selected-ok { background: var(--ads-success-bg); border-color: var(--ads-success-bold); color: var(--ads-success-text); }
-.field-choice.selected-ng { background: var(--ads-danger-bg); border-color: var(--ads-danger); color: var(--ads-danger-text); }
-.field-choice.selected-na { background: var(--ads-neutral-bg); border-color: var(--ads-neutral-bold); color: var(--ads-neutral-text); }
-.field-choice.selected-obs { background: var(--ads-warning-bg); border-color: var(--ads-warning-bold); color: var(--ads-warning-text); }
-.field-check-comment { border-top: 0; border-bottom: 0; }
-.field-check-comment-label { width: 38%; background: #d9d9d9; text-align: center; vertical-align: middle !important; font-family: "Times New Roman", var(--font-family-ui), serif; font-weight: var(--ads-weight-bold); color: #000000; }
-.field-check-comment textarea { min-height: 5rem; border: 0; box-shadow: none; padding: var(--space-075); }
-.field-check-result { border-top: 0; }
-.field-check-result td { vertical-align: middle !important; }
-.field-result-row { display: flex; flex-wrap: wrap; gap: var(--space-075); align-items: center; }
-.field-photo-panel { padding: var(--space-150); border-top: var(--ui-border-width) solid var(--ads-border); background: var(--ads-surface); }
-.field-card-toggle { cursor: pointer; }
-@media (max-width: 47.9375rem) {
-  .field-check-card { margin-inline: var(--space-100); }
-  .field-check-card td, .field-check-card th { padding: var(--space-100); }
-  .field-check-top col:nth-child(1) { width: 16% !important; }
-  .field-check-top col:nth-child(2) { width: 46% !important; }
-  .field-check-top col:nth-child(3), .field-check-top col:nth-child(4) { width: 19% !important; }
-  .field-check-maturity col:nth-child(1) { width: 22% !important; }
-  .field-check-maturity col:nth-child(2) { width: 30% !important; }
-  .field-check-maturity col:nth-child(3) { width: 48% !important; }
-  .field-check-top th { font-size: 0.6875rem; line-height: 1.2; }
-  .field-check-question { font-size: 0.8125rem; line-height: 1.45; }
-  .field-check-ref, .field-check-consider { font-size: 0.75rem; line-height: 1.35; }
-  .field-check-side, .field-check-head, .field-check-level, .field-check-comment-label { font-size: 0.75rem; line-height: 1.25; }
-  .field-choice { flex: 1 1 calc(50% - var(--space-075)); }
-  .detail-anchor-nav { padding-block: var(--space-075); }
-}
-
+/* Field audit checklist legacy table CSS removed: single-card mobile/tablet UI is the active implementation. */
 
 
 /* Card checklist input view - table UI removed for mobile/tablet */
@@ -939,7 +891,7 @@ select:focus {
     <div id="topbar-inner">
       <h1 id="topbar-title">심사 점검표</h1>
       <span class="tag" id="offline-tag">OFFLINE</span>
-      <button class="btn btn-ghost btn-sm" id="topbar-action" style="display:none"></button>
+      <button class="btn btn-ghost btn-sm hidden" id="topbar-action"></button>
     </div>
   </div>
   <div id="content"></div>
@@ -1011,16 +963,38 @@ select:focus {
   </div>
 </div>
 
-<input type="file" id="file-camera" accept="image/*" capture="environment" style="display:none">
-<input type="file" id="file-gallery" accept="image/*" style="display:none">
-<input type="file" id="file-excel" accept=".xlsx,.xls" style="display:none">
+<input type="file" id="file-camera" accept="image/*" capture="environment" class="hidden" aria-label="카메라 촬영 파일 선택">
+<input type="file" id="file-gallery" accept="image/*" class="hidden" aria-label="앨범 사진 파일 선택">
+<input type="file" id="file-excel" accept=".xlsx,.xls" class="hidden" aria-label="엑셀 점검표 파일 선택">
 
 <script>
+'use strict';
 // ═══════════════════════════════════════════════
 //  DB (IndexedDB via simple wrapper)
 // ═══════════════════════════════════════════════
 const DB_NAME = 'AuditApp', DB_VER = 2;
+const UI_CLASS = Object.freeze({
+  HIDDEN: 'hidden',
+  OPEN: 'open',
+  ACTIVE: 'active',
+  ONLINE: 'is-online',
+  OFFLINE: 'is-offline'
+});
 let db;
+
+function byId(id){
+  return document.getElementById(id);
+}
+
+function setHidden(elOrId, hidden = true){
+  const el = typeof elOrId === 'string' ? byId(elOrId) : elOrId;
+  if(!el) return;
+  el.classList.toggle(UI_CLASS.HIDDEN, Boolean(hidden));
+}
+
+function setVisible(elOrId, visible = true){
+  setHidden(elOrId, !visible);
+}
 
 function openDB(){
   return new Promise((res,rej)=>{
@@ -1519,13 +1493,13 @@ async function autoLoadChecklists(){
 }
 
 function updateOnlineTag(){
-  const tag = document.getElementById('offline-tag');
+  const tag = byId('offline-tag');
   if(!tag) return Promise.resolve(false);
 
   if(!navigator.onLine){
     tag.textContent = 'OFFLINE';
-    tag.classList.add('is-offline');
-    tag.classList.remove('is-online');
+    tag.classList.add(UI_CLASS.OFFLINE);
+    tag.classList.remove(UI_CLASS.ONLINE);
     return Promise.resolve(false);
   }
 
@@ -1535,14 +1509,14 @@ function updateOnlineTag(){
     .then(res => {
       if(!res.ok) throw new Error(`online check failed: ${res.status}`);
       tag.textContent = 'ONLINE';
-      tag.classList.add('is-online');
-      tag.classList.remove('is-offline');
+      tag.classList.add(UI_CLASS.ONLINE);
+      tag.classList.remove(UI_CLASS.OFFLINE);
       return true;
     })
     .catch(() => {
       tag.textContent = 'OFFLINE';
-      tag.classList.add('is-offline');
-      tag.classList.remove('is-online');
+      tag.classList.add(UI_CLASS.OFFLINE);
+      tag.classList.remove(UI_CLASS.ONLINE);
       return false;
     });
 }
@@ -1553,10 +1527,10 @@ function updateOnlineTag(){
 function switchTab(tab){
   currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b=>{
-    b.classList.toggle('active', b.dataset.tab===tab);
+    b.classList.toggle(UI_CLASS.ACTIVE, b.dataset.tab===tab);
   });
-  const action = document.getElementById('topbar-action');
-  action.style.display='none';
+  const action = byId('topbar-action');
+  setHidden(action, true);
   if(tab !== 'checklist') currentAudit = null;
   renderTab(tab);
 }
@@ -1856,9 +1830,9 @@ async function openAudit(id){
   currentAudit = await dbGet('audits', id);
   if(!currentAudit) return;
 
-  document.getElementById('topbar').style.display='none';
-  document.getElementById('tabbar').style.display='none';
-  document.getElementById('topbar-action').style.display='none';
+  setHidden('topbar', true);
+  setHidden('tabbar', true);
+  setHidden('topbar-action', true);
 
   renderChecklist(currentAudit);
 }
@@ -2246,9 +2220,9 @@ async function finishAudit(id){
 }
 
 function backFromChecklist(){
-  document.getElementById('topbar').style.display='block';
-  document.getElementById('tabbar').style.display='flex';
-  document.getElementById('topbar-action').style.display='none';
+  setVisible('topbar', true);
+  setVisible('tabbar', true);
+  setHidden('topbar-action', true);
   currentAudit=null;
   switchTab('audits');
 }
@@ -2820,11 +2794,15 @@ async function uploadGDrive(id){
 //  Modal helpers
 // ═══════════════════════════════════════════════
 function openModal(id){
-  document.getElementById(id).classList.add('open');
+  const modal = byId(id);
+  if(!modal) return;
+  modal.classList.add(UI_CLASS.OPEN);
   document.body.style.overflow='hidden';
 }
 function closeModal(id){
-  document.getElementById(id).classList.remove('open');
+  const modal = byId(id);
+  if(!modal) return;
+  modal.classList.remove(UI_CLASS.OPEN);
   document.body.style.overflow='';
 }
 // Close modal on backdrop tap
@@ -2834,7 +2812,7 @@ document.querySelectorAll('.modal-backdrop').forEach(m=>{
 
 window.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
-  const openModalEl = document.querySelector('.modal-backdrop.open');
+  const openModalEl = document.querySelector('.modal-backdrop.' + UI_CLASS.OPEN);
   if(openModalEl) closeModal(openModalEl.id);
 });
 
@@ -2847,16 +2825,18 @@ window.addEventListener('popstate', () => {
 // ═══════════════════════════════════════════════
 let _toastTimer;
 function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
+  const t = byId('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
   clearTimeout(_toastTimer);
-  _toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
 // ═══════════════════════════════════════════════
 //  Utils
 // ═══════════════════════════════════════════════
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 // Service Worker registration
 if('serviceWorker' in navigator){
