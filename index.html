@@ -1064,6 +1064,179 @@ select:focus {
 }
 
 
+
+/* =========================================================
+   New Audit Full Page Pattern v56
+   Scope:
+   - Replace new-audit modal with a full page form
+   - Sticky bottom action bar with safe-area support
+   - Mobile/tablet form consistency
+========================================================= */
+.new-audit-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--ads-surface-sunken);
+}
+
+.new-audit-top {
+  position: sticky;
+  top: 0;
+  z-index: 170;
+  background: var(--ads-surface);
+  border-bottom: var(--ui-border-width) solid var(--ads-border);
+  padding: calc(var(--space-100) + env(safe-area-inset-top, 0)) var(--mobile-page-padding) var(--space-150);
+}
+
+.new-audit-top-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-100);
+}
+
+.new-audit-back {
+  flex: 0 0 auto;
+  width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  padding-inline: var(--space-0);
+  border-radius: var(--radius-full);
+}
+
+.new-audit-title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.new-audit-title {
+  font-size: var(--ads-heading-small-size);
+  line-height: var(--ads-heading-small-line);
+  font-weight: var(--ads-weight-semibold);
+  color: var(--ads-text);
+}
+
+.new-audit-desc {
+  margin-top: var(--space-025);
+  color: var(--ads-text-subtle);
+  font-size: var(--ads-body-small-size);
+  line-height: var(--ads-body-small-line);
+}
+
+.new-audit-content {
+  flex: 1;
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+  padding: var(--space-200) var(--space-100) calc(var(--mobile-action-height) + var(--space-800) + env(safe-area-inset-bottom, 0));
+}
+
+.new-audit-card {
+  margin: 0 0 var(--space-150);
+  background: var(--ads-surface);
+  border: var(--ui-border-width) solid var(--ads-border);
+  border-radius: var(--radius-xxlarge);
+  overflow: hidden;
+}
+
+.new-audit-card-head {
+  padding: var(--space-200) var(--space-200) var(--space-100);
+  border-bottom: var(--ui-border-width) solid var(--ads-border);
+}
+
+.new-audit-card-title {
+  font-size: var(--ads-body-size);
+  line-height: var(--ads-body-line);
+  font-weight: var(--ads-weight-semibold);
+  color: var(--ads-text);
+}
+
+.new-audit-card-desc {
+  margin-top: var(--space-025);
+  color: var(--ads-text-subtle);
+  font-size: var(--ads-body-small-size);
+  line-height: var(--ads-body-small-line);
+}
+
+.new-audit-field {
+  padding: var(--space-150) var(--space-200);
+  border-bottom: var(--ui-border-width) solid var(--ads-border);
+}
+
+.new-audit-field:last-child {
+  border-bottom: 0;
+}
+
+.new-audit-label {
+  display: block;
+  margin-bottom: var(--space-075);
+  color: var(--ads-text-subtle);
+  font-size: var(--ads-body-small-size);
+  line-height: var(--ads-body-small-line);
+  font-weight: var(--ads-weight-semibold);
+}
+
+.new-audit-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-150);
+  padding: var(--space-150) var(--space-200);
+  border-bottom: var(--ui-border-width) solid var(--ads-border);
+}
+
+.new-audit-summary-row:last-child {
+  border-bottom: 0;
+}
+
+.new-audit-summary-label {
+  color: var(--ads-text-subtle);
+  font-size: var(--ads-body-small-size);
+  line-height: var(--ads-body-small-line);
+  font-weight: var(--ads-weight-medium);
+}
+
+.new-audit-summary-value {
+  min-width: 0;
+  text-align: right;
+  color: var(--ads-text);
+  font-size: var(--ads-body-size);
+  line-height: var(--ads-body-line);
+  font-weight: var(--ads-weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.new-audit-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 180;
+  display: flex;
+  gap: var(--space-100);
+  padding: var(--space-150) var(--space-200) calc(var(--space-150) + env(safe-area-inset-bottom, 0));
+  background: var(--ads-surface);
+  border-top: var(--ui-border-width) solid var(--ads-border);
+  box-shadow: var(--shadow-overflow);
+}
+
+.new-audit-action-bar .btn {
+  min-height: var(--mobile-action-height);
+}
+
+@media (min-width: 48rem) {
+  .new-audit-content {
+    padding-inline: var(--space-200);
+  }
+
+  .new-audit-action-bar {
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 48rem;
+    margin-inline: auto;
+    border-inline: var(--ui-border-width) solid var(--ads-border);
+    border-radius: var(--radius-large) var(--radius-large) 0 0;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1095,30 +1268,7 @@ select:focus {
 <div id="toast"></div>
 
 <!-- Modals -->
-<div class="modal-backdrop" id="modal-newaudit">
-  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-newaudit-title">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-newaudit-title">새 심사 시작</div>
-    <div class="modal-body">
-      <div class="check-label">심사 제목</div>
-      <input type="text" id="na-title" placeholder="예: 2024년 상반기 운항 심사">
-      <div class="check-label field-gap">점검표 선택</div>
-      <select id="na-template">
-        <option value="">— 점검표를 선택하세요 —</option>
-      </select>
-      <div class="check-label field-gap">심사 일자</div>
-      <input type="date" id="na-date">
-      <div class="check-label field-gap">심사원</div>
-      <input type="text" id="na-auditor" placeholder="홍길동">
-      <div class="check-label field-gap">피심사 부서</div>
-      <input type="text" id="na-dept" placeholder="운항부">
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn btn-ghost flex-1" onclick="closeModal('modal-newaudit')">취소</button>
-      <button type="button" class="btn btn-teal flex-2" onclick="createAudit()">시작하기</button>
-    </div>
-  </div>
-</div>
+<!-- New audit is rendered as a full page. Photo attachment remains modal-based. -->
 
 <div class="modal-backdrop" id="modal-photo">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-photo-title">
@@ -1242,6 +1392,8 @@ let currentAudit = null;
 let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
 let checklistSyncState = { checked: false, reachable: null, message: '점검표 서버 확인 전' };
+let newAuditTemplateCache = [];
+let lastGeneratedAuditTitle = '';
 
 // App-level version used for service worker update detection.
 // Increment this value when index.html, sw.js, CSS, JS, or core assets change.
@@ -1738,6 +1890,7 @@ async function renderTab(tab){
   else if(tab==='audits') await renderAudits(c);
   else if(tab==='templates') await renderTemplates(c);
   else if(tab==='export') await renderExport(c);
+  else if(tab==='newaudit') await renderNewAuditPage(c);
 }
 
 
@@ -2598,15 +2751,152 @@ function backFromChecklist(){
 //  New Audit Modal
 // ═══════════════════════════════════════════════
 async function openNewAuditModal(){
-  const templates = sortTemplatesForDisplay((await getNormalizedTemplates()).filter(t => t.active !== false));
-  const sel = document.getElementById('na-template');
-  sel.innerHTML='<option value="">— 점검표를 선택하세요 —</option>'+
-    templates.map(t=>`<option value="${t.id}" ${t.items.length ? '' : 'disabled'}>${esc(t.name)} · ${esc(getTemplateVersionLabel(t))}${t.items.length ? '' : ' (항목 없음)'}</option>`).join('');
-  document.getElementById('na-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('na-title').value='';
-  document.getElementById('na-auditor').value='';
-  document.getElementById('na-dept').value='';
-  openModal('modal-newaudit');
+  // Compatibility alias: existing buttons still call this function,
+  // but the UI is now a full page instead of a modal.
+  await openNewAuditPage(true);
+}
+
+async function openNewAuditPage(pushHistory = true){
+  if(pushHistory && location.hash !== '#new-audit'){
+    history.pushState({view:'newaudit'}, '', '#new-audit');
+  }
+  currentTab = 'newaudit';
+  currentAudit = null;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove(UI_CLASS.ACTIVE));
+  setHidden('topbar', true);
+  setHidden('tabbar', true);
+  const c = byId('content');
+  if(c) c.scrollTop = 0;
+  await renderNewAuditPage(c);
+}
+
+function buildDefaultAuditTitle(dept, templateName, date){
+  const d = String(date || new Date().toISOString().slice(0,10)).trim();
+  const department = String(dept || '부서').trim();
+  const template = String(templateName || '심사').replace(/ · .+$/, '').trim();
+  return `${d} ${department} ${template}`;
+}
+
+function getSelectedNewAuditTemplate(){
+  const tplId = Number(byId('na-template')?.value || 0);
+  return newAuditTemplateCache.find(t => Number(t.id) === tplId) || null;
+}
+
+function updateNewAuditDraft(){
+  const deptEl = byId('na-dept');
+  const templateEl = byId('na-template');
+  const dateEl = byId('na-date');
+  const titleEl = byId('na-title');
+
+  const tpl = getSelectedNewAuditTemplate();
+  const dept = deptEl?.value?.trim() || '';
+  const date = dateEl?.value || new Date().toISOString().slice(0,10);
+  const generatedTitle = buildDefaultAuditTitle(dept, tpl?.name || '', date);
+
+  if(titleEl && (!titleEl.value.trim() || titleEl.value === lastGeneratedAuditTitle)){
+    titleEl.value = generatedTitle;
+    lastGeneratedAuditTitle = generatedTitle;
+  }
+
+  const deptText = dept || '미선택';
+  const templateText = tpl?.name || '미선택';
+  const itemCount = tpl?.items?.length ? `${tpl.items.length}개` : '-';
+
+  const deptPreview = byId('na-preview-dept');
+  const templatePreview = byId('na-preview-template');
+  const countPreview = byId('na-preview-count');
+  if(deptPreview) deptPreview.textContent = deptText;
+  if(templatePreview) templatePreview.textContent = templateText;
+  if(countPreview) countPreview.textContent = itemCount;
+}
+
+function cancelNewAudit(){
+  if(location.hash === '#new-audit' && history.length > 1){
+    history.back();
+    return;
+  }
+  backFromNewAuditPage();
+}
+
+function backFromNewAuditPage(){
+  setVisible('topbar', true);
+  setVisible('tabbar', true);
+  switchTab('home');
+}
+
+async function renderNewAuditPage(c){
+  if(!c) return;
+  newAuditTemplateCache = sortTemplatesForDisplay((await getNormalizedTemplates()).filter(t => t.active !== false));
+  const today = new Date().toISOString().slice(0,10);
+  const firstTemplate = newAuditTemplateCache.find(t => t.items?.length);
+  lastGeneratedAuditTitle = buildDefaultAuditTitle('', firstTemplate?.name || '', today);
+
+  c.innerHTML = `
+  <div class="new-audit-shell">
+    <div class="new-audit-top">
+      <div class="new-audit-top-row">
+        <button type="button" class="btn btn-ghost new-audit-back" onclick="cancelNewAudit()" aria-label="이전 화면으로 돌아가기">←</button>
+        <div class="new-audit-title-wrap">
+          <div class="new-audit-title">새 심사 시작</div>
+          <div class="new-audit-desc">새 심사를 생성합니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="new-audit-content">
+      <div class="new-audit-card">
+        <div class="new-audit-card-head">
+          <div class="new-audit-card-title">기본 정보</div>
+        </div>
+        <div class="new-audit-field">
+          <label class="new-audit-label" for="na-dept">피심사부서</label>
+          <input type="text" id="na-dept" placeholder="예: CAB" autocomplete="organization" oninput="updateNewAuditDraft()">
+        </div>
+        <div class="new-audit-field">
+          <label class="new-audit-label" for="na-template">점검표</label>
+          <select id="na-template" onchange="updateNewAuditDraft()">
+            <option value="">— 점검표를 선택하세요 —</option>
+            ${newAuditTemplateCache.map(t=>`<option value="${t.id}" ${firstTemplate && t.id === firstTemplate.id ? 'selected' : ''} ${t.items.length ? '' : 'disabled'}>${esc(t.name)} · ${esc(getTemplateVersionLabel(t))}${t.items.length ? '' : ' (항목 없음)'}</option>`).join('')}
+          </select>
+        </div>
+        <div class="new-audit-field">
+          <label class="new-audit-label" for="na-title">심사명</label>
+          <input type="text" id="na-title" value="${esc(lastGeneratedAuditTitle)}" oninput="lastGeneratedAuditTitle=''" placeholder="자동생성">
+        </div>
+        <div class="new-audit-field">
+          <label class="new-audit-label" for="na-date">심사일</label>
+          <input type="date" id="na-date" value="${today}" onchange="updateNewAuditDraft()">
+        </div>
+        <input type="hidden" id="na-auditor" value="">
+      </div>
+
+      <div class="new-audit-card">
+        <div class="new-audit-card-head">
+          <div class="new-audit-card-title">선택 정보</div>
+          <div class="new-audit-card-desc">부서를 선택하면 아래 정보가 자동으로 갱신됩니다.</div>
+        </div>
+        <div class="new-audit-summary-row">
+          <span class="new-audit-summary-label">부서</span>
+          <span class="new-audit-summary-value" id="na-preview-dept">미선택</span>
+        </div>
+        <div class="new-audit-summary-row">
+          <span class="new-audit-summary-label">점검표</span>
+          <span class="new-audit-summary-value" id="na-preview-template">${esc(firstTemplate?.name || '미선택')}</span>
+        </div>
+        <div class="new-audit-summary-row">
+          <span class="new-audit-summary-label">점검항목</span>
+          <span class="new-audit-summary-value" id="na-preview-count">${firstTemplate?.items?.length ? `${firstTemplate.items.length}개` : '-'}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="new-audit-action-bar">
+      <button type="button" class="btn btn-ghost flex-1" onclick="cancelNewAudit()">취소</button>
+      <button type="button" class="btn btn-teal flex-2" onclick="createAudit()">시작하기</button>
+    </div>
+  </div>`;
+
+  requestAnimationFrame(updateNewAuditDraft);
 }
 
 async function createAudit(){
@@ -2634,7 +2924,6 @@ async function createAudit(){
     items: tpl.items.map(i=>({...i, result:null, note:'', photos:[]}))
   };
   const id = await dbPut('audits', audit);
-  closeModal('modal-newaudit');
   audit.id = id;
   showToast('심사가 시작되었습니다');
   openAudit(id);
@@ -3256,7 +3545,8 @@ window.addEventListener('keydown', e => {
 });
 
 window.addEventListener('popstate', () => {
-  if(currentAudit) backFromChecklist();
+  if(currentAudit){ backFromChecklist(); return; }
+  if(currentTab === 'newaudit') backFromNewAuditPage();
 });
 
 // ═══════════════════════════════════════════════
