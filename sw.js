@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'audit-app-v59';
+const CACHE_VERSION = 'audit-app-v61';
 const CACHE_NAME = CACHE_VERSION;
 
 const APP_SHELL = [
