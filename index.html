@@ -328,7 +328,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-summary-value { color: var(--ads-text); font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-semibold); }
 .detail-bottom-action { position: fixed; left: 0; right: 0; bottom: 0; z-index: 180; display: flex; gap: var(--space-100); padding: var(--space-150) var(--mobile-page-padding) calc(var(--space-150) + env(safe-area-inset-bottom, 0)); background: var(--ads-surface); border-top: var(--ui-border-width) solid var(--ads-border); box-shadow: var(--shadow-overflow); }
 .detail-bottom-action .btn { min-height: var(--mobile-action-height); }
-.detail-section-start { scroll-margin-top: calc(var(--detail-sticky-offset) + var(--touch-target-min) + var(--space-400)); }
+.detail-section-start { scroll-margin-top: calc(var(--detail-sticky-offset) + var(--touch-target-min) + var(--space-200)); }
 .section-header.detail-section-start { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); }
 .detail-section-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .check-section-summary { margin: var(--space-0) var(--space-150) var(--space-100); color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
@@ -1503,20 +1503,27 @@ function getChecklistScrollContainer(){
     || document.documentElement;
 }
 
+function getVisibleElementHeight(selector){
+  const el = document.querySelector(selector);
+  if(!el || getComputedStyle(el).display === 'none') return 0;
+  return Math.ceil(el.getBoundingClientRect().height);
+}
+
 function scrollToChecklistSection(sectionId){
   syncDetailStickyOffset();
   const scroller = getChecklistScrollContainer();
   const target = document.getElementById(sectionId);
   if(!scroller || !target) return;
 
-  const anchorNav = document.querySelector('.detail-anchor-nav');
-  const navHeight = anchorNav && getComputedStyle(anchorNav).display !== 'none'
-    ? anchorNav.getBoundingClientRect().height
-    : 0;
-  const extraGap = 8;
-  const scrollerTop = scroller.getBoundingClientRect().top;
-  const targetTop = target.getBoundingClientRect().top;
-  const destination = scroller.scrollTop + targetTop - scrollerTop - navHeight - extraGap;
+  // Section jump must account for sticky header/progress and mobile anchor nav.
+  // Otherwise the target section can sit under the sticky area and appear cut off.
+  const stickyTop = getVisibleElementHeight('.detail-top');
+  const anchorNavHeight = getVisibleElementHeight('.detail-anchor-nav');
+  const safeGap = 16;
+  const scrollerRect = scroller.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const stickyOffset = stickyTop + anchorNavHeight + safeGap;
+  const destination = scroller.scrollTop + targetRect.top - scrollerRect.top - stickyOffset;
 
   scroller.scrollTo({
     top: Math.max(0, destination),
