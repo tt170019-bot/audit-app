@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <script src="xlsx.full.min.js"></script>
+<script src="jszip.min.js"></script>
 <style>
 @font-face {
   font-family: "Pretendard";
@@ -1456,6 +1457,10 @@ async function renderExport(c){
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           TOPS Excel
         </button>
+        <button type="button" class="btn btn-ghost btn-sm flex-1" onclick="exportEvidenceZip(${a.id})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          증빙 ZIP
+        </button>
         <button type="button" class="btn btn-ghost btn-sm flex-1" onclick="exportWord(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
           Word
@@ -2473,6 +2478,169 @@ async function exportTopsChecklistExcel(id){
   const safeDate = String(audit.date || new Date().toISOString().slice(0,10)).replace(/[\\/:*?"<>|]/g, '_');
   XLSX.writeFile(wb, `${safeTitle}_${safeDate}_TOPS_CheckList.xlsx`);
   showToast('TOPS Checklist Excel 저장됨');
+}
+
+
+// ═══════════════════════════════════════════════
+//  Export: Evidence ZIP (Excel + photo files)
+// ═══════════════════════════════════════════════
+function sanitizeFileName(value){
+  return String(value || 'untitled')
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80) || 'untitled';
+}
+
+function dataUrlToBlob(dataUrl){
+  const parts = String(dataUrl || '').split(',');
+  if(parts.length < 2) throw new Error('사진 데이터 형식이 올바르지 않습니다.');
+
+  const meta = parts[0];
+  const base64 = parts.slice(1).join(',');
+  const mimeMatch = meta.match(/data:([^;]+);base64/i);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], {type:mime});
+}
+
+function getEvidencePhotoRows(audit){
+  const rows = [];
+  getAuditItems(audit).forEach((item, itemIndex)=>{
+    const photos = Array.isArray(item.photos) ? item.photos : [];
+    photos.forEach((photo, photoIndex)=>{
+      const itemNo = sanitizeFileName(item.ref || String(itemIndex + 1));
+      const section = sanitizeFileName(item.section || '일반');
+      const fileName = `${String(itemIndex + 1).padStart(3, '0')}_${itemNo}_${photoIndex + 1}.jpg`;
+      const path = `photos/${section}/${fileName}`;
+      rows.push({
+        section: item.section || '',
+        ref: item.ref || String(itemIndex + 1),
+        question: item.question || '',
+        result: normalizeResultValue(item.result) || '',
+        note: item.note || '',
+        photoIndex: photoIndex + 1,
+        path,
+        dataUrl: photo
+      });
+    });
+  });
+  return rows;
+}
+
+function buildEvidenceWorkbook(audit, photoRows){
+  const wb = XLSX.utils.book_new();
+  const summary = getAuditSummary(audit);
+
+  const summaryRows = [
+    ['심사 요약'],
+    [],
+    ['심사명', audit.title || ''],
+    ['심사일', audit.date || ''],
+    ['심사원', audit.auditor || ''],
+    ['피심사 부서', audit.dept || ''],
+    ['작성일', new Date().toLocaleString('ko-KR')],
+    [],
+    ['전체 항목', summary.total],
+    ['완료 항목', summary.answered],
+    ['완료율', `${summary.percent}%`],
+    ['YES', summary.yes],
+    ['NO', summary.no],
+    ['N/A', summary.na],
+    ['OBS', summary.obs],
+    ['사진 수', photoRows.length]
+  ];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  wsSummary['!cols'] = [{wch:18},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, '요약');
+
+  const detailRows = [['섹션','항목번호','점검 항목','내부 참조','외부 참조','결과','비고','사진 수','사진 파일']];
+  getAuditItems(audit).forEach((item, index)=>{
+    const itemPhotos = photoRows.filter(row => row.ref === (item.ref || String(index + 1)) && row.question === (item.question || ''));
+    detailRows.push([
+      item.section || '',
+      item.ref || String(index + 1),
+      item.question || '',
+      item.refStd || '',
+      item.externalRef || item.external || '',
+      normalizeResultValue(item.result) || '',
+      item.note || '',
+      itemPhotos.length,
+      itemPhotos.map(row => row.path).join('\n')
+    ]);
+  });
+  const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
+  wsDetail['!cols'] = [{wch:18},{wch:12},{wch:56},{wch:28},{wch:28},{wch:8},{wch:40},{wch:8},{wch:42}];
+  wsDetail['!autofilter'] = { ref: `A1:I${Math.max(detailRows.length, 1)}` };
+  XLSX.utils.book_append_sheet(wb, wsDetail, '점검결과');
+
+  const photoIndexRows = [['섹션','항목번호','점검 항목','결과','비고','사진번호','파일경로']];
+  photoRows.forEach(row=>{
+    photoIndexRows.push([row.section, row.ref, row.question, row.result, row.note, row.photoIndex, row.path]);
+  });
+  const wsPhotos = XLSX.utils.aoa_to_sheet(photoIndexRows);
+  wsPhotos['!cols'] = [{wch:18},{wch:12},{wch:56},{wch:8},{wch:40},{wch:10},{wch:48}];
+  wsPhotos['!autofilter'] = { ref: `A1:G${Math.max(photoIndexRows.length, 1)}` };
+  XLSX.utils.book_append_sheet(wb, wsPhotos, '사진목록');
+
+  return wb;
+}
+
+async function exportEvidenceZip(id){
+  if(typeof JSZip === 'undefined'){
+    showToast('jszip.min.js 파일이 필요합니다');
+    return;
+  }
+
+  const audit = await dbGet('audits', id);
+  if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
+
+  try{
+    const photoRows = getEvidencePhotoRows(audit);
+    const zip = new JSZip();
+    const safeTitle = sanitizeFileName(audit.title || 'audit');
+    const safeDate = sanitizeFileName(audit.date || new Date().toISOString().slice(0,10));
+    const workbook = buildEvidenceWorkbook(audit, photoRows);
+    const workbookArray = XLSX.write(workbook, {bookType:'xlsx', type:'array'});
+
+    zip.file('audit_result.xlsx', workbookArray);
+
+    photoRows.forEach(row=>{
+      zip.file(row.path, dataUrlToBlob(row.dataUrl));
+    });
+
+    const readme = [
+      'Audit Evidence Export',
+      '',
+      `Audit: ${audit.title || ''}`,
+      `Date: ${audit.date || ''}`,
+      `Auditor: ${audit.auditor || ''}`,
+      `Department: ${audit.dept || ''}`,
+      `Generated: ${new Date().toLocaleString('ko-KR')}`,
+      '',
+      'Files:',
+      '- audit_result.xlsx: summary, checklist result, and photo index',
+      '- photos/: exported evidence photos referenced from audit_result.xlsx',
+      '',
+      `Photo count: ${photoRows.length}`
+    ].join('\n');
+    zip.file('README.txt', readme);
+
+    const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeDate}_${safeTitle}_evidence.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(photoRows.length ? `증빙 ZIP 저장됨 · 사진 ${photoRows.length}장` : '증빙 ZIP 저장됨 · 사진 없음');
+  } catch(err){
+    appError('증빙 ZIP 출력 실패:', err);
+    showToast(err.message || '증빙 ZIP을 만들 수 없습니다');
+  }
 }
 
 // ═══════════════════════════════════════════════
