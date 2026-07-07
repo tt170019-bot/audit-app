@@ -642,10 +642,6 @@ let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
 let checklistSyncState = { checked: false, reachable: null, message: '점검표 서버 확인 전' };
 
-// App-level version used for service worker update detection.
-// Increment this value when index.html, sw.js, CSS, JS, or core assets change.
-const APP_CACHE_VERSION = 'audit-app-v64';
-
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
   DONE: 'done'
@@ -2748,14 +2744,20 @@ function showToast(msg){
 function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 // Service Worker registration
+// updateViaCache:'none' prevents the browser HTTP cache from hiding a changed sw.js.
+// reg.update() performs an explicit update check whenever the app is opened.
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     const base = location.pathname.replace(/\/[^\/]*$/, '/');
-    const swUrl = base + 'sw.js?v=' + encodeURIComponent(APP_CACHE_VERSION);
 
-    navigator.serviceWorker.register(swUrl, {scope: base})
+    navigator.serviceWorker.register(base + 'sw.js', {
+      scope: base,
+      updateViaCache: 'none'
+    })
       .then(reg => {
-        console.log('SW registered:', reg.scope, APP_CACHE_VERSION);
+        console.log('SW registered:', reg.scope);
+        reg.update().catch(e => console.warn('SW update check failed:', e));
+
         reg.addEventListener('updatefound', () => {
           const worker = reg.installing;
           if(!worker) return;
