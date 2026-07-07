@@ -1568,8 +1568,8 @@ function scrollToChecklistItem(itemIndex){
   if(sectionIndex >= 0) setCurrentSectionChip(sectionIndex, true);
 
   // Align incomplete-item jumps with section navigation instead of centering the card.
-  // Add a 1px destination correction so the card border does not sit on the sticky boundary.
-  scrollToAlignedTarget(el, { offset: 1 });
+  // Add a 3px destination correction so the card border does not sit on the sticky boundary.
+  scrollToAlignedTarget(el, { offset: 3 });
 }
 
 function br(value){
