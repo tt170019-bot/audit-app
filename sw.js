@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'audit-app-v70';
+const CACHE_VERSION = 'audit-app-v63';
 
 const CACHE_FILES = [
   './',
