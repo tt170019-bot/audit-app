@@ -1487,9 +1487,20 @@ window.addEventListener('resize', () => {
 });
 
 function getChecklistScrollContainer(){
-  // In tablet split view, the actual scrollable area is .detail-content.
-  // In legacy/mobile fallback, #content remains the scroll container.
-  return document.querySelector('.detail-content') || byId('content');
+  // Return the element that actually owns vertical scrolling.
+  // Tablet split view uses .detail-content for layout, but #content or the
+  // document can be the real scroll container depending on viewport/browser.
+  const candidates = [
+    document.querySelector('.detail-content'),
+    byId('content'),
+    document.scrollingElement,
+    document.documentElement
+  ].filter(Boolean);
+
+  return candidates.find(el => el.scrollHeight > el.clientHeight + 1)
+    || byId('content')
+    || document.scrollingElement
+    || document.documentElement;
 }
 
 function scrollToChecklistSection(sectionId){
