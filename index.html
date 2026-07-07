@@ -1503,27 +1503,27 @@ function getChecklistScrollContainer(){
     || document.documentElement;
 }
 
-function getVisibleElementHeight(selector){
-  const el = document.querySelector(selector);
-  if(!el || getComputedStyle(el).display === 'none') return 0;
-  return Math.ceil(el.getBoundingClientRect().height);
+function getElementTopInScroller(el, scroller){
+  const scrollerRect = scroller.getBoundingClientRect
+    ? scroller.getBoundingClientRect()
+    : { top: 0 };
+  const elRect = el.getBoundingClientRect();
+  return scroller.scrollTop + elRect.top - scrollerRect.top;
 }
 
 function scrollToChecklistSection(sectionId){
   syncDetailStickyOffset();
   const scroller = getChecklistScrollContainer();
   const target = document.getElementById(sectionId);
-  if(!scroller || !target) return;
+  const firstSection = document.querySelector('.detail-section-start');
+  if(!scroller || !target || !firstSection) return;
 
-  // Section jump must account for sticky header/progress and mobile anchor nav.
-  // Otherwise the target section can sit under the sticky area and appear cut off.
-  const stickyTop = getVisibleElementHeight('.detail-top');
-  const anchorNavHeight = getVisibleElementHeight('.detail-anchor-nav');
-  const safeGap = 16;
-  const scrollerRect = scroller.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
-  const stickyOffset = stickyTop + anchorNavHeight + safeGap;
-  const destination = scroller.scrollTop + targetRect.top - scrollerRect.top - stickyOffset;
+  // Keep manual section jumps visually identical to the initial top position.
+  // The first section's natural offset is the baseline, so sticky header/progress
+  // height and responsive layout differences are handled without duplicate offsets.
+  const firstTop = getElementTopInScroller(firstSection, scroller);
+  const targetTop = getElementTopInScroller(target, scroller);
+  const destination = targetTop - firstTop;
 
   scroller.scrollTo({
     top: Math.max(0, destination),
