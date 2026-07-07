@@ -1521,23 +1521,55 @@ function getSectionAlignmentOffset(scroller){
   return getElementTopInScroller(firstSection, scroller);
 }
 
-function scrollToChecklistSection(sectionId){
+function scrollToAlignedTarget(target, options = {}){
   syncDetailStickyOffset();
   const scroller = getChecklistScrollContainer();
-  const target = document.getElementById(sectionId);
   if(!scroller || !target) return;
 
   const alignmentOffset = getSectionAlignmentOffset(scroller);
   const targetTop = getElementTopInScroller(target, scroller);
-  const destination = targetTop - alignmentOffset;
-  const index = Number(String(sectionId).replace('sec-', ''));
-
-  if(Number.isFinite(index)) setCurrentSectionChip(index, true);
+  const destination = targetTop - alignmentOffset + (options.offset || 0);
 
   scroller.scrollTo({
     top: Math.max(0, destination),
-    behavior: 'smooth'
+    behavior: options.behavior || 'smooth'
   });
+}
+
+function scrollToChecklistSection(sectionId){
+  const target = document.getElementById(sectionId);
+  const index = Number(String(sectionId).replace('sec-', ''));
+
+  if(Number.isFinite(index)) setCurrentSectionChip(index, true);
+  scrollToAlignedTarget(target);
+}
+
+function getSectionIndexForItemIndex(itemIndex){
+  const item = currentAudit?.items?.[itemIndex];
+  if(!item) return -1;
+
+  const sectionNames = [];
+  (currentAudit.items || []).forEach(checkItem => {
+    const sectionName = checkItem.section || '일반';
+    if(!sectionNames.includes(sectionName)) sectionNames.push(sectionName);
+  });
+
+  return sectionNames.indexOf(item.section || '일반');
+}
+
+function scrollToChecklistItem(itemIndex){
+  const el = document.getElementById('ci-' + itemIndex);
+  if(!el) return;
+
+  const body = document.getElementById('cb-' + itemIndex);
+  if(body) body.classList.remove('hidden');
+
+  const sectionIndex = getSectionIndexForItemIndex(itemIndex);
+  if(sectionIndex >= 0) setCurrentSectionChip(sectionIndex, true);
+
+  // Align incomplete-item jumps with section navigation instead of centering the card.
+  // This keeps the sticky header/navigation gap consistent on mobile and tablet.
+  scrollToAlignedTarget(el);
 }
 
 function br(value){
@@ -2010,13 +2042,7 @@ function jumpToNext(auditId){
   const items = currentAudit?.items||[];
   const nextIdx = items.findIndex(i=>!i.result);
   if(nextIdx<0){ showToast('모든 항목이 완료되었습니다 ✓'); return; }
-  const el = document.getElementById('ci-'+nextIdx);
-  if(el){
-    el.scrollIntoView({behavior:'smooth',block:'center'});
-    // open it
-    const body = document.getElementById('cb-'+nextIdx);
-    if(body) body.classList.remove('hidden');
-  }
+  scrollToChecklistItem(nextIdx);
 }
 
 async function finishAudit(id){
