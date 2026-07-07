@@ -340,14 +340,14 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .field-check-card.answered { border-color: var(--ads-border-bold); }
 .field-card-toggle { cursor: default; }
 .check-input-card { padding: var(--space-200); cursor: default; }
-.check-input-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); margin-bottom: var(--space-100); }
-.check-input-no { min-width: auto; min-height: auto; padding-inline: 0; border: 0; border-radius: 0; background: transparent; color: var(--ads-brand); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); letter-spacing: 0.01em; }
-.check-input-section { flex: 1; text-align: center; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); }
-.check-input-top .badge { min-height: 1.375rem; padding-inline: var(--space-075); border-radius: var(--radius-full); }
+.check-input-top { display: grid; grid-template-columns: 5rem minmax(0, 1fr) 5rem; align-items: center; gap: var(--space-100); margin-bottom: var(--space-100); }
+.check-input-no { justify-self: start; min-width: 0; min-height: auto; padding-inline: 0; border: 0; border-radius: 0; background: transparent; color: var(--ads-brand); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); letter-spacing: 0.01em; white-space: nowrap; }
+.check-input-section { min-width: 0; text-align: center; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.check-input-top .badge { justify-self: end; min-height: 1.375rem; padding-inline: var(--space-075); border-radius: var(--radius-full); }
 .check-input-question { color: var(--ads-text); font-size: 0.9375rem; line-height: 1.375rem; font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-150); }
 .check-input-refs { display: grid; gap: var(--space-075); }
-.check-ref-line { display: flex; gap: var(--space-075); align-items: flex-start; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
-.check-ref-label { flex: 0 0 auto; color: var(--ads-text-subtlest); font-weight: var(--ads-weight-semibold); }
+.check-ref-line { display: grid; grid-template-columns: 6rem minmax(0, 1fr); column-gap: var(--space-075); align-items: start; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
+.check-ref-label { min-width: 0; color: var(--ads-text-subtlest); font-weight: var(--ads-weight-semibold); }
 .check-body { display: block; padding: var(--space-0) var(--space-200) var(--space-200); border-top: var(--ui-border-width) solid var(--ads-border); }
 .check-body.hidden { display: block; }
 .result-panel, .comment-panel, .maturity-panel, .field-photo-panel { padding-top: var(--space-150); }
