@@ -1511,27 +1511,32 @@ function getElementTopInScroller(el, scroller){
   return scroller.scrollTop + elRect.top - scrollerRect.top;
 }
 
+function getSectionAlignmentOffset(scroller){
+  // Use the first section's natural top position as the alignment baseline.
+  // This keeps click-jump placement identical to the first section's initial placement
+  // without hard-coding sticky header or progress-bar heights.
+  const firstSection = document.querySelector('.detail-section-start');
+  if(!scroller || !firstSection) return 0;
+  return getElementTopInScroller(firstSection, scroller);
+}
+
 function scrollToChecklistSection(sectionId){
   syncDetailStickyOffset();
   const scroller = getChecklistScrollContainer();
   const target = document.getElementById(sectionId);
-  const firstSection = document.querySelector('.detail-section-start');
-  if(!scroller || !target || !firstSection) return;
+  if(!scroller || !target) return;
 
-  // Keep manual section jumps visually identical to the initial top position.
-  // The first section's natural offset is the baseline, so sticky header/progress
-  // height and responsive layout differences are handled without duplicate offsets.
-  const firstTop = getElementTopInScroller(firstSection, scroller);
+  const alignmentOffset = getSectionAlignmentOffset(scroller);
   const targetTop = getElementTopInScroller(target, scroller);
-  const destination = targetTop - firstTop;
+  const destination = targetTop - alignmentOffset;
+  const index = Number(String(sectionId).replace('sec-', ''));
+
+  if(Number.isFinite(index)) setCurrentSectionChip(index, true);
 
   scroller.scrollTo({
     top: Math.max(0, destination),
     behavior: 'smooth'
   });
-
-  const index = Number(String(sectionId).replace('sec-', ''));
-  if(Number.isFinite(index)) setCurrentSectionChip(index, true);
 }
 
 function br(value){
@@ -1759,21 +1764,23 @@ let currentSectionChipIndex = -1;
 
 function getCurrentChecklistSectionIndex(){
   const headers = [...document.querySelectorAll('.detail-section-start')];
-  if(headers.length === 0) return -1;
+  const scroller = getChecklistScrollContainer();
+  if(headers.length === 0 || !scroller) return -1;
 
-  const anchorNav = document.querySelector('.detail-anchor-nav');
-  const threshold = anchorNav ? anchorNav.getBoundingClientRect().bottom + 8 : 0;
+  const alignmentOffset = getSectionAlignmentOffset(scroller);
+  const activeLine = scroller.scrollTop + alignmentOffset + 1;
   let currentIndex = 0;
 
   headers.forEach((header, index) => {
-    if(header.getBoundingClientRect().top <= threshold) currentIndex = index;
+    if(getElementTopInScroller(header, scroller) <= activeLine) currentIndex = index;
   });
 
   return currentIndex;
 }
 
 function setCurrentSectionChip(index, shouldAlignStart = true){
-  if(index < 0 || index === currentSectionChipIndex) return;
+  if(index < 0) return;
+  const indexChanged = index !== currentSectionChipIndex;
   currentSectionChipIndex = index;
 
   document.querySelectorAll('.detail-anchor-nav .anchor-chip, .detail-sidebar .anchor-chip').forEach(chip => {
@@ -1788,7 +1795,7 @@ function setCurrentSectionChip(index, shouldAlignStart = true){
   if(activeChips.length === 0) return;
   activeChips.forEach(chip => chip.classList.add('is-current'));
 
-  if(shouldAlignStart){
+  if(shouldAlignStart && indexChanged){
     activeChips.forEach(chip => chip.scrollIntoView({behavior:'smooth', inline:'start', block:'nearest'}));
   }
 }
