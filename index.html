@@ -13,6 +13,13 @@
 <link rel="icon" href="icon-192.png">
 <script src="xlsx.full.min.js"></script>
 <style>
+@font-face {
+  font-family: "Pretendard";
+  src: url("./fonts/PretendardVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 :root {
   /* Atlassian Design MD manual tokens */
   --ads-text: #292A2E;
@@ -190,7 +197,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 
 /* Answer buttons */
 .ans-row { display: flex; gap: var(--space-100); flex-wrap: wrap; }
-.ans-btn { flex: 1; min-width: var(--space-800); min-height: var(--ui-button-small-height); border: var(--ui-border-width) solid var(--ads-border-input); background: var(--ads-surface); color: var(--ads-text-subtle); border-radius: var(--radius-medium); padding-inline: var(--space-100); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; text-align: center; }
+.ans-btn { flex: 1; min-width: var(--space-800); min-height: var(--ui-button-small-height); border: var(--ui-border-width) solid var(--ads-border-input); background: var(--ads-surface); color: var(--ads-text-subtle); border-radius: var(--radius-full); padding-inline: var(--space-100); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; text-align: center; }
 .ans-btn:hover { background: var(--ads-surface-container); }
 .ans-btn.sel-ok { background: var(--ads-success-bg); border-color: var(--ads-success-bold); color: var(--ads-success-text); }
 .ans-btn.sel-ng { background: var(--ads-danger-bg); border-color: var(--ads-danger); color: var(--ads-danger-text); }
@@ -353,7 +360,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .result-panel, .comment-panel, .maturity-panel, .field-photo-panel { padding-top: var(--space-150); }
 .result-panel-title, .maturity-panel-title, .comment-panel-title, .check-label { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-075); }
 .field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); width: 100%; }
-.field-choice { min-height: 2.625rem; padding-inline: var(--space-100); border: 0; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: 0.8125rem; line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 100ms ease; }
+.field-choice { min-height: var(--ui-button-small-height); padding-inline: var(--space-100); border: 0; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: 0.8125rem; line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 100ms ease; }
 .field-choice:hover { background: var(--ads-surface-container-hovered); color: var(--ads-text); }
 .field-choice.selected-ok { background: var(--ads-success-bg); color: var(--ads-success-text); }
 .field-choice.selected-ng { background: var(--ads-danger-bg); color: var(--ads-danger-text); }
@@ -2758,6 +2765,8 @@ function showToast(msg){
 // ═══════════════════════════════════════════════
 function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
+// Local Pretendard note: keep ./fonts/PretendardVariable.woff2 in the deployment
+// and include it in sw.js precache/static asset list when offline font rendering is required.
 // Service Worker registration
 // sw.js uses network-first caching, so index.html cache version bumps are no longer required.
 if('serviceWorker' in navigator){
