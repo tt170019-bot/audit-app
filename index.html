@@ -314,7 +314,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-result-counts { margin-top: 0; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; min-width: 0; }
 .detail-result-counts::-webkit-scrollbar { display: none; }
 .detail-prog-wrap { margin: 0; }
-.detail-anchor-nav { position: sticky; top: var(--detail-sticky-offset); z-index: 150; display: flex; gap: var(--space-100); overflow-x: auto; padding: var(--space-075) var(--mobile-page-padding); background: var(--ads-surface); border-bottom: var(--ui-border-width) solid var(--ads-border); box-shadow: none; scrollbar-width: none; scroll-snap-type: x proximity; }
+.detail-anchor-nav { display: none; }
 .detail-anchor-nav::-webkit-scrollbar { display: none; }
 .anchor-chip { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: var(--space-075); min-height: 2.25rem; max-width: 12rem; padding-inline: var(--space-150); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); white-space: nowrap; cursor: pointer; scroll-snap-align: start; }
 .anchor-chip:hover, .anchor-chip:active, .anchor-chip:focus-visible { background: var(--ads-surface-container-hovered); color: var(--ads-text); }
@@ -334,6 +334,14 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-bottom-action { position: fixed; left: 0; right: 0; bottom: 0; z-index: 180; background: var(--ads-surface); border-top: var(--ui-border-width) solid var(--ads-border); box-shadow: var(--shadow-overflow); }
 .detail-bottom-action-inner { display: flex; gap: var(--space-100); padding: var(--space-150) var(--mobile-page-padding); padding-bottom: calc(var(--space-150) + env(safe-area-inset-bottom, 0)); }
 .detail-bottom-action .btn { min-height: var(--mobile-action-height); }
+.detail-section-action { flex: 1; }
+.section-sheet-list { display: grid; gap: var(--space-075); }
+.section-sheet-item { width: 100%; min-height: var(--touch-target-min); display: flex; align-items: center; justify-content: space-between; gap: var(--space-150); padding: var(--space-150); border: 0; border-radius: var(--radius-large); background: var(--ads-surface-container); color: var(--ads-text); text-align: left; cursor: pointer; }
+.section-sheet-item:hover, .section-sheet-item:active { background: var(--ads-surface-container-hovered); }
+.section-sheet-item.is-current { background: var(--ads-information-bg); color: var(--ads-information-text); font-weight: var(--ads-weight-semibold); }
+.section-sheet-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.section-sheet-count { flex: 0 0 auto; color: inherit; font-variant-numeric: tabular-nums; font-weight: var(--ads-weight-semibold); }
+.section-sheet-pending { margin-bottom: var(--space-150); background: var(--ads-surface-container); }
 .detail-section-start { scroll-margin-top: calc(var(--detail-sticky-offset) + var(--touch-target-min) + var(--space-200)); }
 .section-header.detail-section-start { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); }
 .detail-section-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -402,6 +410,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   #content { max-width: none; width: 100%; }
   .detail-shell { max-width: none; width: 100%; margin: 0; }
   .detail-anchor-nav { display: none; }
+  .detail-section-action { display: none; }
   .detail-body { display: grid; grid-template-columns: 14rem minmax(0, 1fr); align-items: start; }
   .detail-sidebar { position: sticky; top: var(--detail-sticky-offset); z-index: 120; display: flex; flex-direction: column; gap: var(--space-050); min-height: calc(100vh - var(--detail-sticky-offset)); max-height: calc(100vh - var(--detail-sticky-offset)); overflow-y: auto; padding: var(--space-150) var(--space-100) calc(var(--mobile-action-height) + var(--space-400)); background: var(--ads-surface); border-right: var(--ui-border-width) solid var(--ads-border); scrollbar-width: thin; }
   .detail-sidebar-label { padding: var(--space-050) var(--space-100) var(--space-075); color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); letter-spacing: 0.04em; }
@@ -1875,6 +1884,32 @@ function setupSectionChipTracking(){
   requestAnimationFrame(() => updateCurrentSectionChip(false));
 }
 
+function openSectionSheet(){
+  const modal = byId('modal-sections');
+  if(modal && !modal.dataset.backdropBound){
+    modal.addEventListener('click', event => {
+      if(event.target === modal) closeModal('modal-sections');
+    });
+    modal.dataset.backdropBound = '1';
+  }
+
+  updateCurrentSectionChip(false);
+  document.querySelectorAll('#modal-sections .section-sheet-item[data-section-index]').forEach(item => {
+    item.classList.toggle('is-current', Number(item.dataset.sectionIndex) === currentSectionChipIndex);
+  });
+  openModal('modal-sections');
+}
+
+function goToSectionFromSheet(sectionIndex){
+  closeModal('modal-sections');
+  requestAnimationFrame(() => scrollToChecklistSection(`sec-${sectionIndex}`));
+}
+
+function jumpToPendingFromSheet(auditId){
+  closeModal('modal-sections');
+  requestAnimationFrame(() => jumpToNext(auditId));
+}
+
 function renderChecklist(audit){
   const c = document.getElementById('content');
   const items = getAuditItems(audit);
@@ -1913,10 +1948,6 @@ function renderChecklist(audit){
       </div>
     </div>
 
-    <div class="detail-anchor-nav" aria-label="점검 섹션 이동">
-      ${sectionEntries.map(([sec, secItems], i)=>renderSectionAnchorChip(sec, secItems, i, 'nav-mobile-')).join('')}
-      ${renderPendingAnchorChip(audit)}
-    </div>
 
     <div class="detail-body">
       <aside class="detail-sidebar" aria-label="점검 섹션 사이드바">
@@ -1942,8 +1973,30 @@ function renderChecklist(audit){
     <div class="detail-bottom-action">
       <div class="detail-bottom-action-inner">
         <button type="button" class="btn btn-ghost flex-1" onclick="backFromChecklist()">목록</button>
-        <button type="button" class="btn btn-ghost flex-1" onclick="jumpToNext(${audit.id})">미완료</button>
+        <button type="button" class="btn btn-ghost detail-section-action" onclick="openSectionSheet()">섹션</button>
         <button type="button" class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal-sections">
+      <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-sections-title">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modal-sections-title">섹션 이동</div>
+        <div class="modal-body">
+          <button type="button" class="section-sheet-item section-sheet-pending" onclick="jumpToPendingFromSheet(${audit.id})">
+            <span class="section-sheet-label">미완료 항목으로 이동</span>
+            <span class="section-sheet-count">${Math.max(summary.total-summary.answered,0)}</span>
+          </button>
+          <div class="section-sheet-list">
+            ${sectionEntries.map(([sec, secItems], i)=>{
+              const completion = getSectionCompletion(secItems);
+              return `<button type="button" class="section-sheet-item" data-section-index="${i}" onclick="goToSectionFromSheet(${i})">
+                <span class="section-sheet-label">${esc(sec)}</span>
+                <span class="section-sheet-count">${completion.answered}/${completion.total}</span>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
       </div>
     </div>
   </div>`;
