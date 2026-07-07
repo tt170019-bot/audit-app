@@ -12,15 +12,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <script src="xlsx.full.min.js"></script>
-<script src="jszip.min.js"></script>
 <style>
-@font-face {
-  font-family: "Pretendard";
-  src: url("./fonts/PretendardVariable.woff2") format("woff2");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
 :root {
   /* Atlassian Design MD manual tokens */
   --ads-text: #292A2E;
@@ -56,7 +48,7 @@
   --ads-neutral-bold: #626F86;
   --ads-neutral-text: #44546F;
 
-  --font-family-ui: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-ui: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --ads-font-heading: var(--font-family-ui);
   --ads-font-body: var(--font-family-ui);
 
@@ -198,7 +190,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 
 /* Answer buttons */
 .ans-row { display: flex; gap: var(--space-100); flex-wrap: wrap; }
-.ans-btn { flex: 1; min-width: var(--space-800); min-height: var(--ui-button-small-height); border: var(--ui-border-width) solid var(--ads-border-input); background: var(--ads-surface); color: var(--ads-text-subtle); border-radius: var(--radius-full); padding-inline: var(--space-100); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; text-align: center; }
+.ans-btn { flex: 1; min-width: var(--space-800); min-height: var(--ui-button-small-height); border: var(--ui-border-width) solid var(--ads-border-input); background: var(--ads-surface); color: var(--ads-text-subtle); border-radius: var(--radius-medium); padding-inline: var(--space-100); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; text-align: center; }
 .ans-btn:hover { background: var(--ads-surface-container); }
 .ans-btn.sel-ok { background: var(--ads-success-bg); border-color: var(--ads-success-bold); color: var(--ads-success-text); }
 .ans-btn.sel-ng { background: var(--ads-danger-bg); border-color: var(--ads-danger); color: var(--ads-danger-text); }
@@ -312,10 +304,10 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-progress { padding-top: var(--space-100); }
 .detail-progress-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); margin-bottom: var(--space-075); }
 .detail-progress-text { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); white-space: nowrap; }
-.detail-result-counts { margin-top: 0; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.detail-result-counts { margin-top: 0; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .detail-result-counts::-webkit-scrollbar { display: none; }
 .detail-prog-wrap { margin: 0; }
-.detail-anchor-nav { position: sticky; top: var(--detail-sticky-offset); z-index: 150; display: flex; gap: var(--space-100); overflow-x: auto; padding: var(--space-075) var(--mobile-page-padding); background: var(--ads-surface); border-bottom: var(--ui-border-width) solid var(--ads-border); box-shadow: none; scrollbar-width: none; scroll-snap-type: x proximity; }
+.detail-anchor-nav { display: none; }
 .detail-anchor-nav::-webkit-scrollbar { display: none; }
 .anchor-chip { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: var(--space-075); min-height: 2.25rem; max-width: 12rem; padding-inline: var(--space-150); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); white-space: nowrap; cursor: pointer; scroll-snap-align: start; }
 .anchor-chip:hover, .anchor-chip:active, .anchor-chip:focus-visible { background: var(--ads-surface-container-hovered); color: var(--ads-text); }
@@ -328,14 +320,24 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-checklist-column { min-width: 0; }
 .detail-scroll-tail { height: max(18rem, 48vh); flex: 0 0 auto; }
 .detail-summary-card { margin: var(--space-150); background: var(--ads-surface); border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); overflow: hidden; }
-.detail-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--ui-border-width); background: var(--ads-border); border-radius: var(--radius-large); overflow: hidden; }
-.detail-summary-cell { padding: var(--space-150); background: var(--ads-surface); }
+.detail-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-0); }
+.detail-summary-cell { padding: var(--space-150); border-right: var(--ui-border-width) solid var(--ads-border); border-bottom: var(--ui-border-width) solid var(--ads-border); }
+.detail-summary-cell:nth-child(2n) { border-right: 0; }
+.detail-summary-cell:nth-last-child(-n+2) { border-bottom: 0; }
 .detail-summary-label { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); margin-bottom: var(--space-025); }
 .detail-summary-value { color: var(--ads-text); font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-semibold); }
-.detail-bottom-action { position: fixed; left: 0; right: 0; bottom: 0; z-index: 180; background: var(--ads-surface); border-top: var(--ui-border-width) solid var(--ads-border); box-shadow: var(--shadow-overflow); }
-.detail-bottom-action-inner { display: flex; gap: var(--space-100); padding: var(--space-150) var(--mobile-page-padding); padding-bottom: calc(var(--space-150) + env(safe-area-inset-bottom, 0)); }
+.detail-bottom-action { position: fixed; left: 0; right: 0; bottom: 0; z-index: 180; display: flex; gap: var(--space-100); padding: var(--space-150) var(--mobile-page-padding) calc(var(--space-150) + env(safe-area-inset-bottom, 0)); background: var(--ads-surface); border-top: var(--ui-border-width) solid var(--ads-border); box-shadow: var(--shadow-overflow); }
 .detail-bottom-action .btn { min-height: var(--mobile-action-height); }
-.detail-section-start { scroll-margin-top: calc(var(--detail-sticky-offset) + var(--touch-target-min) + var(--space-200)); }
+.detail-section-action { flex: 1; }
+.section-sheet-list { display: grid; gap: var(--space-075); }
+.section-sheet-item { width: 100%; min-height: var(--touch-target-min); display: flex; align-items: center; justify-content: space-between; gap: var(--space-150); padding: var(--space-150); border: 0; border-radius: var(--radius-large); background: var(--ads-surface-container); color: var(--ads-text); text-align: left; cursor: pointer; }
+.section-sheet-item:hover, .section-sheet-item:active { background: var(--ads-surface-container-hovered); }
+.section-sheet-item.is-current { background: var(--ads-information-bg); color: var(--ads-information-text); font-weight: var(--ads-weight-semibold); }
+.section-sheet-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.section-sheet-count { flex: 0 0 auto; color: inherit; font-variant-numeric: tabular-nums; font-weight: var(--ads-weight-semibold); }
+.section-sheet-pending { margin-bottom: var(--space-150); background: var(--ads-surface-container); }
+
+.detail-section-start { scroll-margin-top: calc(var(--detail-sticky-offset) + var(--touch-target-min) + var(--space-400)); }
 .section-header.detail-section-start { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); }
 .detail-section-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .check-section-summary { margin: var(--space-0) var(--space-150) var(--space-100); color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
@@ -347,51 +349,38 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .field-check-card.answered { border-color: var(--ads-border-bold); }
 .field-card-toggle { cursor: default; }
 .check-input-card { padding: var(--space-200); cursor: default; }
-.check-input-top { display: grid; grid-template-columns: 5rem minmax(0, 1fr) 5rem; align-items: center; gap: var(--space-100); margin-bottom: var(--space-100); }
-.check-input-no { justify-self: start; min-width: 0; min-height: auto; padding-inline: 0; border: 0; border-radius: 0; background: transparent; color: var(--ads-brand); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); letter-spacing: 0.01em; white-space: nowrap; }
-.check-input-section { min-width: 0; text-align: center; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.check-input-top .badge { justify-self: end; min-height: 1.375rem; padding-inline: var(--space-075); border-radius: var(--radius-full); }
-.check-input-question { color: var(--ads-text); font-size: 0.9375rem; line-height: 1.375rem; font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-150); }
-.check-input-refs { display: flex; flex-direction: column; gap: var(--space-075); }
-.check-ref-line { display: flex; gap: var(--space-100); align-items: start; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
-.check-ref-label { flex: 0 0 6rem; text-align: left; white-space: nowrap; color: var(--ads-text-subtlest); font-weight: var(--ads-weight-semibold); }
-.check-ref-line > span:last-child { min-width: 0; line-height: var(--ads-body-small-line); }
+.check-input-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); margin-bottom: var(--space-100); }
+.check-input-no { min-width: auto; min-height: auto; padding-inline: 0; border: 0; border-radius: 0; background: transparent; color: var(--ads-brand); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); letter-spacing: 0.01em; }
+.check-input-section { flex: 1; text-align: center; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); }
+.check-input-top .badge { min-height: 1.375rem; padding-inline: var(--space-075); border-radius: var(--radius-full); }
+.check-input-question { color: var(--ads-text); font-size: var(--ads-body-size); line-height: 1.45; font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-150); }
+.check-input-refs { display: grid; gap: var(--space-075); }
+.check-ref-line { display: flex; gap: var(--space-075); align-items: flex-start; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
+.check-ref-label { flex: 0 0 auto; color: var(--ads-text-subtlest); font-weight: var(--ads-weight-semibold); }
 .check-body { display: block; padding: var(--space-0) var(--space-200) var(--space-200); border-top: var(--ui-border-width) solid var(--ads-border); }
 .check-body.hidden { display: block; }
 .result-panel, .comment-panel, .maturity-panel, .field-photo-panel { padding-top: var(--space-150); }
 .result-panel-title, .maturity-panel-title, .comment-panel-title, .check-label { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-075); }
 .field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); width: 100%; }
-.field-choice { min-height: var(--ui-button-small-height); padding-inline: var(--space-100); border: 0; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: 0.8125rem; line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 100ms ease; }
+.field-choice { min-height: 2.625rem; padding-inline: var(--space-100); border: 0; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 100ms ease; }
 .field-choice:hover { background: var(--ads-surface-container-hovered); color: var(--ads-text); }
 .field-choice.selected-ok { background: var(--ads-success-bg); color: var(--ads-success-text); }
 .field-choice.selected-ng { background: var(--ads-danger-bg); color: var(--ads-danger-text); }
 .field-choice.selected-na { background: var(--ads-neutral-bg); color: var(--ads-neutral-text); }
 .field-choice.selected-obs { background: var(--ads-warning-bg); color: var(--ads-warning-text); }
 .maturity-level-list { display: grid; gap: var(--space-075); }
-.maturity-card { border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); padding: var(--space-150); background: var(--ads-surface); box-shadow: none; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
-.maturity-card:hover { background: var(--ads-surface-container); }
-.maturity-card.selected { border-color: var(--ads-brand); background: var(--ads-information-bg); box-shadow: 0 0 0 var(--ui-border-width) var(--ads-brand); }
-.maturity-card-head {
-  display: grid;
-  grid-template-columns: auto minmax(7rem, 10rem) minmax(0, 1fr);
-  grid-template-areas: "radio title summary";
-  align-items: start;
-  gap: var(--space-100);
-  margin-bottom: var(--space-075);
-}
-.maturity-radio { grid-area: radio; width: 1.125rem; height: 1.125rem; border: var(--ui-border-width-strong) solid var(--ads-border-bold); border-radius: var(--radius-full); margin-top: 0.0625rem; background: var(--ads-surface); box-shadow: inset 0 0 0 0.25rem var(--ads-surface); flex: 0 0 auto; }
-.maturity-card.selected .maturity-radio { border-color: var(--ads-brand); background: var(--ads-brand); }
-.maturity-card-title { grid-area: title; min-width: 0; font-size: 0.9375rem; line-height: 1.25rem; font-weight: var(--ads-weight-semibold); color: var(--ads-text); }
-.maturity-card-summary { grid-area: summary; min-width: 0; color: var(--ads-text); font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-medium); }
-.maturity-card-desc { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: 1.125rem; padding-left: calc(1.125rem + var(--space-100) + min(10rem, max(7rem, 20vw)) + var(--space-100)); }
+.maturity-card { border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); padding: var(--space-150); background: var(--ads-surface); box-shadow: none; }
+.maturity-card.selected { border: var(--ui-border-width-strong) solid var(--ads-brand); background: var(--ads-information-bg); }
+.maturity-card-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-075); margin-bottom: var(--space-050); }
+.maturity-card-title { flex: 1; min-width: 0; font-weight: var(--ads-weight-semibold); color: var(--ads-text); }
+.maturity-card-desc { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: 1.35; }
+.maturity-card-desc strong { display: block; margin-bottom: var(--space-025); }
+.maturity-card-head .field-choice { flex: 0 0 46%; min-height: 2.625rem; padding-inline: var(--space-150); }
 .comment-panel textarea { min-height: 3.5rem; background: var(--ads-surface); }
 .field-photo-panel { background: var(--ads-surface); }
 .field-photo-panel .photo-add { width: 6rem; min-width: 6rem; height: 4.75rem; }
 
 @media (max-width: 47.9375rem) {
-  .maturity-card-head { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "radio title" "radio summary"; }
-  .maturity-card-summary { grid-column: unset; grid-area: summary; }
-  .maturity-card-desc { padding-left: calc(1.125rem + var(--space-100)); }
   .detail-progress-head { gap: var(--space-075); }
   .detail-result-counts { gap: var(--space-050); }
   .detail-result-counts .badge { padding-inline: var(--space-050); }
@@ -403,12 +392,12 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   #content { max-width: none; width: 100%; }
   .detail-shell { max-width: none; width: 100%; margin: 0; }
   .detail-anchor-nav { display: none; }
+  .detail-section-action { display: none; }
   .detail-body { display: grid; grid-template-columns: 14rem minmax(0, 1fr); align-items: start; }
   .detail-sidebar { position: sticky; top: var(--detail-sticky-offset); z-index: 120; display: flex; flex-direction: column; gap: var(--space-050); min-height: calc(100vh - var(--detail-sticky-offset)); max-height: calc(100vh - var(--detail-sticky-offset)); overflow-y: auto; padding: var(--space-150) var(--space-100) calc(var(--mobile-action-height) + var(--space-400)); background: var(--ads-surface); border-right: var(--ui-border-width) solid var(--ads-border); scrollbar-width: thin; }
   .detail-sidebar-label { padding: var(--space-050) var(--space-100) var(--space-075); color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); letter-spacing: 0.04em; }
   .detail-sidebar .anchor-chip { width: 100%; max-width: none; justify-content: space-between; min-height: var(--touch-target-min); padding-inline: var(--space-150); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-large); background: transparent; color: var(--ads-text-subtle); text-align: left; }
-  .detail-sidebar .anchor-chip:hover, .detail-sidebar .anchor-chip:active { background: transparent; color: var(--ads-text-subtle); }
-  .detail-sidebar .anchor-chip:focus-visible { background: transparent; color: var(--ads-text-subtle); outline: var(--ui-border-width-strong) solid var(--ads-border-focused); outline-offset: var(--space-025); }
+  .detail-sidebar .anchor-chip:hover, .detail-sidebar .anchor-chip:focus-visible { background: var(--ads-surface-container); color: var(--ads-text); }
   .detail-sidebar .anchor-chip.is-current { background: var(--ads-information-bg); color: var(--ads-information-text); font-weight: var(--ads-weight-semibold); }
   .detail-sidebar .anchor-chip-label { max-width: 9rem; }
   .detail-content { min-width: 0; padding-inline: var(--space-200); padding-bottom: calc(var(--mobile-action-height) + var(--space-500) + env(safe-area-inset-bottom, 0)); }
@@ -653,12 +642,9 @@ let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
 let checklistSyncState = { checked: false, reachable: null, message: '점검표 서버 확인 전' };
 
-// Debug logging is disabled by default in production.
-// Add ?debug=1 to the URL when console diagnostics are needed.
-const DEBUG_MODE = new URLSearchParams(location.search).get('debug') === '1';
-function appLog(...args){ if(DEBUG_MODE) console.log(...args); }
-function appWarn(...args){ if(DEBUG_MODE) console.warn(...args); }
-function appError(...args){ if(DEBUG_MODE) console.error(...args); }
+// App-level version used for service worker update detection.
+// Increment this value when index.html, sw.js, CSS, JS, or core assets change.
+const APP_CACHE_VERSION = 'audit-app-v63';
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
@@ -755,12 +741,12 @@ openDB().then(()=>{
     if(!document.hidden) updateOnlineTag();
   });
   repairStoredTemplates()
-    .catch(e => appWarn('기존 점검표 호환 보정 실패:', e))
+    .catch(e => console.warn('기존 점검표 호환 보정 실패:', e))
     .then(() => autoLoadChecklists())
-    .catch(e => appWarn('자동 점검표 로드 실패:', e))
+    .catch(e => console.warn('자동 점검표 로드 실패:', e))
     .finally(()=> switchTab('home'));
 }).catch(e=>{
-  appError('DB 초기화 실패:', e);
+  console.error('DB 초기화 실패:', e);
   document.getElementById('content').innerHTML = '<div class="empty"><h3>앱 초기화 실패</h3><p>브라우저 저장소 접근을 확인한 뒤 다시 실행하세요.</p></div>';
 });
 
@@ -854,7 +840,7 @@ async function repairStoredTemplates(){
     }
   }
 
-  if(repaired > 0) appLog(`점검표 호환 보정 완료: ${repaired}건`);
+  if(repaired > 0) console.log(`점검표 호환 보정 완료: ${repaired}건`);
   return repaired;
 }
 
@@ -942,7 +928,7 @@ async function loadChecklistIndex(){
       .sort((a,b)=>a.filename.localeCompare(b.filename, 'ko'));
   } catch(e){
     checklistSyncState = { checked: true, reachable: false, message: '온라인 상태와 별개로 GitHub 점검표 서버 접근 실패' };
-    appWarn('GitHub checklists 폴더 조회 실패. 저장된 점검표를 계속 사용합니다.', e);
+    console.warn('GitHub checklists 폴더 조회 실패. 저장된 점검표를 계속 사용합니다.', e);
     return [];
   }
 }
@@ -1023,7 +1009,7 @@ async function autoLoadChecklists(){
   let updated = 0;
 
   if(index.length === 0){
-    appLog('동기화할 GitHub 점검표가 없습니다. checklists 폴더를 확인하세요.');
+    console.log('동기화할 GitHub 점검표가 없습니다. checklists 폴더를 확인하세요.');
     return 0;
   }
 
@@ -1070,9 +1056,9 @@ async function autoLoadChecklists(){
       });
       added += 1;
       updated += existing.some(t => t.filename === cl.filename) ? 1 : 0;
-      appLog(`점검표 동기화: ${cl.name} ${cl.sha ? cl.sha.slice(0, 7) : cl.updatedAt || ''}`);
+      console.log(`✅ 점검표 동기화: ${cl.name} ${cl.sha ? cl.sha.slice(0, 7) : cl.updatedAt || ''}`);
     } catch(e){
-      appWarn(`점검표 동기화 실패: ${cl.filename}`, e);
+      console.warn(`점검표 동기화 실패: ${cl.filename}`, e);
     }
   }
 
@@ -1417,7 +1403,7 @@ async function syncChecklistsNow(){
     if(currentTab === 'templates' && c) await renderTemplates(c);
     if(currentTab === 'home') switchTab('home');
   } catch(err){
-    appWarn('수동 동기화 실패:', err);
+    console.warn('수동 동기화 실패:', err);
     showToast('동기화 실패. 저장된 점검표를 사용합니다');
   }
 }
@@ -1456,10 +1442,6 @@ async function renderExport(c){
         <button type="button" class="btn btn-ghost btn-sm flex-1" onclick="exportTopsChecklistExcel(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           TOPS Excel
-        </button>
-        <button type="button" class="btn btn-ghost btn-sm flex-1" onclick="exportEvidenceZip(${a.id})">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          증빙 ZIP
         </button>
         <button type="button" class="btn btn-ghost btn-sm flex-1" onclick="exportWord(${a.id})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
@@ -1507,88 +1489,33 @@ window.addEventListener('resize', () => {
 });
 
 function getChecklistScrollContainer(){
-  // Return the element that actually owns vertical scrolling.
-  // Tablet split view uses .detail-content for layout, but #content or the
-  // document can be the real scroll container depending on viewport/browser.
-  const candidates = [
-    document.querySelector('.detail-content'),
-    byId('content'),
-    document.scrollingElement,
-    document.documentElement
-  ].filter(Boolean);
-
-  return candidates.find(el => el.scrollHeight > el.clientHeight + 1)
-    || byId('content')
-    || document.scrollingElement
-    || document.documentElement;
-}
-
-function getElementTopInScroller(el, scroller){
-  const scrollerRect = scroller.getBoundingClientRect
-    ? scroller.getBoundingClientRect()
-    : { top: 0 };
-  const elRect = el.getBoundingClientRect();
-  return scroller.scrollTop + elRect.top - scrollerRect.top;
-}
-
-function getSectionAlignmentOffset(scroller){
-  // Use the first section's natural top position as the alignment baseline.
-  // This keeps click-jump placement identical to the first section's initial placement
-  // without hard-coding sticky header or progress-bar heights.
-  const firstSection = document.querySelector('.detail-section-start');
-  if(!scroller || !firstSection) return 0;
-  return getElementTopInScroller(firstSection, scroller);
-}
-
-function scrollToAlignedTarget(target, options = {}){
-  syncDetailStickyOffset();
-  const scroller = getChecklistScrollContainer();
-  if(!scroller || !target) return;
-
-  const alignmentOffset = getSectionAlignmentOffset(scroller);
-  const targetTop = getElementTopInScroller(target, scroller);
-  const destination = targetTop - alignmentOffset + (options.offset || 0);
-
-  scroller.scrollTo({
-    top: Math.max(0, destination),
-    behavior: options.behavior || 'smooth'
-  });
+  // In tablet split view, the actual scrollable area is .detail-content.
+  // In legacy/mobile fallback, #content remains the scroll container.
+  return document.querySelector('.detail-content') || byId('content');
 }
 
 function scrollToChecklistSection(sectionId){
+  syncDetailStickyOffset();
+  const scroller = getChecklistScrollContainer();
   const target = document.getElementById(sectionId);
-  const index = Number(String(sectionId).replace('sec-', ''));
+  if(!scroller || !target) return;
 
-  if(Number.isFinite(index)) setCurrentSectionChip(index, true);
-  scrollToAlignedTarget(target);
-}
+  const anchorNav = document.querySelector('.detail-anchor-nav');
+  const navHeight = anchorNav && getComputedStyle(anchorNav).display !== 'none'
+    ? anchorNav.getBoundingClientRect().height
+    : 0;
+  const extraGap = 8;
+  const scrollerTop = scroller.getBoundingClientRect().top;
+  const targetTop = target.getBoundingClientRect().top;
+  const destination = scroller.scrollTop + targetTop - scrollerTop - navHeight - extraGap;
 
-function getSectionIndexForItemIndex(itemIndex){
-  const item = currentAudit?.items?.[itemIndex];
-  if(!item) return -1;
-
-  const sectionNames = [];
-  (currentAudit.items || []).forEach(checkItem => {
-    const sectionName = checkItem.section || '일반';
-    if(!sectionNames.includes(sectionName)) sectionNames.push(sectionName);
+  scroller.scrollTo({
+    top: Math.max(0, destination),
+    behavior: 'smooth'
   });
 
-  return sectionNames.indexOf(item.section || '일반');
-}
-
-function scrollToChecklistItem(itemIndex){
-  const el = document.getElementById('ci-' + itemIndex);
-  if(!el) return;
-
-  const body = document.getElementById('cb-' + itemIndex);
-  if(body) body.classList.remove('hidden');
-
-  const sectionIndex = getSectionIndexForItemIndex(itemIndex);
-  if(sectionIndex >= 0) setCurrentSectionChip(sectionIndex, true);
-
-  // Align incomplete-item jumps with section navigation instead of centering the card.
-  // Add a 3px destination correction so the card border does not sit on the sticky boundary.
-  scrollToAlignedTarget(el, { offset: 3 });
+  const index = Number(String(sectionId).replace('sec-', ''));
+  if(Number.isFinite(index)) setCurrentSectionChip(index, true);
 }
 
 function br(value){
@@ -1711,17 +1638,16 @@ function renderMaturityPanel(audit, item){
 
   return `<div class="maturity-panel">
     <div class="maturity-panel-title">Maturity Assessment</div>
-    <div class="maturity-level-list" role="radiogroup" aria-label="Maturity Assessment">
+    <div class="maturity-level-list">
       ${maturityLevels.map(level=>{
         const c = getMaturityConsideration(item, level);
         const selected = maturity === level;
-        return `<div class="maturity-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected ? 'true' : 'false'}" tabindex="0" onclick="setMaturityResult(${audit.id},${idx},'${level}', event)" onkeydown="if(event.key==='Enter'||event.key===' '){setMaturityResult(${audit.id},${idx},'${level}', event)}">
+        return `<div class="maturity-card ${selected ? 'selected' : ''}">
           <div class="maturity-card-head">
-            <span class="maturity-radio" aria-hidden="true"></span>
-            <div class="maturity-card-title">${level}</div>
-            <div class="maturity-card-summary">${esc(c.title)}</div>
+            <div class="maturity-card-title">${selected ? '■' : '□'} ${level}</div>
+            <button type="button" class="field-choice ${selected ? 'selected-ok' : ''}" onclick="setMaturityResult(${audit.id},${idx},'${level}', event)">선택</button>
           </div>
-          ${c.body ? `<div class="maturity-card-desc">${esc(c.body)}</div>` : ''}
+          <div class="maturity-card-desc"><strong>${esc(c.title)}</strong>${c.body ? `<br>${esc(c.body)}` : ''}</div>
         </div>`;
       }).join('')}
     </div>
@@ -1816,23 +1742,21 @@ let currentSectionChipIndex = -1;
 
 function getCurrentChecklistSectionIndex(){
   const headers = [...document.querySelectorAll('.detail-section-start')];
-  const scroller = getChecklistScrollContainer();
-  if(headers.length === 0 || !scroller) return -1;
+  if(headers.length === 0) return -1;
 
-  const alignmentOffset = getSectionAlignmentOffset(scroller);
-  const activeLine = scroller.scrollTop + alignmentOffset + 1;
+  const anchorNav = document.querySelector('.detail-anchor-nav');
+  const threshold = anchorNav ? anchorNav.getBoundingClientRect().bottom + 8 : 0;
   let currentIndex = 0;
 
   headers.forEach((header, index) => {
-    if(getElementTopInScroller(header, scroller) <= activeLine) currentIndex = index;
+    if(header.getBoundingClientRect().top <= threshold) currentIndex = index;
   });
 
   return currentIndex;
 }
 
 function setCurrentSectionChip(index, shouldAlignStart = true){
-  if(index < 0) return;
-  const indexChanged = index !== currentSectionChipIndex;
+  if(index < 0 || index === currentSectionChipIndex) return;
   currentSectionChipIndex = index;
 
   document.querySelectorAll('.detail-anchor-nav .anchor-chip, .detail-sidebar .anchor-chip').forEach(chip => {
@@ -1847,7 +1771,7 @@ function setCurrentSectionChip(index, shouldAlignStart = true){
   if(activeChips.length === 0) return;
   activeChips.forEach(chip => chip.classList.add('is-current'));
 
-  if(shouldAlignStart && indexChanged){
+  if(shouldAlignStart){
     activeChips.forEach(chip => chip.scrollIntoView({behavior:'smooth', inline:'start', block:'nearest'}));
   }
 }
@@ -1878,6 +1802,29 @@ function setupSectionChipTracking(){
 
   scroller.addEventListener('scroll', sectionChipScrollHandler, {passive:true});
   requestAnimationFrame(() => updateCurrentSectionChip(false));
+}
+
+function openSectionSheet(){
+  const modal = byId('modal-sections');
+  if(modal && !modal.dataset.backdropBound){
+    modal.addEventListener('click', event => { if(event.target === modal) closeModal('modal-sections'); });
+    modal.dataset.backdropBound = '1';
+  }
+  updateCurrentSectionChip(false);
+  document.querySelectorAll('#modal-sections .section-sheet-item[data-section-index]').forEach(item => {
+    item.classList.toggle('is-current', Number(item.dataset.sectionIndex) === currentSectionChipIndex);
+  });
+  openModal('modal-sections');
+}
+
+function goToSectionFromSheet(sectionIndex){
+  closeModal('modal-sections');
+  requestAnimationFrame(() => scrollToChecklistSection(`sec-${sectionIndex}`));
+}
+
+function jumpToPendingFromSheet(auditId){
+  closeModal('modal-sections');
+  requestAnimationFrame(() => jumpToNext(auditId));
 }
 
 function renderChecklist(audit){
@@ -1918,11 +1865,6 @@ function renderChecklist(audit){
       </div>
     </div>
 
-    <div class="detail-anchor-nav" aria-label="점검 섹션 이동">
-      ${sectionEntries.map(([sec, secItems], i)=>renderSectionAnchorChip(sec, secItems, i, 'nav-mobile-')).join('')}
-      ${renderPendingAnchorChip(audit)}
-    </div>
-
     <div class="detail-body">
       <aside class="detail-sidebar" aria-label="점검 섹션 사이드바">
         <div class="detail-sidebar-label">SECTION</div>
@@ -1945,10 +1887,30 @@ function renderChecklist(audit){
     </div>
 
     <div class="detail-bottom-action">
-      <div class="detail-bottom-action-inner">
-        <button type="button" class="btn btn-ghost flex-1" onclick="backFromChecklist()">목록</button>
-        <button type="button" class="btn btn-ghost flex-1" onclick="jumpToNext(${audit.id})">미완료</button>
-        <button type="button" class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>
+      <button type="button" class="btn btn-ghost flex-1" onclick="backFromChecklist()">목록</button>
+      <button type="button" class="btn btn-ghost detail-section-action" onclick="openSectionSheet()">섹션</button>
+      <button type="button" class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>
+    </div>
+
+    <div class="modal-backdrop" id="modal-sections">
+      <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-sections-title">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modal-sections-title">섹션 이동</div>
+        <div class="modal-body">
+          <button type="button" class="section-sheet-item section-sheet-pending" onclick="jumpToPendingFromSheet(${audit.id})">
+            <span class="section-sheet-label">미완료 항목으로 이동</span>
+            <span class="section-sheet-count">${Math.max(summary.total-summary.answered,0)}</span>
+          </button>
+          <div class="section-sheet-list">
+            ${sectionEntries.map(([sec, secItems], i)=>{
+              const completion = getSectionCompletion(secItems);
+              return `<button type="button" class="section-sheet-item" data-section-index="${i}" onclick="goToSectionFromSheet(${i})">
+                <span class="section-sheet-label">${esc(sec)}</span>
+                <span class="section-sheet-count">${completion.answered}/${completion.total}</span>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
       </div>
     </div>
   </div>`;
@@ -2063,7 +2025,13 @@ function jumpToNext(auditId){
   const items = currentAudit?.items||[];
   const nextIdx = items.findIndex(i=>!i.result);
   if(nextIdx<0){ showToast('모든 항목이 완료되었습니다 ✓'); return; }
-  scrollToChecklistItem(nextIdx);
+  const el = document.getElementById('ci-'+nextIdx);
+  if(el){
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    // open it
+    const body = document.getElementById('cb-'+nextIdx);
+    if(body) body.classList.remove('hidden');
+  }
 }
 
 async function finishAudit(id){
@@ -2222,7 +2190,7 @@ async function resetTemplateData(){
       await autoLoadChecklists();
       showToast('공식 점검표를 다시 동기화했습니다');
     } catch(err){
-      appWarn('점검표 재동기화 실패:', err);
+      console.warn('점검표 재동기화 실패:', err);
       showToast('점검표 삭제 완료. 재동기화는 나중에 실행하세요');
     }
   }
@@ -2243,7 +2211,7 @@ async function resetAllLocalData(){
     try{
       await autoLoadChecklists();
     } catch(err){
-      appWarn('전체 초기화 후 점검표 재동기화 실패:', err);
+      console.warn('전체 초기화 후 점검표 재동기화 실패:', err);
     }
   }
   switchTab('home');
@@ -2480,169 +2448,6 @@ async function exportTopsChecklistExcel(id){
   showToast('TOPS Checklist Excel 저장됨');
 }
 
-
-// ═══════════════════════════════════════════════
-//  Export: Evidence ZIP (Excel + photo files)
-// ═══════════════════════════════════════════════
-function sanitizeFileName(value){
-  return String(value || 'untitled')
-    .replace(/[\\/:*?"<>|]/g, '_')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 80) || 'untitled';
-}
-
-function dataUrlToBlob(dataUrl){
-  const parts = String(dataUrl || '').split(',');
-  if(parts.length < 2) throw new Error('사진 데이터 형식이 올바르지 않습니다.');
-
-  const meta = parts[0];
-  const base64 = parts.slice(1).join(',');
-  const mimeMatch = meta.match(/data:([^;]+);base64/i);
-  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-
-  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], {type:mime});
-}
-
-function getEvidencePhotoRows(audit){
-  const rows = [];
-  getAuditItems(audit).forEach((item, itemIndex)=>{
-    const photos = Array.isArray(item.photos) ? item.photos : [];
-    photos.forEach((photo, photoIndex)=>{
-      const itemNo = sanitizeFileName(item.ref || String(itemIndex + 1));
-      const section = sanitizeFileName(item.section || '일반');
-      const fileName = `${String(itemIndex + 1).padStart(3, '0')}_${itemNo}_${photoIndex + 1}.jpg`;
-      const path = `photos/${section}/${fileName}`;
-      rows.push({
-        section: item.section || '',
-        ref: item.ref || String(itemIndex + 1),
-        question: item.question || '',
-        result: normalizeResultValue(item.result) || '',
-        note: item.note || '',
-        photoIndex: photoIndex + 1,
-        path,
-        dataUrl: photo
-      });
-    });
-  });
-  return rows;
-}
-
-function buildEvidenceWorkbook(audit, photoRows){
-  const wb = XLSX.utils.book_new();
-  const summary = getAuditSummary(audit);
-
-  const summaryRows = [
-    ['심사 요약'],
-    [],
-    ['심사명', audit.title || ''],
-    ['심사일', audit.date || ''],
-    ['심사원', audit.auditor || ''],
-    ['피심사 부서', audit.dept || ''],
-    ['작성일', new Date().toLocaleString('ko-KR')],
-    [],
-    ['전체 항목', summary.total],
-    ['완료 항목', summary.answered],
-    ['완료율', `${summary.percent}%`],
-    ['YES', summary.yes],
-    ['NO', summary.no],
-    ['N/A', summary.na],
-    ['OBS', summary.obs],
-    ['사진 수', photoRows.length]
-  ];
-  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-  wsSummary['!cols'] = [{wch:18},{wch:40}];
-  XLSX.utils.book_append_sheet(wb, wsSummary, '요약');
-
-  const detailRows = [['섹션','항목번호','점검 항목','내부 참조','외부 참조','결과','비고','사진 수','사진 파일']];
-  getAuditItems(audit).forEach((item, index)=>{
-    const itemPhotos = photoRows.filter(row => row.ref === (item.ref || String(index + 1)) && row.question === (item.question || ''));
-    detailRows.push([
-      item.section || '',
-      item.ref || String(index + 1),
-      item.question || '',
-      item.refStd || '',
-      item.externalRef || item.external || '',
-      normalizeResultValue(item.result) || '',
-      item.note || '',
-      itemPhotos.length,
-      itemPhotos.map(row => row.path).join('\n')
-    ]);
-  });
-  const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
-  wsDetail['!cols'] = [{wch:18},{wch:12},{wch:56},{wch:28},{wch:28},{wch:8},{wch:40},{wch:8},{wch:42}];
-  wsDetail['!autofilter'] = { ref: `A1:I${Math.max(detailRows.length, 1)}` };
-  XLSX.utils.book_append_sheet(wb, wsDetail, '점검결과');
-
-  const photoIndexRows = [['섹션','항목번호','점검 항목','결과','비고','사진번호','파일경로']];
-  photoRows.forEach(row=>{
-    photoIndexRows.push([row.section, row.ref, row.question, row.result, row.note, row.photoIndex, row.path]);
-  });
-  const wsPhotos = XLSX.utils.aoa_to_sheet(photoIndexRows);
-  wsPhotos['!cols'] = [{wch:18},{wch:12},{wch:56},{wch:8},{wch:40},{wch:10},{wch:48}];
-  wsPhotos['!autofilter'] = { ref: `A1:G${Math.max(photoIndexRows.length, 1)}` };
-  XLSX.utils.book_append_sheet(wb, wsPhotos, '사진목록');
-
-  return wb;
-}
-
-async function exportEvidenceZip(id){
-  if(typeof JSZip === 'undefined'){
-    showToast('jszip.min.js 파일이 필요합니다');
-    return;
-  }
-
-  const audit = await dbGet('audits', id);
-  if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
-
-  try{
-    const photoRows = getEvidencePhotoRows(audit);
-    const zip = new JSZip();
-    const safeTitle = sanitizeFileName(audit.title || 'audit');
-    const safeDate = sanitizeFileName(audit.date || new Date().toISOString().slice(0,10));
-    const workbook = buildEvidenceWorkbook(audit, photoRows);
-    const workbookArray = XLSX.write(workbook, {bookType:'xlsx', type:'array'});
-
-    zip.file('audit_result.xlsx', workbookArray);
-
-    photoRows.forEach(row=>{
-      zip.file(row.path, dataUrlToBlob(row.dataUrl));
-    });
-
-    const readme = [
-      'Audit Evidence Export',
-      '',
-      `Audit: ${audit.title || ''}`,
-      `Date: ${audit.date || ''}`,
-      `Auditor: ${audit.auditor || ''}`,
-      `Department: ${audit.dept || ''}`,
-      `Generated: ${new Date().toLocaleString('ko-KR')}`,
-      '',
-      'Files:',
-      '- audit_result.xlsx: summary, checklist result, and photo index',
-      '- photos/: exported evidence photos referenced from audit_result.xlsx',
-      '',
-      `Photo count: ${photoRows.length}`
-    ].join('\n');
-    zip.file('README.txt', readme);
-
-    const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${safeDate}_${safeTitle}_evidence.zip`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(photoRows.length ? `증빙 ZIP 저장됨 · 사진 ${photoRows.length}장` : '증빙 ZIP 저장됨 · 사진 없음');
-  } catch(err){
-    appError('증빙 ZIP 출력 실패:', err);
-    showToast(err.message || '증빙 ZIP을 만들 수 없습니다');
-  }
-}
-
 // ═══════════════════════════════════════════════
 //  Export: Word (HTML → .doc trick, wide support)
 // ═══════════════════════════════════════════════
@@ -2671,7 +2476,7 @@ async function getAuditReportTemplateType(audit){
       const tplInferred = inferReportTemplateType(tpl);
       if(tplInferred === 'report-type-2') return 'report-type-2';
     } catch(e){
-      appWarn('보고서 양식 판별용 점검표 조회 실패:', e);
+      console.warn('보고서 양식 판별용 점검표 조회 실패:', e);
     }
   }
 
@@ -2849,7 +2654,7 @@ async function exportWord(id){
     URL.revokeObjectURL(url);
     showToast('Word 파일 저장됨');
   } catch(err){
-    appError('Word 출력 실패:', err);
+    console.error('Word 출력 실패:', err);
     showToast(err.message || 'Word 파일을 만들 수 없습니다');
   }
 }
@@ -2933,44 +2738,26 @@ function showToast(msg){
 // ═══════════════════════════════════════════════
 function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
-// Local Pretendard note: keep ./fonts/PretendardVariable.woff2 in the deployment
-// and include it in sw.js precache/static asset list when offline font rendering is required.
 // Service Worker registration
-// sw.js uses network-first caching, so index.html cache version bumps are no longer required.
 if('serviceWorker' in navigator){
-  let swRefreshing = false;
-
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if(swRefreshing) return;
-    swRefreshing = true;
-    window.location.reload();
-  });
-
   window.addEventListener('load',()=>{
     const base = location.pathname.replace(/\/[^\/]*$/, '/');
-    const swUrl = base + 'sw.js';
+    const swUrl = base + 'sw.js?v=' + encodeURIComponent(APP_CACHE_VERSION);
 
     navigator.serviceWorker.register(swUrl, {scope: base})
       .then(reg => {
-        appLog('SW registered:', reg.scope);
-        reg.update();
-
-        if(reg.waiting && navigator.serviceWorker.controller){
-          reg.waiting.postMessage({type:'SKIP_WAITING'});
-        }
-
+        console.log('SW registered:', reg.scope, APP_CACHE_VERSION);
         reg.addEventListener('updatefound', () => {
           const worker = reg.installing;
           if(!worker) return;
           worker.addEventListener('statechange', () => {
             if(worker.state === 'installed' && navigator.serviceWorker.controller){
-              showToast('새 버전을 적용합니다');
-              worker.postMessage({type:'SKIP_WAITING'});
+              showToast('새 버전이 준비되었습니다. 새로고침하면 적용됩니다.');
             }
           });
         });
       })
-      .catch(e => appWarn('SW error:', e));
+      .catch(e => console.warn('SW error:', e));
   });
 }
 </script>
