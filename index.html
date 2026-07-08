@@ -226,7 +226,8 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .photo-add { border: var(--ui-border-width-strong) dashed var(--ads-border-bold); background: var(--ads-surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-050); cursor: pointer; color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
 .photo-add:hover { background: var(--ads-surface-container); color: var(--ads-text); }
 .photo-add svg { width: var(--space-300); height: var(--space-300); }
-.photo-remove { position: absolute; top: calc(-1 * var(--space-075)); right: calc(-1 * var(--space-075)); width: 1.125rem; height: 1.125rem; border-radius: var(--radius-full); background: var(--ads-danger); border: 0; color: var(--ads-text-inverse); font-size: var(--ads-body-small-size); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.photo-remove { position: absolute; top: calc(-1 * var(--space-075)); right: calc(-1 * var(--space-075)); width: var(--touch-target-min); height: var(--touch-target-min); padding: 0; border-radius: var(--radius-full); background: transparent; border: 0; color: transparent; cursor: pointer; display: flex; align-items: flex-start; justify-content: flex-end; }
+.photo-remove::before { content: '✕'; width: 1.125rem; height: 1.125rem; border-radius: var(--radius-full); background: var(--ads-danger); color: var(--ads-text-inverse); font-size: var(--ads-body-small-size); line-height: 1.125rem; text-align: center; }
 
 /* Modal */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(9, 30, 66, 0.54); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 200ms ease; }
@@ -1474,12 +1475,6 @@ async function renderExport(c){
           PDF
         </button>
       </div>
-      ${navigator.onLine?`<div class="card-row">
-        <button type="button" class="btn btn-teal btn-sm flex-1" onclick="uploadGDrive(${a.id})">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
-          Google Drive 업로드
-        </button>
-      </div>`:''}
     </div>`;
   }).join('')}
   `;
@@ -1734,10 +1729,10 @@ function renderMaturityPanel(audit, item){
 
 function renderCommentPanel(audit, item){
   const idx = item._idx;
-  const note = esc(item.note || '');
+  const note = esc(getPendingNoteValue(audit.id, idx, item.note || ''));
   return `<div class="comment-panel">
     <div class="comment-panel-title">Comment(s)</div>
-    <textarea rows="2" placeholder="판단 근거, 관찰 내용 등을 입력하세요" onchange="setNote(${audit.id},${idx},this.value)">${note}</textarea>
+    <textarea rows="2" placeholder="판단 근거, 관찰 내용 등을 입력하세요" oninput="scheduleNoteSave(${audit.id},${idx},this.value)" onblur="flushNoteSave(${audit.id},${idx})">${note}</textarea>
   </div>`;
 }
 
@@ -2057,6 +2052,7 @@ async function setMaturityResult(auditId, idx, maturity, event){
 
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
+  applyPendingNotesToAudit(audit);
 
   // Preserve the current scroll position.
   // Mobile browsers may scroll focused buttons into view after re-rendering.
@@ -2080,6 +2076,7 @@ async function setResult(auditId, idx, result, event){
 
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
+  applyPendingNotesToAudit(audit);
 
   // Preserve the current scroll position.
   // Result input is an in-place action, not a navigation action.
@@ -2099,12 +2096,62 @@ async function setResult(auditId, idx, result, event){
   if(!wasAnswered && result) showToast('저장되었습니다');
 }
 
-async function setNote(auditId, idx, note){
+const noteSaveTimers = new Map();
+const pendingNoteValues = new Map();
+
+function getNoteSaveKey(auditId, idx){
+  return `${auditId}:${idx}`;
+}
+
+function getPendingNoteValue(auditId, idx, fallback = ''){
+  const key = getNoteSaveKey(auditId, idx);
+  return pendingNoteValues.has(key) ? pendingNoteValues.get(key) : fallback;
+}
+
+function applyPendingNotesToAudit(audit){
+  if(!audit?.id || !Array.isArray(audit.items)) return audit;
+  audit.items.forEach((item, idx) => {
+    const key = getNoteSaveKey(audit.id, idx);
+    if(pendingNoteValues.has(key)) item.note = pendingNoteValues.get(key);
+  });
+  return audit;
+}
+
+function scheduleNoteSave(auditId, idx, note){
+  const key = getNoteSaveKey(auditId, idx);
+  pendingNoteValues.set(key, note);
+
+  if(currentAudit?.id === auditId && currentAudit.items?.[idx]){
+    currentAudit.items[idx].note = note;
+  }
+
+  clearTimeout(noteSaveTimers.get(key));
+  noteSaveTimers.set(key, setTimeout(() => persistNoteValue(auditId, idx), 400));
+}
+
+async function persistNoteValue(auditId, idx){
+  const key = getNoteSaveKey(auditId, idx);
+  const note = pendingNoteValues.get(key);
+  if(note === undefined) return;
+
+  noteSaveTimers.delete(key);
   const audit = await dbGet('audits', auditId);
-  if(!audit) return;
+  if(!audit?.items?.[idx]) return;
+
   audit.items[idx].note = note;
-  currentAudit = audit;
   await dbPut('audits', audit);
+
+  if(currentAudit?.id === auditId && currentAudit.items?.[idx]){
+    currentAudit.items[idx].note = note;
+  }
+  if(pendingNoteValues.get(key) === note) pendingNoteValues.delete(key);
+}
+
+function flushNoteSave(auditId, idx){
+  const key = getNoteSaveKey(auditId, idx);
+  clearTimeout(noteSaveTimers.get(key));
+  noteSaveTimers.delete(key);
+  return persistNoteValue(auditId, idx);
 }
 
 function jumpToNext(auditId){
@@ -2322,7 +2369,7 @@ function renderPhotoPreview(){
   area.innerHTML = pendingPhotos.map((p,i)=>`
     <div class="photo-frame">
       <img class="photo-thumb" src="${p}" alt="사진">
-      <button type="button" onclick="pendingPhotos.splice(${i},1);renderPhotoPreview()" class="photo-remove">✕</button>
+      <button type="button" onclick="pendingPhotos.splice(${i},1);renderPhotoPreview()" class="photo-remove" aria-label="첨부 사진 ${i + 1} 삭제">✕</button>
     </div>`).join('');
 }
 
@@ -2745,30 +2792,33 @@ async function exportWord(id){
 async function exportPDF(id){
   const audit = await dbGet('audits', id);
   if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
+
   const w = window.open('', '_blank');
   if(!w){ showToast('팝업 차단을 해제한 뒤 다시 시도하세요'); return; }
-  showToast('인쇄 창에서 PDF로 저장하세요');
-  w.document.write(`<html><head><title>${esc(audit.title)}</title><meta charset="UTF-8">
-<style>body{font-family:'맑은 고딕',sans-serif;font-size:10pt}table{width:100%;border-collapse:collapse}th{background:#1a2332;color:#fff;padding:4pt 5pt}td{border:0.5pt solid #ccc;padding:4pt 5pt}@media print{button{display:none}}</style></head>
-<body><button type="button" onclick="window.print()" style="position:fixed;top:10px;right:10px;padding:8px 16px;background:#3b7dd8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 인쇄/PDF 저장</button>
-<h2 style="text-align:center">${esc(audit.title)} 점검 결과</h2>
-<p>심사원: ${esc(audit.auditor||'')} | 부서: ${esc(audit.dept||'')} | 일자: ${esc(audit.date||'')}</p>
-<table><tr><th>번호</th><th>점검 항목</th><th>참조규정</th><th>결과</th><th>비고</th></tr>
-${audit.items.map(i=>`<tr><td>${esc(i.ref||'')}</td><td>${esc(i.question)}</td><td>${esc(i.refStd||'')}</td><td>${normalizeResultValue(i.result)||'-'}</td><td>${esc(i.note||'')}</td></tr>`).join('')}
-</table></body></html>`);
-  w.document.close();
-  w.focus();
+
+  try{
+    const type = await getAuditReportTemplateType(audit);
+    const template = loadReportTemplate(type);
+    const html = fillReportTemplate(template, audit, type);
+    const printableHtml = html
+      .replace('</head>', `<style>
+        .pdf-print-action{position:fixed;top:10px;right:10px;z-index:9999;padding:8px 16px;background:#1868DB;color:#fff;border:0;border-radius:6px;cursor:pointer;font:600 13px "Malgun Gothic",sans-serif}
+        @media print{.pdf-print-action{display:none!important}}
+      </style></head>`)
+      .replace('</body>', `<button type="button" class="pdf-print-action" onclick="window.print()">인쇄/PDF 저장</button></body>`);
+
+    w.document.open();
+    w.document.write(printableHtml);
+    w.document.close();
+    w.focus();
+    showToast('인쇄 창에서 PDF로 저장하세요');
+  } catch(err){
+    w.close();
+    appError('PDF 출력 실패:', err);
+    showToast(err.message || 'PDF 출력 화면을 만들 수 없습니다');
+  }
 }
 
-// ═══════════════════════════════════════════════
-//  Google Drive (stub — requires OAuth in real deploy)
-// ═══════════════════════════════════════════════
-async function uploadGDrive(id){
-  const online = await updateOnlineTag();
-  if(!online){ showToast('인터넷 연결이 필요합니다'); return; }
-  showToast('Google Drive 연동은 별도 OAuth 설정이 필요합니다');
-  // In production: implement OAuth2 + Drive API v3 multipart upload
-}
 
 // ═══════════════════════════════════════════════
 //  Modal helpers
