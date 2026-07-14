@@ -12,6 +12,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <script src="xlsx.full.min.js"></script>
+<script src="audit-rules.js"></script>
+<script src="audit-store.js"></script>
+<script src="checklist-source.js"></script>
 <style>
 @font-face {
   font-family: "Pretendard";
@@ -589,6 +592,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 
 <input type="file" id="file-camera" accept="image/*" capture="environment" class="hidden" aria-label="카메라 촬영 파일 선택">
 <input type="file" id="file-gallery" accept="image/*" class="hidden" aria-label="앨범 사진 파일 선택">
+<input type="file" id="file-backup" accept="application/json,.json" class="hidden" aria-label="백업 파일 선택">
 <input type="file" id="file-excel" accept=".xlsx,.xls" class="hidden" aria-label="엑셀 점검표 파일 선택">
 
 <script>
@@ -621,60 +625,24 @@ function setVisible(elOrId, visible = true){
 }
 
 function openDB(){
-  return new Promise((res,rej)=>{
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = e=>{
-      const d = e.target.result;
-      if(!d.objectStoreNames.contains('templates'))
-        d.createObjectStore('templates',{keyPath:'id',autoIncrement:true});
-      if(!d.objectStoreNames.contains('audits'))
-        d.createObjectStore('audits',{keyPath:'id',autoIncrement:true});
-    };
-    req.onsuccess = e=>{ db=e.target.result; res(db); };
-    req.onerror = e=>rej(e);
-  });
+  return AuditStore.open(DB_NAME, DB_VER).then(database => { db = database; return database; });
 }
 
 function dbAll(store){
-  return new Promise((res,rej)=>{
-    const tx=db.transaction(store,'readonly');
-    const req=tx.objectStore(store).getAll();
-    req.onsuccess=()=>res(req.result);
-    req.onerror=e=>rej(e);
-  });
+  return AuditStore.all(db, store);
 }
 function dbGet(store,id){
-  return new Promise((res,rej)=>{
-    const tx=db.transaction(store,'readonly');
-    const req=tx.objectStore(store).get(id);
-    req.onsuccess=()=>res(req.result);
-    req.onerror=e=>rej(e);
-  });
+  return AuditStore.get(db, store, id);
 }
 function dbPut(store,obj){
-  return new Promise((res,rej)=>{
-    const tx=db.transaction(store,'readwrite');
-    const req=tx.objectStore(store).put(obj);
-    req.onsuccess=()=>res(req.result);
-    req.onerror=e=>rej(e);
-  });
+  return AuditStore.put(db, store, obj);
 }
 function dbDelete(store,id){
-  return new Promise((res,rej)=>{
-    const tx=db.transaction(store,'readwrite');
-    const req=tx.objectStore(store).delete(id);
-    req.onsuccess=()=>res(req.result);
-    req.onerror=e=>rej(e);
-  });
+  return AuditStore.delete(db, store, id);
 }
 
 function dbClear(store){
-  return new Promise((res,rej)=>{
-    const tx=db.transaction(store,'readwrite');
-    const req=tx.objectStore(store).clear();
-    req.onsuccess=()=>res(req.result);
-    req.onerror=e=>rej(e);
-  });
+  return AuditStore.clear(db, store);
 }
 
 // ═══════════════════════════════════════════════
@@ -711,22 +679,7 @@ const REPORT_TEMPLATES = {
 };
 
 function inferReportTemplateType(source){
-  const text = [
-    source?.name,
-    source?.filename,
-    source?.title,
-    source?.templateName,
-    source?.templateTitle,
-    source?.templateFilename
-  ].filter(Boolean).join(' ').toLowerCase();
-
-  // Project rule: checklist-2 must use Word report template type-2.
-  if(text.includes('checklist-2') || text.includes('checklist 2')) return 'report-type-2';
-
-  // Existing business-specific rule for the converted Word form.
-  if(text.includes('현장탑승심사표') || text.includes('안전성과지표') || text.includes('리튬')) return 'report-type-2';
-
-  return 'report-type-1';
+  return AuditRules.inferReportTemplateType(source);
 }
 
 function getReportTemplateLabel(type){
@@ -734,22 +687,7 @@ function getReportTemplateLabel(type){
 }
 
 function getChecklistUiType(source){
-  const text = [
-    source?.checklistUiType,
-    source?.name,
-    source?.filename,
-    source?.title,
-    source?.templateName,
-    source?.templateTitle,
-    source?.templateFilename
-  ].filter(Boolean).join(' ').toLowerCase();
-
-  // UI rule: only checklist-2 uses the maturity assessment input screen.
-  // Do not infer maturity UI from IOSA, lithium battery, Safety Performance Indicator,
-  // field audit form names, or report-type-2. Those may affect export format only.
-  if(text.includes('checklist-2') || text.includes('checklist 2') || text.includes('2번 체크리스트')) return 'maturity';
-
-  return 'standard';
+  return AuditRules.getChecklistUiType(source);
 }
 
 
@@ -901,16 +839,6 @@ async function repairStoredTemplates(){
 // ═══════════════════════════════════════════════
 const CHECKLIST_FOLDER_PATH = 'checklists';
 const GITHUB_BRANCH = 'main';
-const GITHUB_API_BASE = 'https://api.github.com';
-
-function getChecklistDisplayName(filename){
-  return String(filename || '')
-    .split('/')
-    .pop()
-    .replace(/\.(xlsx|xls)$/i, '')
-    .replace(/[_-]+/g, ' ')
-    .trim() || '이름 없는 점검표';
-}
 
 function getGitHubRepoInfo(){
   const host = location.hostname;
@@ -932,47 +860,13 @@ function getGitHubRepoInfo(){
   };
 }
 
-function normalizeGitHubChecklistItem(item){
-  if(!item || typeof item !== 'object') return null;
-  if(item.type !== 'file') return null;
-  if(!/\.(xlsx|xls)$/i.test(item.name || '')) return null;
-  if(String(item.name || '').startsWith('~$')) return null;
-
-  const filename = String(item.name || '').trim();
-  const sha = String(item.sha || '').trim();
-  const downloadUrl = String(item.download_url || '').trim();
-
-  if(!filename || !downloadUrl) return null;
-
-  return {
-    filename,
-    path: downloadUrl,
-    name: getChecklistDisplayName(filename),
-    sha,
-    updatedAt: '',
-    fingerprint: sha || filename,
-    enabled: true
-  };
-}
-
 async function loadChecklistIndex(){
   const repo = getGitHubRepoInfo();
-  const apiUrl = `${GITHUB_API_BASE}/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/contents/${CHECKLIST_FOLDER_PATH}?ref=${encodeURIComponent(repo.branch)}&ts=${Date.now()}`;
 
   try{
-    const res = await fetch(apiUrl, {
-      cache: 'no-store',
-      headers: { 'Accept': 'application/vnd.github+json' }
-    });
-    if(!res.ok) throw new Error(`GitHub Contents API HTTP ${res.status}`);
-
-    const data = await res.json();
+    const index = await ChecklistSource.loadGitHubIndex({...repo, folderPath:CHECKLIST_FOLDER_PATH});
     checklistSyncState = { checked: true, reachable: true, message: 'GitHub 점검표 서버 접근 가능' };
-    const rawList = Array.isArray(data) ? data : [];
-    return rawList
-      .map(normalizeGitHubChecklistItem)
-      .filter(Boolean)
-      .sort((a,b)=>a.filename.localeCompare(b.filename, 'ko'));
+    return index;
   } catch(e){
     checklistSyncState = { checked: true, reachable: false, message: '온라인 상태와 별개로 GitHub 점검표 서버 접근 실패' };
     appWarn('GitHub checklists 폴더 조회 실패. 저장된 점검표를 계속 사용합니다.', e);
@@ -1270,7 +1164,7 @@ async function renderHome(c){
   ${inProgress.length>0?`
   <div class="section-header">진행 중인 심사</div>
   ${inProgress.slice(0,3).map(a=>`
-  <div class="audit-item" onclick="openAudit(${a.id})">
+    <div class="audit-item" onclick="openAudit(${a.id})">
     <div class="audit-item-head">
       <div class="audit-item-title">${esc(a.title)}</div>
       <div class="badge badge-obs">${getAuditSummary(a).percent}%</div>
@@ -1320,6 +1214,10 @@ async function renderAudits(c){
         <span>${esc(a.dept||'')}</span>
         <span>${esc(a.date||'')}</span>
       </div>
+      <div class="audit-item-meta">
+        <span>점검표: ${esc(a.templateName || '기존 점검표')} · ${esc(a.templateVersion || '버전 정보 없음')}</span>
+        <button type="button" class="btn btn-danger btn-sm" onclick="deleteAudit(${a.id},event)">삭제</button>
+      </div>
     </div>`;
   }).join('')}`;
 }
@@ -1356,6 +1254,31 @@ async function renderTemplates(c){
         <div class="sub">활성 ${activeCount}건 · 자동동기화 ${autoCount}건 · ${syncStatusLabel}</div>
       </div>
       <button type="button" class="btn btn-ghost btn-sm" onclick="syncChecklistsNow()">동기화</button>
+    </div>
+  </div>
+
+  <div class="card template-sync-card" id="storage-status-card">
+    <div class="card-row">
+      <div class="flex-1">
+        <div class="label">기기 저장공간</div>
+        <div class="sub" id="storage-status">저장공간을 확인하는 중입니다.</div>
+      </div>
+    </div>
+  </div>
+  <div class="admin-panel">
+    <div class="admin-panel-title">데이터 보관 안내</div>
+    <div class="admin-panel-desc">심사 기록과 사진은 이 브라우저에만 저장됩니다. 브라우저 데이터 삭제, 시크릿 모드 사용, 기기 초기화 전에는 반드시 백업 파일을 보관하세요.</div>
+  </div>
+  <div class="card template-sync-card">
+    <div class="card-row">
+      <div class="flex-1">
+        <div class="label">백업 및 복원</div>
+        <div class="sub">심사 기록, 사진, 점검표를 JSON 파일로 보관하거나 이 기기에 복원합니다.</div>
+      </div>
+      <div class="template-actions">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="exportLocalBackup()">백업</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="selectLocalBackup()">복원</button>
+      </div>
     </div>
   </div>
 
@@ -1437,6 +1360,9 @@ async function renderTemplates(c){
 
   const fileInput = document.getElementById('file-excel');
   if(fileInput) fileInput.onchange = e=> handleFileSelect(e.target.files[0]);
+  const backupInput = document.getElementById('file-backup');
+  if(backupInput) backupInput.onchange = e=> handleLocalBackupFile(e.target.files[0]);
+  updateStorageStatus();
 }
 
 async function syncChecklistsNow(){
@@ -1452,6 +1378,29 @@ async function syncChecklistsNow(){
   } catch(err){
     appWarn('수동 동기화 실패:', err);
     showToast('동기화 실패. 저장된 점검표를 사용합니다');
+  }
+}
+
+async function updateStorageStatus(){
+  const status = document.getElementById('storage-status');
+  if(!status) return;
+  if(!navigator.storage?.estimate){
+    status.textContent = '이 브라우저는 저장공간 사용량을 제공하지 않습니다. 정기적으로 백업하세요.';
+    return;
+  }
+  try{
+    const {usage = 0, quota = 0} = await navigator.storage.estimate();
+    if(!quota){
+      status.textContent = '저장공간 한도를 확인할 수 없습니다. 정기적으로 백업하세요.';
+      return;
+    }
+    const percent = Math.round(usage / quota * 100);
+    const usageMb = (usage / 1024 / 1024).toFixed(1);
+    const quotaMb = (quota / 1024 / 1024).toFixed(1);
+    status.textContent = `사용량 ${usageMb}MB / ${quotaMb}MB (${percent}%)${percent >= 80 ? ' — 사진을 정리하고 즉시 백업하세요.' : ''}`;
+  } catch(e){
+    appWarn('저장공간 확인 실패:', e);
+    status.textContent = '저장공간을 확인할 수 없습니다. 정기적으로 백업하세요.';
   }
 }
 
@@ -1619,34 +1568,7 @@ function br(value){
 }
 
 function getMaturityConsideration(item, level){
-  const fieldMap = {
-    Conformity: 'conformityCriteria',
-    Established: 'establishedCriteria',
-    Mature: 'matureCriteria',
-    Leading: 'leadingCriteria'
-  };
-  const itemText = String(item?.[fieldMap[level]] || '').trim();
-  if(itemText) return {title: itemText, body: ''};
-
-  const map = {
-    Conformity: {
-      title: '기본 절차를 인지하고 실행하는 수준',
-      body: '예) 위험 징후 즉시 인지 · 표준 절차 실행 · 필요한 장비 또는 자료 확인'
-    },
-    Established: {
-      title: '상황에 맞게 절차와 보고를 수행하는 수준',
-      body: '예) 담당자 간 정보 공유 · 책임자 보고 · 관련 기록과 안내 수행'
-    },
-    Mature: {
-      title: '역할 분담과 추가 점검으로 체계적으로 운영하는 수준',
-      body: '예) 역할과 책임 명확화 · 주변 영향 확인 · 상세 기록과 후속조치 검토'
-    },
-    Leading: {
-      title: '예방과 개선 활동으로 절차를 고도화하는 수준',
-      body: '예) 예방 조치 강화 · 개선사항 도출 · 교육과 절차 개선으로 환류'
-    }
-  };
-  return map[level] || {title:'', body:''};
+  return AuditRules.getMaturityConsideration(item, level);
 }
 
 function isMaturityChecklistAudit(audit){
@@ -1658,12 +1580,7 @@ function isMaturityChecklistAudit(audit){
 }
 
 function normalizeResultValue(value){
-  const v = String(value || '').trim().toUpperCase();
-  if(v === 'OK' || v === 'YES' || v === 'Y') return 'YES';
-  if(v === 'NG' || v === 'NO' || v === 'N') return 'NO';
-  if(v === 'NA' || v === 'N/A') return 'N/A';
-  if(v === 'OBS' || v === 'OBSERVATION') return 'OBS';
-  return value || '';
+  return AuditRules.normalizeResultValue(value);
 }
 
 function resultClass(result){
@@ -1722,7 +1639,7 @@ function renderResultPanel(audit, item){
   return `<div class="result-panel">
     <div class="result-panel-title">Result</div>
     <div class="field-result-row">
-      ${options.map(([value,label,cls])=>`<button type="button" class="field-choice ${result===value ? cls : ''}" onclick="setResult(${audit.id},${idx},'${value}', event)">${label}</button>`).join('')}
+      ${options.map(([value,label,cls])=>`<button type="button" class="field-choice ${result===value ? cls : ''}" onclick="setResult(${audit.id},${idx},'${value}', event)" ${audit.status===AUDIT_STATUS.DONE ? 'disabled' : ''}>${label}</button>`).join('')}
     </div>
   </div>`;
 }
@@ -1730,7 +1647,7 @@ function renderResultPanel(audit, item){
 function renderMaturityPanel(audit, item){
   const idx = item._idx;
   const maturity = item.maturity || '';
-  const maturityLevels = ['Conformity','Established','Mature','Leading'];
+  const maturityLevels = AuditRules.MATURITY_LEVELS;
 
   return `<div class="maturity-panel">
     <div class="maturity-panel-title">Maturity Assessment</div>
@@ -1738,7 +1655,7 @@ function renderMaturityPanel(audit, item){
       ${maturityLevels.map(level=>{
         const c = getMaturityConsideration(item, level);
         const selected = maturity === level;
-        return `<div class="maturity-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected ? 'true' : 'false'}" tabindex="0" onclick="setMaturityResult(${audit.id},${idx},'${level}', event)" onkeydown="if(event.key==='Enter'||event.key===' '){setMaturityResult(${audit.id},${idx},'${level}', event)}">
+        return `<div class="maturity-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected ? 'true' : 'false'}" aria-disabled="${audit.status===AUDIT_STATUS.DONE ? 'true' : 'false'}" tabindex="${audit.status===AUDIT_STATUS.DONE ? '-1' : '0'}" ${audit.status===AUDIT_STATUS.DONE ? '' : `onclick="setMaturityResult(${audit.id},${idx},'${level}', event)" onkeydown="if(event.key==='Enter'||event.key===' '){setMaturityResult(${audit.id},${idx},'${level}', event)}"`}>
           <div class="maturity-card-head">
             <span class="maturity-radio" aria-hidden="true"></span>
             <div class="maturity-card-title">${level}</div>
@@ -1756,7 +1673,7 @@ function renderCommentPanel(audit, item){
   const note = esc(getPendingNoteValue(audit.id, idx, item.note || ''));
   return `<div class="comment-panel">
     <div class="comment-panel-title">Comment(s)</div>
-    <textarea rows="2" placeholder="판단 근거, 관찰 내용 등을 입력하세요" oninput="scheduleNoteSave(${audit.id},${idx},this.value)" onblur="flushNoteSave(${audit.id},${idx})">${note}</textarea>
+    <textarea rows="2" placeholder="판단 근거, 관찰 내용 등을 입력하세요" oninput="scheduleNoteSave(${audit.id},${idx},this.value)" onblur="flushNoteSave(${audit.id},${idx})" ${audit.status===AUDIT_STATUS.DONE ? 'disabled' : ''}>${note}</textarea>
   </div>`;
 }
 
@@ -1766,10 +1683,10 @@ function renderEvidencePanel(audit, item){
     <div class="check-label">Evidence / 사진</div>
     <div class="photo-row" id="photos-${idx}">
       ${(item.photos||[]).map((p)=>`<img class="photo-thumb" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')}
-      <div class="photo-add" onclick="openPhotoModal(${audit.id},${idx})" tabindex="0">
+       ${audit.status===AUDIT_STATUS.DONE ? '' : `<div class="photo-add" onclick="openPhotoModal(${audit.id},${idx})" tabindex="0">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
         <span>추가</span>
-      </div>
+       </div>`}
     </div>
   </div>`;
 }
@@ -1993,7 +1910,9 @@ function renderChecklist(audit){
       <div class="detail-bottom-action-inner">
         <button type="button" class="btn btn-ghost flex-1" onclick="backFromChecklist()">목록</button>
         <button type="button" class="btn btn-ghost detail-section-action" onclick="openSectionSheet()">섹션</button>
-        <button type="button" class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>
+        ${audit.status === AUDIT_STATUS.DONE
+          ? `<button type="button" class="btn btn-teal flex-2" onclick="reopenAudit(${audit.id})">심사 다시 열기</button>`
+          : `<button type="button" class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>`}
       </div>
     </div>
 
@@ -2076,6 +1995,7 @@ async function setMaturityResult(auditId, idx, maturity, event){
 
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
+  if(audit.status === AUDIT_STATUS.DONE){ showToast('완료된 심사는 다시 열어야 수정할 수 있습니다'); return; }
   applyPendingNotesToAudit(audit);
 
   // Preserve the current scroll position.
@@ -2100,6 +2020,7 @@ async function setResult(auditId, idx, result, event){
 
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
+  if(audit.status === AUDIT_STATUS.DONE){ showToast('완료된 심사는 다시 열어야 수정할 수 있습니다'); return; }
   applyPendingNotesToAudit(audit);
 
   // Preserve the current scroll position.
@@ -2122,6 +2043,27 @@ async function setResult(auditId, idx, result, event){
 
 const noteSaveTimers = new Map();
 const pendingNoteValues = new Map();
+const auditWriteQueues = new Map();
+
+function enqueueAuditWrite(auditId, write){
+  const previous = auditWriteQueues.get(auditId) || Promise.resolve();
+  const next = previous.catch(() => {}).then(write);
+  const settled = next.finally(() => {
+    if(auditWriteQueues.get(auditId) === settled) auditWriteQueues.delete(auditId);
+  });
+  auditWriteQueues.set(auditId, settled);
+  return next;
+}
+
+function waitForAuditWrites(auditId){
+  return auditWriteQueues.get(auditId) || Promise.resolve();
+}
+
+function clearPendingNoteWrites(){
+  for(const timer of noteSaveTimers.values()) clearTimeout(timer);
+  noteSaveTimers.clear();
+  pendingNoteValues.clear();
+}
 
 function getNoteSaveKey(auditId, idx){
   return `${auditId}:${idx}`;
@@ -2142,6 +2084,10 @@ function applyPendingNotesToAudit(audit){
 }
 
 function scheduleNoteSave(auditId, idx, note){
+  if(currentAudit?.id === auditId && currentAudit.status === AUDIT_STATUS.DONE){
+    showToast('완료된 심사는 다시 열어야 수정할 수 있습니다');
+    return;
+  }
   const key = getNoteSaveKey(auditId, idx);
   pendingNoteValues.set(key, note);
 
@@ -2159,16 +2105,14 @@ async function persistNoteValue(auditId, idx){
   if(note === undefined) return;
 
   noteSaveTimers.delete(key);
-  const audit = await dbGet('audits', auditId);
-  if(!audit?.items?.[idx]) return;
-
-  audit.items[idx].note = note;
-  await dbPut('audits', audit);
-
-  if(currentAudit?.id === auditId && currentAudit.items?.[idx]){
-    currentAudit.items[idx].note = note;
-  }
-  if(pendingNoteValues.get(key) === note) pendingNoteValues.delete(key);
+  return enqueueAuditWrite(auditId, async () => {
+    const audit = await dbGet('audits', auditId);
+    if(!audit?.items?.[idx] || audit.status === AUDIT_STATUS.DONE) return;
+    audit.items[idx].note = note;
+    await dbPut('audits', audit);
+    if(currentAudit?.id === auditId && currentAudit.items?.[idx]) currentAudit.items[idx].note = note;
+    if(pendingNoteValues.get(key) === note) pendingNoteValues.delete(key);
+  });
 }
 
 function flushNoteSave(auditId, idx){
@@ -2176,6 +2120,24 @@ function flushNoteSave(auditId, idx){
   clearTimeout(noteSaveTimers.get(key));
   noteSaveTimers.delete(key);
   return persistNoteValue(auditId, idx);
+}
+
+async function deleteAudit(id, event){
+  event?.stopPropagation();
+  const audit = await dbGet('audits', id);
+  if(!audit) return;
+  if(!confirm(`"${audit.title}" 심사 기록과 첨부 사진을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
+  await dbDelete('audits', id);
+  if(currentAudit?.id === id) currentAudit = null;
+  showToast('심사 기록을 삭제했습니다');
+  switchTab('audits');
+}
+
+async function flushPendingNotesForAudit(auditId){
+  const indices = [...pendingNoteValues.keys()]
+    .filter(key => key.startsWith(`${auditId}:`))
+    .map(key => Number(key.slice(String(auditId).length + 1)));
+  for(const idx of indices) await flushNoteSave(auditId, idx);
 }
 
 function jumpToNext(auditId){
@@ -2186,16 +2148,33 @@ function jumpToNext(auditId){
 }
 
 async function finishAudit(id){
+  await flushPendingNotesForAudit(id);
+  await waitForAuditWrites(id);
   const audit = await dbGet('audits', id);
   if(!audit) return;
+  if(audit.status === AUDIT_STATUS.DONE){ showToast('이미 완료된 심사입니다'); return; }
   const unanswered = audit.items?.filter(i=>!i.result).length||0;
-  if(unanswered>0){
-    if(!confirm(`아직 ${unanswered}개 항목이 미완료입니다. 완료로 표시하시겠습니까?`)) return;
+  if(!AuditRules.canCompleteAudit(audit)){
+    showToast(`미완료 항목 ${unanswered}개를 입력해야 심사를 완료할 수 있습니다`);
+    jumpToNext(id);
+    return;
   }
   audit.status=AUDIT_STATUS.DONE;
   await dbPut('audits', audit);
   showToast('심사가 완료되었습니다');
   backFromChecklist();
+}
+
+async function reopenAudit(id){
+  const audit = await dbGet('audits', id);
+  if(!audit || audit.status !== AUDIT_STATUS.DONE) return;
+  if(!confirm('완료 상태를 해제하고 심사를 다시 수정하시겠습니까?')) return;
+  audit.status = AUDIT_STATUS.PROGRESS;
+  audit.reopenedAt = new Date().toISOString();
+  await dbPut('audits', audit);
+  currentAudit = audit;
+  renderChecklist(audit);
+  showToast('심사를 다시 열었습니다');
 }
 
 function backFromChecklist(){
@@ -2239,6 +2218,7 @@ async function createAudit(){
     title, date, auditor, dept,
     templateId: tplId,
     templateName: tpl.name || '',
+    templateVersion: getTemplateVersionLabel(tpl),
     checklistUiType: tpl.checklistUiType || getChecklistUiType(tpl),
     reportTemplate: tpl.reportTemplate || inferReportTemplateType(tpl),
     status: AUDIT_STATUS.PROGRESS,
@@ -2317,6 +2297,81 @@ function handleFileSelect(file){
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+const BACKUP_FORMAT = 'audit-app-backup';
+const BACKUP_VERSION = 1;
+
+async function exportLocalBackup(){
+  const [audits, templates] = await Promise.all([dbAll('audits'), dbAll('templates')]);
+  const backup = {
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    audits,
+    templates
+  };
+  const blob = new Blob([JSON.stringify(backup)], {type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `audit-app-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`백업 완료: 심사 ${audits.length}건, 점검표 ${templates.length}건`);
+}
+
+function selectLocalBackup(){
+  document.getElementById('file-backup')?.click();
+}
+
+function isValidBackup(backup){
+  return backup && backup.format === BACKUP_FORMAT && backup.version === BACKUP_VERSION &&
+    Array.isArray(backup.audits) && Array.isArray(backup.templates) &&
+    backup.audits.every(audit => audit && typeof audit === 'object' && Array.isArray(audit.items)) &&
+    backup.templates.every(template => template && typeof template === 'object' && Array.isArray(template.items));
+}
+
+function restoreLocalBackup(backup){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['audits', 'templates'], 'readwrite');
+    const audits = tx.objectStore('audits');
+    const templates = tx.objectStore('templates');
+    audits.clear();
+    templates.clear();
+    backup.templates.forEach(template => templates.put(template));
+    backup.audits.forEach(audit => audits.put(audit));
+    tx.oncomplete = () => resolve();
+    tx.onabort = tx.onerror = () => reject(tx.error || new Error('저장소에 백업 데이터를 기록할 수 없습니다.'));
+  });
+}
+
+function handleLocalBackupFile(file){
+  if(!file) return;
+  const input = document.getElementById('file-backup');
+  if(input) input.value = '';
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try{
+      const backup = JSON.parse(String(e.target.result || ''));
+      if(!isValidBackup(backup)) throw new Error('지원하지 않는 백업 파일입니다.');
+      const first = confirm(`백업 파일에는 심사 ${backup.audits.length}건, 점검표 ${backup.templates.length}건이 있습니다. 현재 기기 데이터를 모두 교체하시겠습니까?`);
+      if(!first) return;
+      const second = confirm('현재 기기의 심사 기록, 사진, 점검표가 모두 삭제되고 백업 파일로 교체됩니다. 계속하시겠습니까?');
+      if(!second) return;
+      clearPendingNoteWrites();
+      await Promise.all([...auditWriteQueues.values()]);
+      await restoreLocalBackup(backup);
+      currentAudit = null;
+      pendingPhotos = [];
+      showToast('백업 데이터를 복원했습니다');
+      switchTab('home');
+    } catch(err){
+      appError('백업 복원 실패:', err);
+      showToast(err.message || '백업 파일을 복원할 수 없습니다');
+    }
+  };
+  reader.readAsText(file, 'utf-8');
 }
 
 
@@ -2437,6 +2492,7 @@ async function savePhoto(){
   const {auditId, itemIdx} = currentPhotoTarget;
   const audit = await dbGet('audits', auditId);
   if(!audit) return;
+  if(audit.status === AUDIT_STATUS.DONE){ showToast('완료된 심사는 다시 열어야 수정할 수 있습니다'); return; }
   audit.items[itemIdx].photos = [...pendingPhotos];
   currentAudit = audit;
   await dbPut('audits', audit);
@@ -2463,6 +2519,11 @@ function viewPhoto(src){
 // ═══════════════════════════════════════════════
 //  Export: Excel
 // ═══════════════════════════════════════════════
+function safeDownloadName(value, fallback){
+  const name = String(value || '').replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim();
+  return name || fallback;
+}
+
 async function exportExcel(id){
   const audit = await dbGet('audits', id);
   if(!audit){ showToast('심사를 불러올 수 없습니다'); return; }
@@ -2514,7 +2575,7 @@ async function exportExcel(id){
     XLSX.utils.book_append_sheet(wb, wsNG, '부적합사항');
   }
 
-  const fname = `${audit.title}_${audit.date||'결과'}.xlsx`;
+  const fname = `${safeDownloadName(audit.title, '심사결과')}_${safeDownloadName(audit.date, '결과')}.xlsx`;
   XLSX.writeFile(wb, fname);
   showToast('Excel 파일 저장됨');
 }
@@ -2699,7 +2760,7 @@ function renderFieldAuditItem(item, index){
   const internalRef = br(item.refStd || '');
   const externalRef = br(item.externalRef || item.external || '');
   const note = br(item.note || '');
-  const maturityLevels = ['Conformity','Established','Mature','Leading'];
+  const maturityLevels = AuditRules.MATURITY_LEVELS;
 
   // Type-2 Word compatibility rule:
   // Each checklist item is rendered as small fixed-width tables to keep Word/PDF layout stable.
@@ -2800,7 +2861,7 @@ async function exportWord(id){
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${audit.title}_${audit.date||'결과'}_${getReportTemplateLabel(type)}.doc`;
+    a.download = `${safeDownloadName(audit.title, '심사결과')}_${safeDownloadName(audit.date, '결과')}_${safeDownloadName(getReportTemplateLabel(type), '보고서')}.doc`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('Word 파일 저장됨');

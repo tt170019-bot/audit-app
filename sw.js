@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'audit-app-v63';
+const CACHE_VERSION = 'audit-app-v64';
 
 const CACHE_FILES = [
   './',
@@ -8,6 +8,9 @@ const CACHE_FILES = [
   './icon-512.png',
   './xlsx.full.min.js',
   './jszip.min.js',
+  './audit-rules.js',
+  './audit-store.js',
+  './checklist-source.js',
 
   // Local font for offline use
   './fonts/PretendardVariable.woff2'
