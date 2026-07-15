@@ -130,7 +130,7 @@ PWA/Service Worker 캐시 때문에 index.html을 수정할 때마다 sw.js의 C
 이번 버전:
 
 ```js
-const CACHE_VERSION = 'audit-app-v64';
+const CACHE_VERSION = 'audit-app-v65';
 ```
 
 GitHub Pages 또는 정적 배포 후 화면이 바뀌지 않으면 다음을 수행합니다.

@@ -340,6 +340,8 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-progress-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); margin-bottom: var(--space-075); }
 .detail-progress-text { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); white-space: nowrap; }
 .detail-result-counts { margin-top: 0; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.checklist-filter-row { display: flex; gap: var(--space-075); overflow-x: auto; padding-top: var(--space-100); }
+.checklist-filter-row .anchor-chip { min-height: 2rem; }
 .detail-result-counts::-webkit-scrollbar { display: none; }
 .detail-prog-wrap { margin: 0; }
 .detail-anchor-nav { display: none; }
@@ -417,11 +419,16 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .maturity-radio { grid-area: radio; width: 1.125rem; height: 1.125rem; border: var(--ui-border-width-strong) solid var(--ads-border-bold); border-radius: var(--radius-full); margin-top: 0.0625rem; background: var(--ads-surface); box-shadow: inset 0 0 0 0.25rem var(--ads-surface); flex: 0 0 auto; }
 .maturity-card.selected .maturity-radio { border-color: var(--ads-brand); background: var(--ads-brand); }
 .maturity-card-title { grid-area: title; min-width: 0; font-size: var(--font-section-title-size); line-height: var(--font-section-title-line); font-weight: var(--ads-weight-semibold); color: var(--ads-text); }
-.maturity-card-summary { grid-area: summary; min-width: 0; color: var(--ads-text); font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-medium); }
+.maturity-card-summary { grid-area: summary; min-width: 0; color: var(--ads-text); font-size: var(--ads-body-size); line-height: var(--ads-body-line); font-weight: var(--ads-weight-medium); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.maturity-details { margin-top: var(--space-075); padding-left: calc(1.125rem + var(--space-100)); color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
+.maturity-details summary { cursor: pointer; color: var(--ads-brand); }
+.maturity-details > div { padding-top: var(--space-075); }
 .maturity-card-desc { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: 1.125rem; padding-left: calc(1.125rem + var(--space-100) + min(10rem, max(7rem, 20vw)) + var(--space-100)); }
 .comment-panel textarea { min-height: 3.5rem; background: var(--ads-surface); }
 .field-photo-panel { background: var(--ads-surface); }
 .field-photo-panel .photo-add { width: 6rem; min-width: 6rem; height: 4.75rem; }
+.photo-storage-note { margin-top: var(--space-075); color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
+.maturity-card[aria-disabled="true"] { cursor: default; opacity: 0.72; }
 
 @media (max-width: 47.9375rem) {
   .maturity-card-head { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "radio title" "radio summary"; }
@@ -452,8 +459,13 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .detail-bottom-action { left: 14rem; right: 0; max-width: none; transform: none; border-inline: 0; border-radius: 0; }
   .field-check-card { margin-inline: 0; }
   .modal-sheet { max-width: 40rem; border-radius: var(--radius-xxlarge); margin-bottom: var(--space-300); }
-  #tabbar { justify-content: center; }
-  .tab-btn { max-width: 10rem; }
+  #tabbar { order: 2; justify-content: center; padding: var(--space-075) var(--space-200); border-top: 0; border-bottom: var(--ui-border-width) solid var(--ads-border); }
+  #content { order: 3; }
+  .tab-btn { flex: 0 1 10rem; max-width: 10rem; min-height: 2.75rem; flex-direction: row; gap: var(--space-075); border-radius: var(--radius-medium); }
+  .tab-btn.active { background: var(--ads-information-bg); }
+  .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); padding-inline: var(--space-200); }
+  .audit-list-grid, .export-list-grid, .template-list-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-150); padding: 0 var(--space-200); }
+  .audit-list-grid .audit-item, .export-list-grid .export-card, .template-list-grid .template-format-card { margin: 0; }
 }
 
 @media (min-width: 64rem) {
@@ -650,6 +662,7 @@ function dbClear(store){
 // ═══════════════════════════════════════════════
 let currentTab = 'home';
 let currentAudit = null;
+let checklistFilter = 'all';
 let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
 let checklistSyncState = { checked: false, reachable: null, message: '점검표 서버 확인 전' };
@@ -1198,7 +1211,7 @@ async function renderAudits(c){
   <div class="align-end-row">
     <button type="button" class="btn btn-teal btn-sm" onclick="openNewAuditModal()">+ 새 심사</button>
   </div>
-  ${audits.map(a=>{
+  <div class="audit-list-grid">${audits.map(a=>{
     const summary = getAuditSummary(a);
     return`<div class="audit-item" onclick="openAudit(${a.id})">
       <div class="audit-item-head">
@@ -1219,7 +1232,7 @@ async function renderAudits(c){
         <button type="button" class="btn btn-danger btn-sm" onclick="deleteAudit(${a.id},event)">삭제</button>
       </div>
     </div>`;
-  }).join('')}`;
+  }).join('')}</div>`;
 }
 
 // ═══════════════════════════════════════════════
@@ -1345,7 +1358,7 @@ async function renderTemplates(c){
 
   <div class="section-header">저장된 점검표 (${templates.length})</div>
   ${templates.length===0?`<div class="template-empty-message">저장된 점검표가 없습니다. 온라인 상태에서 GitHub checklists 폴더 동기화를 실행하세요.</div>`:
-  templates.map(t=>`
+  `<div class="template-list-grid">${templates.map(t=>`
   <div class="card template-format-card ${t.active === false ? 'template-card-inactive' : ''}">
     <div class="card-row">
       <div class="flex-1">
@@ -1354,7 +1367,7 @@ async function renderTemplates(c){
       </div>
       ${admin ? `<button type="button" class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
     </div>
-  </div>`).join('')}
+  </div>`).join('')}</div>`}
   ${admin ? `<div class="align-end-row"><button type="button" class="btn btn-ghost btn-sm" onclick="setAdminMode(false)">관리자 모드 끄기</button></div>` : `<div class="align-end-row"><button type="button" class="btn btn-ghost btn-sm" onclick="setAdminMode(true)">관리자 모드 켜기</button></div>`}
   `;
 
@@ -1416,7 +1429,7 @@ async function renderExport(c){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     <h3>내보낼 심사 없음</h3><p>심사를 완료하면 Excel/Word로 내보낼 수 있습니다</p>
   </div>`:''}
-  ${done.map(a=>{
+  <div class="export-list-grid">${done.map(a=>{
     const summary = getAuditSummary(a);
     return`
     <div class="card export-card">
@@ -1449,7 +1462,7 @@ async function renderExport(c){
         </button>
       </div>
     </div>`;
-  }).join('')}
+  }).join('')}</div>
   `;
 }
 
@@ -1459,6 +1472,7 @@ async function renderExport(c){
 async function openAudit(id){
   currentAudit = await dbGet('audits', id);
   if(!currentAudit) return;
+  checklistFilter = 'all';
 
   setHidden('topbar', true);
   setHidden('tabbar', true);
@@ -1661,7 +1675,7 @@ function renderMaturityPanel(audit, item){
             <div class="maturity-card-title">${level}</div>
             <div class="maturity-card-summary">${esc(c.title)}</div>
           </div>
-          ${c.body ? `<div class="maturity-card-desc">${esc(c.body)}</div>` : ''}
+          <details class="maturity-details"><summary>기준 자세히</summary><div>${esc(c.title)}${c.body ? `<br>${esc(c.body)}` : ''}</div></details>
         </div>`;
       }).join('')}
     </div>
@@ -1679,15 +1693,17 @@ function renderCommentPanel(audit, item){
 
 function renderEvidencePanel(audit, item){
   const idx = item._idx;
+  const photoCount = (item.photos || []).length;
   return `<div class="field-photo-panel">
-    <div class="check-label">Evidence / 사진</div>
+    <div class="check-label">Evidence / 사진${photoCount ? ` · ${photoCount}장` : ''}</div>
     <div class="photo-row" id="photos-${idx}">
       ${(item.photos||[]).map((p)=>`<img class="photo-thumb" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')}
        ${audit.status===AUDIT_STATUS.DONE ? '' : `<div class="photo-add" onclick="openPhotoModal(${audit.id},${idx})" tabindex="0">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
-        <span>추가</span>
+       <span>추가</span>
        </div>`}
     </div>
+    <div class="photo-storage-note">사진은 이 기기에 저장됩니다. 정기적으로 백업하세요.</div>
   </div>`;
 }
 
@@ -1850,9 +1866,11 @@ function renderChecklist(audit){
   const c = document.getElementById('content');
   const items = getAuditItems(audit);
   const summary = getAuditSummary(audit);
+  const visibleItems = items.filter(item => checklistFilter === 'all' || (checklistFilter === 'pending' ? !item.result : normalizeResultValue(item.result) === checklistFilter));
 
   const sections = {};
-  items.forEach((item,idx)=>{
+  visibleItems.forEach(item=>{
+    const idx = items.indexOf(item);
     const sec = item.section||'일반';
     if(!sections[sec]) sections[sec]=[];
     sections[sec].push({...item, _idx:idx});
@@ -1881,6 +1899,9 @@ function renderChecklist(audit){
           </div>
         </div>
         <div class="prog-wrap detail-prog-wrap"><div class="prog-fill" style="width:${summary.percent}%"></div></div>
+        <div class="checklist-filter-row">
+          ${[['all','전체'],['pending','미완료'],['NO','NO'],['OBS','OBS']].map(([value,label])=>`<button type="button" class="anchor-chip ${checklistFilter===value ? 'is-current' : ''}" aria-pressed="${checklistFilter===value ? 'true' : 'false'}" onclick="setChecklistFilter('${value}')">${label}</button>`).join('')}
+        </div>
       </div>
     </div>
 
@@ -1912,7 +1933,9 @@ function renderChecklist(audit){
         <button type="button" class="btn btn-ghost detail-section-action" onclick="openSectionSheet()">섹션</button>
         ${audit.status === AUDIT_STATUS.DONE
           ? `<button type="button" class="btn btn-teal flex-2" onclick="reopenAudit(${audit.id})">심사 다시 열기</button>`
-          : `<button type="button" class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>`}
+          : summary.answered < summary.total
+            ? `<button type="button" class="btn btn-teal flex-2" disabled>미완료 ${summary.total-summary.answered}개</button>`
+            : `<button type="button" class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>`}
       </div>
     </div>
 
@@ -2053,6 +2076,11 @@ function enqueueAuditWrite(auditId, write){
   });
   auditWriteQueues.set(auditId, settled);
   return next;
+}
+
+function setChecklistFilter(value){
+  checklistFilter = value;
+  if(currentAudit) renderChecklist(currentAudit);
 }
 
 function waitForAuditWrites(auditId){

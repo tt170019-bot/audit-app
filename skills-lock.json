@@ -73,6 +73,18 @@
       "skillPath": "skills/deprecated/design-an-interface/SKILL.md",
       "computedHash": "7012bc90f6f71495e52632e0454c2f4c63bf0ebe21d5969be40220f06aef4a1a"
     },
+    "design-consultation": {
+      "source": "garrytan/gstack",
+      "sourceType": "github",
+      "skillPath": "design-consultation/SKILL.md",
+      "computedHash": "913a63a2ff6889d3137c85912e8919b325ba955d279703f3b5ecd3efd83430d6"
+    },
+    "design-review": {
+      "source": "garrytan/gstack",
+      "sourceType": "github",
+      "skillPath": "design-review/SKILL.md",
+      "computedHash": "7cc4b39c8b5f9d66e20509e0aca1c95c9cb009f4e8f2e3479b7e5ea530f53102"
+    },
     "diagnosing-bugs": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -114,6 +126,12 @@
       "sourceType": "github",
       "skillPath": "skills/productivity/grilling/SKILL.md",
       "computedHash": "ac63b22655a6fa4a59468dda21415b773c0aaf5a7e2e27e2259eaabf02a840bc"
+    },
+    "gstack": {
+      "source": "garrytan/gstack",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "2b96e1db510df169809ba0e7db57ba1d293001b57f7f172f5401e938e85e44fc"
     },
     "handoff": {
       "source": "mattpocock/skills",
