@@ -1936,7 +1936,7 @@ function renderChecklist(audit){
         ${audit.status === AUDIT_STATUS.DONE
           ? `<button type="button" class="btn btn-teal flex-2" onclick="reopenAudit(${audit.id})">심사 다시 열기</button>`
           : summary.answered < summary.total
-            ? `<button type="button" class="btn btn-teal flex-2" disabled>미완료 ${summary.total-summary.answered}개</button>`
+            ? `<button type="button" class="btn btn-teal flex-2" onclick="jumpToNext(${audit.id})">미완료 ${summary.total-summary.answered}개</button>`
             : `<button type="button" class="btn btn-teal flex-2" onclick="finishAudit(${audit.id})">심사 완료</button>`}
       </div>
     </div>
