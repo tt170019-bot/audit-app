@@ -125,20 +125,9 @@ F~I가 비어 있으면 앱의 기본 성숙도 설명이 표시됩니다.
 
 ## 6. 배포 시 주의사항
 
-PWA/Service Worker 캐시 때문에 index.html을 수정할 때마다 sw.js의 CACHE_VERSION을 올려야 합니다.
+앱 핵심 파일은 온라인에서는 네트워크를 우선 사용하고, 오프라인일 때는 마지막으로 정상 수신한 캐시를 사용합니다. 따라서 `index.html`을 수정할 때마다 Service Worker 캐시 버전을 수동으로 올릴 필요가 없습니다.
 
-이번 버전:
-
-```js
-const CACHE_VERSION = 'audit-app-v72';
-```
-
-GitHub Pages 또는 정적 배포 후 화면이 바뀌지 않으면 다음을 수행합니다.
-
-1. Chrome DevTools 열기
-2. Application > Service Workers > Unregister
-3. Application > Storage > Clear site data
-4. 새로고침
+GitHub Pages 또는 정적 배포 후에도 이전 화면이 보이면 페이지를 한 번 새로고침해 최신 Service Worker를 받습니다. 그래도 갱신되지 않을 때만 Chrome DevTools의 Application > Service Workers에서 Unregister 후 새로고침합니다.
 
 ---
 

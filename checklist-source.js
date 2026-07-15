@@ -14,6 +14,19 @@
     return { filename, path, name:displayName(filename), sha, updatedAt:'', fingerprint:sha || filename, enabled:true };
   }
 
+  function extractRows(rows){
+    if(!Array.isArray(rows)) return [];
+    return rows.slice(1).map(row => {
+      const [section, ref, question, refStd, externalRef, conformityCriteria, establishedCriteria, matureCriteria, leadingCriteria, type] = row || [];
+      if(!question) return null;
+      return {
+        section: section || '일반', ref, question, refStd, externalRef,
+        conformityCriteria, establishedCriteria, matureCriteria, leadingCriteria,
+        type: type || 'YES/NO/OBS/N/A'
+      };
+    }).filter(Boolean);
+  }
+
   async function loadGitHubIndex({owner, repo, branch, folderPath}){
     const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${folderPath}?ref=${encodeURIComponent(branch)}&ts=${Date.now()}`;
     const response = await fetch(url, {cache:'no-store', headers:{Accept:'application/vnd.github+json'}});
@@ -22,5 +35,5 @@
     return (Array.isArray(data) ? data : []).map(normalize).filter(Boolean).sort((a, b) => a.filename.localeCompare(b.filename, 'ko'));
   }
 
-  return { displayName, loadGitHubIndex };
+  return { displayName, extractRows, loadGitHubIndex };
 });

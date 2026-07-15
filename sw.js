@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'audit-app-v72';
+const CACHE_NAME = 'audit-app-shell';
 
 const CACHE_FILES = [
   './',
@@ -18,7 +18,7 @@ const CACHE_FILES = [
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_VERSION)
+    caches.open(CACHE_NAME)
       .then(cache => cache.addAll(CACHE_FILES))
       .then(() => self.skipWaiting())
   );
@@ -29,7 +29,7 @@ self.addEventListener('activate', event => {
     caches.keys()
       .then(keys => Promise.all(
         keys
-          .filter(key => key !== CACHE_VERSION)
+          .filter(key => key.startsWith('audit-app-') && key !== CACHE_NAME)
           .map(key => caches.delete(key))
       ))
       .then(() => self.clients.claim())
@@ -38,28 +38,22 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) return cachedResponse;
-
-        return fetch(event.request)
-          .then(networkResponse => {
-            const responseClone = networkResponse.clone();
-
-            caches.open(CACHE_VERSION)
-              .then(cache => {
-                cache.put(event.request, responseClone);
-              });
-
-            return networkResponse;
-          })
-          .catch(() => {
-            if (event.request.mode === 'navigate') {
-              return caches.match('./index.html');
-            }
-          });
+    fetch(event.request)
+      .then(networkResponse => {
+        if(networkResponse.ok){
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+        }
+        return networkResponse;
       })
+      .catch(() => caches.match(event.request).then(cachedResponse => {
+        if(cachedResponse) return cachedResponse;
+        if(event.request.mode === 'navigate') return caches.match('./index.html');
+        return Response.error();
+      }))
   );
 });

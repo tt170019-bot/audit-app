@@ -74,15 +74,15 @@
   --font-body-size: 1rem;                  /* 16px */
   --font-body-line: 1.5rem;                /* 24px */
   --font-control-size: 0.875rem;           /* 14px */
-  --font-control-line: 1.25rem;            /* 20px */
+  --font-control-line: 1.2;                /* 16.8px */
   --font-input-size: 1rem;                 /* 16px */
-  --font-input-line: 1.375rem;             /* 22px */
+  --font-input-line: 1.5;                  /* 24px */
   --font-result-size: 0.875rem;            /* 14px */
-  --font-result-line: 1.25rem;             /* 20px */
+  --font-result-line: 1.2;                 /* 16.8px */
   --font-helper-size: 0.8125rem;           /* 13px */
-  --font-helper-line: 1.125rem;            /* 18px */
+  --font-helper-line: 1.5;                 /* 19.5px */
   --font-caption-size: 0.75rem;            /* 12px */
-  --font-caption-line: 1rem;               /* 16px */
+  --font-caption-line: 1.4;                /* 16.8px */
 
   /* 기존 ADS 참조를 유지하는 호환 별칭 */
   --ads-heading-large-size: var(--font-kpi-size);
@@ -126,10 +126,10 @@
   --shadow-overlay: 0 16px 40px rgba(0, 0, 0, 0.45);
   --shadow-overflow: none;
 
-  --ui-button-height: 2.5rem;
-  --ui-button-small-height: 2.75rem;
-  --ui-button-padding-inline: var(--space-200);
-  --ui-button-small-padding-inline: var(--space-150);
+  --ui-button-height: 2.25rem;
+  --ui-button-small-height: 2.25rem;
+  --ui-button-padding-inline: 0.875rem;
+  --ui-button-small-padding-inline: 0.875rem;
   --ui-chip-height: 2rem;
   --ui-chip-padding-inline: var(--space-150);
   --ui-lozenge-height: 1.25rem;
@@ -140,6 +140,7 @@
   --ui-progress-height: 0.25rem;
   --ui-photo-size: 4.5rem;
   --touch-target-min: 2.75rem;
+  --touch-target-hit-slop: 0.25rem;
   --mobile-action-height: 3.5rem;
   --mobile-card-padding: var(--space-200);
   --mobile-page-padding: var(--space-200);
@@ -181,7 +182,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 #topbar { background: var(--ads-surface); border-bottom: var(--ui-border-width) solid var(--ads-border); padding: env(safe-area-inset-top, 0) var(--space-0) var(--space-0); flex-shrink: 0; z-index: 100; }
 #topbar-inner { display: flex; align-items: center; gap: var(--space-150); padding: var(--space-150) var(--mobile-page-padding); min-height: var(--ui-topbar-height); }
 #topbar h1 { font-size: var(--ads-heading-small-size); line-height: var(--ads-heading-small-line); font-weight: var(--ads-weight-semibold); flex: 1; letter-spacing: -0.01em; }
-#topbar .tag { display: inline-flex; align-items: center; min-height: var(--ui-lozenge-height); padding-inline: var(--ui-lozenge-padding-inline); border-radius: var(--radius-small); background: var(--ads-information-bg); color: var(--ads-information-text); font-size: var(--font-caption-size); line-height: var(--font-caption-line); font-weight: var(--ads-weight-semibold); letter-spacing: 0.02em; }
+#topbar .tag { display: inline-flex; align-items: center; min-height: var(--ui-lozenge-height); padding-inline: var(--ui-lozenge-padding-inline); border-radius: var(--radius-small); background: var(--ads-information-bg); color: var(--ads-information-text); font-size: var(--font-caption-size); line-height: var(--font-caption-line); font-weight: var(--ads-weight-regular); letter-spacing: 0.02em; }
+.desktop-nav { display: none; }
 #content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: env(safe-area-inset-bottom, 0); }
 #tabbar { background: var(--ads-surface); border-top: var(--ui-border-width) solid var(--ads-border); display: flex; padding: var(--space-100) var(--space-0) calc(var(--space-100) + env(safe-area-inset-bottom, 0)); flex-shrink: 0; }
 .tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-025); min-height: var(--ui-tabbar-height); border: 0; background: transparent; color: var(--ads-text-subtlest); font-size: var(--font-control-size); line-height: var(--font-control-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, color 150ms ease; }
@@ -199,7 +201,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .card-row .sub { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtle); margin-top: var(--space-025); }
 
 /* Buttons */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-075); min-height: var(--touch-target-min); padding-inline: var(--ui-button-padding-inline); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-medium); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--font-control-size); line-height: var(--font-control-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease; -webkit-user-select: none; user-select: none; }
+.btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-075); min-height: var(--ui-button-height); padding-block: var(--space-100); padding-inline: var(--ui-button-padding-inline); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-medium); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--font-control-size); line-height: var(--font-control-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, transform 100ms ease; -webkit-user-select: none; user-select: none; }
+.btn::before, .ans-btn::before, .field-choice::before, .anchor-chip::before { content: ""; position: absolute; inset: calc(-1 * var(--touch-target-hit-slop)); }
 .btn:hover { background: var(--ads-surface-container-hovered); }
 .btn:active { transform: scale(0.98); }
 .btn-primary, .btn-teal { background: var(--ads-brand); border-color: var(--ads-brand); color: var(--ads-text-inverse); }
@@ -217,7 +220,7 @@ textarea { resize: vertical; min-height: var(--space-800); }
 select option { background: var(--ads-surface); color: var(--ads-text); }
 
 /* Lozenge / Badge */
-.badge, .lozenge, .dDay { display: inline-flex; align-items: center; justify-content: center; width: max-content; max-width: 100%; min-height: var(--ui-lozenge-height); padding-inline: var(--ui-lozenge-padding-inline); border-radius: var(--radius-small); font-size: var(--font-caption-size); line-height: var(--font-caption-line); font-weight: var(--ads-weight-medium); white-space: nowrap; border: var(--ui-border-width) solid transparent; }
+.badge, .lozenge, .dDay { display: inline-flex; align-items: center; justify-content: center; width: max-content; max-width: 100%; min-height: var(--ui-lozenge-height); padding-inline: var(--ui-lozenge-padding-inline); border-radius: var(--radius-full); font-size: var(--font-caption-size); line-height: var(--font-caption-line); font-weight: var(--ads-weight-regular); white-space: nowrap; border: var(--ui-border-width) solid transparent; }
 .badge-ok { background: var(--ads-success-bg); color: var(--ads-success-text); border-color: var(--ads-success-bold); }
 .badge-ng { background: var(--ads-danger-bg); color: var(--ads-danger-text); border-color: var(--ads-danger); }
 .badge-na { background: var(--ads-neutral-bg); color: var(--ads-neutral-text); border-color: var(--ads-neutral-bold); }
@@ -225,7 +228,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 
 /* Answer buttons */
 .ans-row { display: flex; gap: var(--space-100); flex-wrap: wrap; }
-.ans-btn { flex: 1; min-width: var(--space-800); min-height: var(--ui-button-small-height); border: var(--ui-border-width) solid var(--ads-border-input); background: var(--ads-surface); color: var(--ads-text-subtle); border-radius: var(--radius-full); padding-inline: var(--space-100); font-size: var(--font-result-size); line-height: var(--font-result-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; text-align: center; }
+.ans-btn { position: relative; flex: 1; min-width: var(--space-800); min-height: var(--ui-button-small-height); padding-block: var(--space-100); padding-inline: var(--ui-button-small-padding-inline); border: var(--ui-border-width) solid var(--ads-border-input); background: var(--ads-surface); color: var(--ads-text-subtle); border-radius: var(--radius-full); font-size: var(--font-result-size); line-height: var(--font-result-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; text-align: center; }
 .ans-btn:hover { background: var(--ads-surface-container); }
 .ans-btn.sel-ok { background: var(--ads-success-bg); border-color: var(--ads-success-bold); color: var(--ads-success-text); }
 .ans-btn.sel-ng { background: var(--ads-danger-bg); border-color: var(--ads-danger); color: var(--ads-danger-text); }
@@ -348,9 +351,9 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .detail-prog-wrap { margin: 0; }
 .detail-anchor-nav { display: none; }
 .detail-anchor-nav::-webkit-scrollbar { display: none; }
-.anchor-chip { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: var(--space-075); min-height: 2.25rem; max-width: 12rem; padding-inline: var(--space-150); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--font-control-size); line-height: var(--font-control-line); font-weight: var(--ads-weight-medium); white-space: nowrap; cursor: pointer; scroll-snap-align: start; }
+.anchor-chip { position: relative; display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: var(--space-075); min-height: 2.25rem; max-width: 12rem; padding-block: var(--space-100); padding-inline: var(--ui-button-small-padding-inline); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--font-control-size); line-height: var(--font-control-line); font-weight: var(--ads-weight-medium); white-space: nowrap; cursor: pointer; scroll-snap-align: start; }
 .anchor-chip:hover, .anchor-chip:active, .anchor-chip:focus-visible { background: var(--ads-surface-container-hovered); color: var(--ads-text); }
-.anchor-chip.is-current { font-weight: var(--ads-weight-semibold); }
+.anchor-chip.is-current { font-weight: var(--ads-weight-medium); }
 .anchor-chip-label { min-width: 0; max-width: 8.5rem; overflow: hidden; text-overflow: ellipsis; color: inherit; }
 .anchor-chip-count { margin-left: auto; color: inherit; font-weight: var(--ads-weight-semibold); font-variant-numeric: tabular-nums; }
 .detail-body { display: block; }
@@ -386,21 +389,26 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .field-check-card.answered { border-color: var(--ads-border-bold); }
 .field-card-toggle { cursor: default; }
 .check-input-card { padding: var(--space-200); cursor: default; }
-.check-input-top { display: grid; grid-template-columns: 5rem minmax(0, 1fr) 5rem; align-items: center; gap: var(--space-100); margin-bottom: var(--space-100); }
-.check-input-no { justify-self: start; min-width: 0; min-height: auto; padding-inline: 0; border: 0; border-radius: 0; background: transparent; color: var(--ads-brand); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); letter-spacing: 0.01em; white-space: nowrap; }
-.check-input-section { min-width: 0; text-align: center; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.check-input-top .badge { justify-self: end; min-height: 1.375rem; padding-inline: var(--space-075); border-radius: var(--radius-full); }
-.check-input-question { color: var(--ads-text); font-size: var(--font-check-question-size); line-height: var(--font-check-question-line); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-150); }
-.check-input-refs { display: flex; flex-direction: column; gap: var(--space-075); }
+.check-input-top { display: flex; align-items: flex-start; gap: var(--space-200); margin-bottom: var(--space-150); }
+.check-input-no { flex: 0 0 var(--space-500); width: var(--space-500); height: var(--space-500); display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-large); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--font-control-size); line-height: var(--font-control-line); font-weight: var(--ads-weight-medium); font-variant-numeric: tabular-nums; }
+.check-input-content { min-width: 0; padding-top: var(--space-025); }
+.check-input-section { color: var(--ads-brand); font-size: var(--font-helper-size); line-height: 1.3; font-weight: var(--ads-weight-medium); letter-spacing: 0.025rem; margin-bottom: var(--space-050); }
+.check-input-question { color: var(--ads-text); font-size: var(--font-check-question-size); line-height: var(--font-check-question-line); font-weight: var(--ads-weight-semibold); }
+.check-input-reference { border-top: var(--ui-border-width) solid var(--ads-border); }
+.check-reference-toggle { min-height: var(--touch-target-min); display: flex; align-items: center; justify-content: space-between; gap: var(--space-100); padding: var(--space-100) var(--space-0); color: var(--ads-text-subtle); font-size: var(--font-helper-size); line-height: 1.3; font-weight: var(--ads-weight-medium); letter-spacing: 0.025rem; cursor: pointer; list-style: none; }
+.check-reference-toggle::-webkit-details-marker { display: none; }
+.check-reference-toggle::after { content: '⌄'; flex: 0 0 auto; color: var(--ads-text-subtlest); font-size: var(--font-body-size); transition: transform 150ms ease; }
+.check-input-reference[open] .check-reference-toggle::after { transform: rotate(180deg); }
+.check-input-refs { display: flex; flex-direction: column; gap: var(--space-075); padding-bottom: var(--space-150); }
 .check-ref-line { display: flex; gap: var(--space-100); align-items: start; color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
-.check-ref-label { flex: 0 0 6rem; text-align: left; white-space: nowrap; color: var(--ads-text-subtlest); font-weight: var(--ads-weight-semibold); }
+.check-ref-label { flex: 0 0 6rem; text-align: left; white-space: nowrap; color: var(--ads-text-subtlest); font-weight: var(--ads-weight-medium); }
 .check-ref-line > span:last-child { min-width: 0; line-height: var(--ads-body-small-line); }
 .check-body { display: block; padding: var(--space-0) var(--space-200) var(--space-200); border-top: var(--ui-border-width) solid var(--ads-border); }
 .check-body.hidden { display: block; }
 .result-panel, .comment-panel, .maturity-panel, .field-photo-panel { padding-top: var(--space-150); }
 .result-panel-title, .maturity-panel-title, .comment-panel-title, .check-label { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-075); }
 .field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); width: 100%; }
-.field-choice { min-height: var(--ui-button-small-height); padding-inline: var(--space-100); border: 0; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--font-result-size); line-height: var(--font-result-line); font-weight: var(--ads-weight-semibold); cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 100ms ease; }
+.field-choice { position: relative; min-height: var(--ui-button-small-height); padding-block: var(--space-100); padding-inline: var(--ui-button-small-padding-inline); border: 0; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--font-result-size); line-height: var(--font-result-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 100ms ease; }
 .field-choice:hover { background: var(--ads-surface-container-hovered); color: var(--ads-text); }
 .field-choice.selected-ok { background: var(--ads-success-bg); color: var(--ads-success-text); }
 .field-choice.selected-ng { background: var(--ads-danger-bg); color: var(--ads-danger-text); }
@@ -410,14 +418,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .maturity-card { border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-large); padding: var(--space-150); background: var(--ads-surface); box-shadow: none; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
 .maturity-card:hover { background: var(--ads-surface-container); }
 .maturity-card.selected { border-color: var(--ads-brand); background: var(--ads-information-bg); box-shadow: 0 0 0 var(--ui-border-width) var(--ads-brand); }
-.maturity-card-head {
-  display: grid;
-  grid-template-columns: auto minmax(7rem, 10rem) minmax(0, 1fr);
-  grid-template-areas: "radio title summary";
-  align-items: start;
-  gap: var(--space-100);
-  margin-bottom: var(--space-075);
-}
+.maturity-card-head { display: grid; grid-template-columns: auto minmax(7rem, 10rem) minmax(0, 1fr); grid-template-areas: "radio title summary"; align-items: start; gap: var(--space-100); margin-bottom: var(--space-075); }
 .maturity-radio { grid-area: radio; width: 1.125rem; height: 1.125rem; border: var(--ui-border-width-strong) solid var(--ads-border-bold); border-radius: var(--radius-full); margin-top: 0.0625rem; background: var(--ads-surface); box-shadow: inset 0 0 0 0.25rem var(--ads-surface); flex: 0 0 auto; }
 .maturity-card.selected .maturity-radio { border-color: var(--ads-brand); background: var(--ads-brand); }
 .maturity-card-title { grid-area: title; min-width: 0; font-size: var(--font-section-title-size); line-height: var(--font-section-title-line); font-weight: var(--ads-weight-semibold); color: var(--ads-text); }
@@ -426,12 +427,11 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .maturity-details summary { cursor: pointer; color: var(--ads-brand); }
 .maturity-details > div { padding-top: var(--space-075); }
 .maturity-card-desc { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: 1.125rem; padding-left: calc(1.125rem + var(--space-100) + min(10rem, max(7rem, 20vw)) + var(--space-100)); }
+.maturity-card[aria-disabled="true"] { cursor: default; opacity: 0.72; }
 .comment-panel textarea { min-height: 3.5rem; background: var(--ads-surface); }
 .field-photo-panel { background: var(--ads-surface); }
 .field-photo-panel .photo-add { width: 6rem; min-width: 6rem; height: 4.75rem; }
 .photo-storage-note { margin-top: var(--space-075); color: var(--ads-text-subtlest); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
-.maturity-card[aria-disabled="true"] { cursor: default; opacity: 0.72; }
-
 @media (max-width: 47.9375rem) {
   .maturity-card-head { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "radio title" "radio summary"; }
   .maturity-card-summary { grid-column: unset; grid-area: summary; }
@@ -440,11 +440,30 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .detail-result-counts { gap: var(--space-050); }
   .detail-result-counts .badge { padding-inline: var(--space-050); }
   .field-check-card { margin-left: var(--mobile-page-padding); margin-right: var(--mobile-page-padding); margin-bottom: var(--card-stack-gap); }
-  .field-result-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (min-width: 48rem) {
+  #topbar-inner { width: min(80rem, calc(100% - 4rem)); margin-inline: auto; padding-inline: 0; }
+  #topbar h1 { flex: 0 1 auto; }
+  .desktop-nav { display: flex; align-items: center; gap: var(--space-050); margin-left: auto; }
+  .desktop-nav-btn { min-height: 2.25rem; padding: var(--space-075) var(--space-150); border: 0; border-radius: var(--radius-medium); background: transparent; color: var(--ads-text-subtle); font-size: var(--font-control-size); line-height: var(--font-control-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, color 150ms ease; }
+  .desktop-nav-btn:hover { background: var(--ads-surface-container); color: var(--ads-text); }
+  .desktop-nav-btn.active { background: var(--ads-information-bg); color: var(--ads-information-text); }
   #content { max-width: none; width: 100%; }
+  #content.web-content { padding-inline: var(--space-400); }
+  #content.web-content > * { max-width: 80rem; margin-inline: auto; }
+  #content.web-content .home-hero,
+  #content.web-content .section-header,
+  #content.web-content .quick-actions,
+  #content.web-content .align-end-row,
+  #content.web-content .stat-grid,
+  #content.web-content .audit-list-grid,
+  #content.web-content .export-list-grid,
+  #content.web-content .template-list-grid { padding-inline: var(--space-0); }
+  #content.web-content .card,
+  #content.web-content .audit-item,
+  #content.web-content .admin-panel,
+  #content.web-content .upload-zone { margin-inline: auto; }
   .detail-shell { max-width: none; width: 100%; margin: 0; }
   .detail-anchor-nav { display: none; }
   .detail-section-action { display: none; }
@@ -454,14 +473,14 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .detail-sidebar .anchor-chip { width: 100%; max-width: none; justify-content: space-between; min-height: var(--touch-target-min); padding-inline: var(--space-150); border: var(--ui-border-width) solid transparent; border-radius: var(--radius-large); background: transparent; color: var(--ads-text-subtle); text-align: left; }
   .detail-sidebar .anchor-chip:hover, .detail-sidebar .anchor-chip:active { background: transparent; color: var(--ads-text-subtle); }
   .detail-sidebar .anchor-chip:focus-visible { background: transparent; color: var(--ads-text-subtle); outline: var(--ui-border-width-strong) solid var(--ads-border-focused); outline-offset: var(--space-025); }
-  .detail-sidebar .anchor-chip.is-current { background: var(--ads-information-bg); color: var(--ads-information-text); font-weight: var(--ads-weight-semibold); }
+  .detail-sidebar .anchor-chip.is-current { background: var(--ads-information-bg); color: var(--ads-information-text); font-weight: var(--ads-weight-medium); }
   .detail-sidebar .anchor-chip-label { max-width: 9rem; }
   .detail-content { min-width: 0; padding-inline: var(--mobile-page-padding); padding-bottom: calc(var(--mobile-action-height) + var(--space-500) + env(safe-area-inset-bottom, 0)); }
   .detail-checklist-column { max-width: 52rem; margin-inline: auto; padding-top: var(--space-150); }
   .detail-bottom-action { left: 14rem; right: 0; max-width: none; transform: none; border-inline: 0; border-radius: 0; }
   .field-check-card { margin-inline: 0; }
   .modal-sheet { max-width: 40rem; border-radius: var(--radius-xxlarge); margin-bottom: var(--space-300); }
-  #tabbar { order: 2; justify-content: center; padding: var(--space-075) var(--space-200); border-top: 0; border-bottom: var(--ui-border-width) solid var(--ads-border); }
+  #tabbar { display: none; }
   #content { order: 3; }
   .tab-btn { flex: 0 1 10rem; max-width: 10rem; min-height: 2.75rem; flex-direction: row; gap: var(--space-075); border-radius: var(--radius-medium); }
   .tab-btn.active { background: var(--ads-information-bg); }
@@ -531,6 +550,12 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   <div id="topbar">
     <div id="topbar-inner">
       <h1 id="topbar-title">심사 점검표</h1>
+      <nav class="desktop-nav" aria-label="주요 탐색">
+        <button type="button" class="desktop-nav-btn active" data-tab="home" onclick="switchTab('home', event)">홈</button>
+        <button type="button" class="desktop-nav-btn" data-tab="audits" onclick="switchTab('audits', event)">점검 기록</button>
+        <button type="button" class="desktop-nav-btn" data-tab="templates" onclick="switchTab('templates', event)">점검표</button>
+        <button type="button" class="desktop-nav-btn" data-tab="export" onclick="switchTab('export', event)">내보내기</button>
+      </nav>
       <span class="tag" id="offline-tag">OFFLINE</span>
       <button type="button" class="btn btn-ghost btn-sm hidden" id="topbar-action"></button>
     </div>
@@ -923,21 +948,8 @@ function extractChecklistItemsFromRows(rows){
   const items = [];
   const sections = new Set();
 
-  for(let i=1;i<rows.length;i++){
-    const [section,ref,question,refStd,externalRef,conformityCriteria,establishedCriteria,matureCriteria,leadingCriteria,type] = rows[i];
-    if(!question) continue;
-    const normalized = normalizeChecklistItem({
-      section: section || '일반',
-      ref,
-      question,
-      refStd,
-      externalRef,
-      conformityCriteria,
-      establishedCriteria,
-      matureCriteria,
-      leadingCriteria,
-      type: type || 'YES/NO/OBS/N/A'
-    });
+  for(const row of ChecklistSource.extractRows(rows)){
+    const normalized = normalizeChecklistItem(row);
     if(!normalized) continue;
     sections.add(normalized.section || '일반');
     items.push(normalized);
@@ -1067,7 +1079,7 @@ function switchTab(tab, event){
   }
 
   currentTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(b=>{
+  document.querySelectorAll('.tab-btn, .desktop-nav-btn').forEach(b=>{
     b.classList.toggle(UI_CLASS.ACTIVE, b.dataset.tab===tab);
   });
 
@@ -1088,6 +1100,7 @@ function switchTab(tab, event){
 
 async function renderTab(tab){
   const c = document.getElementById('content');
+  c.classList.toggle('web-content', ['home','audits','templates','export'].includes(tab));
   document.getElementById('topbar-title').textContent = '심사 점검표';
   if(tab==='home') await renderHome(c);
   else if(tab==='audits') await renderAudits(c);
@@ -1475,6 +1488,7 @@ async function openAudit(id){
   currentAudit = await dbGet('audits', id);
   if(!currentAudit) return;
   checklistFilter = 'all';
+  document.getElementById('content').classList.remove('web-content');
 
   setHidden('topbar', true);
   setHidden('tabbar', true);
@@ -1620,25 +1634,27 @@ function resultLabel(result){
 
 function renderRequirementTable(audit, item){
   const idx = item._idx;
-  const ref = br(item.ref || idx + 1);
+  const ref = br(item.ref || '—');
   const question = br(item.question || '');
   const internalRef = br(item.refStd || '');
   const externalRef = br(item.externalRef || item.external || '');
-  const sectionTitle = br(item.section || '일반');
-  const result = normalizeResultValue(item.result || '');
-  const resultBadge = result ? `<span class="badge ${resultClass(result)}">${result}</span>` : `<span class="badge badge-na">미완료</span>`;
+  const itemNumber = String(idx + 1).padStart(2, '0');
 
   return `<div class="check-input-card field-card-toggle" tabindex="0" aria-label="점검항목">
     <div class="check-input-top">
-      <span class="check-input-no">${ref}</span>
-      <div class="check-input-section">${sectionTitle}</div>
-      ${resultBadge}
+      <span class="check-input-no">${itemNumber}</span>
+      <div class="check-input-content">
+        <div class="check-input-section">${ref}</div>
+        <div class="check-input-question">${question}</div>
+      </div>
     </div>
-    <div class="check-input-question">${question}</div>
-    <div class="check-input-refs">
-      ${internalRef ? `<div class="check-ref-line"><span class="check-ref-label">Internal Ref.</span><span>${internalRef}</span></div>` : ''}
-      ${externalRef ? `<div class="check-ref-line"><span class="check-ref-label">External Ref.</span><span>${externalRef}</span></div>` : ''}
-    </div>
+    ${(internalRef || externalRef) ? `<details class="check-input-reference">
+      <summary class="check-reference-toggle">Reference</summary>
+      <div class="check-input-refs">
+        ${internalRef ? `<div class="check-ref-line"><span class="check-ref-label">Internal Ref.</span><span>${internalRef}</span></div>` : ''}
+        ${externalRef ? `<div class="check-ref-line"><span class="check-ref-label">External Ref.</span><span>${externalRef}</span></div>` : ''}
+      </div>
+    </details>` : ''}
   </div>`;
 }
 
@@ -2017,53 +2033,49 @@ function stopInputScrollJump(event){
 
 async function setMaturityResult(auditId, idx, maturity, event){
   stopInputScrollJump(event);
+  return enqueueAuditWrite(auditId, async () => {
+    const audit = await dbGet('audits', auditId);
+    if(!audit) return;
+    if(audit.status === AUDIT_STATUS.DONE){ showToast('완료된 심사는 다시 열어야 수정할 수 있습니다'); return; }
+    applyPendingNotesToAudit(audit);
 
-  const audit = await dbGet('audits', auditId);
-  if(!audit) return;
-  if(audit.status === AUDIT_STATUS.DONE){ showToast('완료된 심사는 다시 열어야 수정할 수 있습니다'); return; }
-  applyPendingNotesToAudit(audit);
+    const content = getChecklistScrollContainer();
+    const anchorCard = document.getElementById('ci-'+idx);
+    const previousScrollTop = content ? content.scrollTop : 0;
+    const anchorTopBefore = anchorCard ? anchorCard.getBoundingClientRect().top : null;
 
-  // Preserve the current scroll position.
-  // Mobile browsers may scroll focused buttons into view after re-rendering.
-  const content = getChecklistScrollContainer();
-  const anchorCard = document.getElementById('ci-'+idx);
-  const previousScrollTop = content ? content.scrollTop : 0;
-  const anchorTopBefore = anchorCard ? anchorCard.getBoundingClientRect().top : null;
+    audit.items[idx].maturity = maturity;
+    currentAudit = audit;
+    await dbPut('audits', audit);
 
-  audit.items[idx].maturity = maturity;
-  currentAudit = audit;
-  await dbPut('audits', audit);
-
-  renderChecklist(audit);
-  preserveDetailScroll(previousScrollTop, idx, anchorTopBefore);
-
-  showToast('성숙도 수준이 저장되었습니다');
+    renderChecklist(audit);
+    preserveDetailScroll(previousScrollTop, idx, anchorTopBefore);
+    showToast('성숙도 수준이 저장되었습니다');
+  });
 }
 
 async function setResult(auditId, idx, result, event){
   stopInputScrollJump(event);
+  return enqueueAuditWrite(auditId, async () => {
+    const audit = await dbGet('audits', auditId);
+    if(!audit) return;
+    if(audit.status === AUDIT_STATUS.DONE){ showToast('완료된 심사는 다시 열어야 수정할 수 있습니다'); return; }
+    applyPendingNotesToAudit(audit);
 
-  const audit = await dbGet('audits', auditId);
-  if(!audit) return;
-  if(audit.status === AUDIT_STATUS.DONE){ showToast('완료된 심사는 다시 열어야 수정할 수 있습니다'); return; }
-  applyPendingNotesToAudit(audit);
+    const content = getChecklistScrollContainer();
+    const anchorCard = document.getElementById('ci-'+idx);
+    const previousScrollTop = content ? content.scrollTop : 0;
+    const anchorTopBefore = anchorCard ? anchorCard.getBoundingClientRect().top : null;
 
-  // Preserve the current scroll position.
-  // Result input is an in-place action, not a navigation action.
-  const content = getChecklistScrollContainer();
-  const anchorCard = document.getElementById('ci-'+idx);
-  const previousScrollTop = content ? content.scrollTop : 0;
-  const anchorTopBefore = anchorCard ? anchorCard.getBoundingClientRect().top : null;
+    const wasAnswered = !!audit.items[idx].result;
+    audit.items[idx].result = normalizeResultValue(result);
+    currentAudit = audit;
+    await dbPut('audits', audit);
 
-  const wasAnswered = !!audit.items[idx].result;
-  audit.items[idx].result = normalizeResultValue(result);
-  currentAudit = audit;
-  await dbPut('audits', audit);
-
-  renderChecklist(audit);
-  preserveDetailScroll(previousScrollTop, idx, anchorTopBefore);
-
-  if(!wasAnswered && result) showToast('저장되었습니다');
+    renderChecklist(audit);
+    preserveDetailScroll(previousScrollTop, idx, anchorTopBefore);
+    if(!wasAnswered && result) showToast('저장되었습니다');
+  });
 }
 
 const noteSaveTimers = new Map();
