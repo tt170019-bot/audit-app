@@ -3035,6 +3035,214 @@ if('serviceWorker' in navigator){
       .catch(e => appWarn('SW error:', e));
   });
 }
+
+// ═══════════════════════════════════════════════
+//  PROTOTYPE — 점검 수행 화면 성숙도 위젯 설계 (wayfinder #3)
+//  Throwaway. Open with ?prototype=maturity-widget[&variant=A|B|C][&scale=short|long|numeric]
+//  Cut this whole block before merging to main; capture on branch prototype/maturity-widget.
+// ═══════════════════════════════════════════════
+(function(){
+  const params = new URLSearchParams(location.search);
+  if(params.get('prototype') !== 'maturity-widget') return;
+
+  const appRoot = byId('app');
+  if(appRoot) appRoot.style.display = 'none';
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .pv3-badge{position:fixed;top:var(--space-100);left:var(--space-100);z-index:600;background:#111;color:#fff;font-size:var(--font-caption-size);padding:var(--space-025) var(--space-100);border-radius:var(--radius-full);}
+    .pv3-scenario-row{position:sticky;top:0;z-index:50;display:flex;gap:var(--space-100);padding:var(--space-150) var(--space-200);background:var(--ads-surface-sunken);border-bottom:var(--ui-border-width) solid var(--ads-border);overflow-x:auto;}
+    .pv3-scenario-btn{flex-shrink:0;font-size:var(--font-control-size);background:var(--ads-surface);border:var(--ui-border-width) solid var(--ads-border);border-radius:var(--radius-full);padding:var(--space-075) var(--space-150);cursor:pointer;}
+    .pv3-scenario-btn.active{background:var(--ads-brand);color:#fff;border-color:var(--ads-brand);}
+    .pv3-page{max-width:28rem;margin:0 auto;padding-bottom:6rem;}
+    .pv3-card-wrap{padding:var(--space-200);}
+    .pv-seg-row{display:flex;flex-wrap:wrap;gap:var(--space-100);}
+    .pv-seg-btn{min-height:var(--touch-target-min);padding:0 var(--space-200);border-radius:var(--radius-full);border:var(--ui-border-width) solid var(--ads-border);background:var(--ads-surface);font-size:var(--ads-body-size);cursor:pointer;}
+    .pv-seg-btn.selected{background:var(--ads-brand);color:#fff;border-color:var(--ads-brand);}
+    .pv-seg-guidance{margin-top:var(--space-100);color:var(--ads-text-subtle);font-size:var(--ads-body-small-size);background:var(--ads-information-bg);border-radius:var(--radius-medium);padding:var(--space-100) var(--space-150);}
+    .pv-picker-trigger{width:100%;min-height:var(--touch-target-min);display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-200);border-radius:var(--radius-large);border:var(--ui-border-width) solid var(--ads-border-input);background:var(--ads-surface);font-size:var(--ads-body-size);cursor:pointer;}
+    .pv-sheet-row{display:flex;align-items:flex-start;gap:var(--space-150);padding:var(--space-150) 0;border-bottom:var(--ui-border-width) solid var(--ads-border);cursor:pointer;}
+    .pv-sheet-row:last-child{border-bottom:none;}
+    .pv-sheet-row .maturity-radio{margin-top:0.1875rem;}
+    .pv-sheet-row-body{flex:1;}
+    .pv-sheet-row-title{font-weight:var(--ads-weight-semibold);color:var(--ads-text);}
+    .pv-sheet-row-guidance{margin-top:var(--space-025);color:var(--ads-text-subtle);font-size:var(--ads-body-small-size);}
+    .pv3-switcher{position:fixed;bottom:5.5rem;left:50%;transform:translateX(-50%);z-index:600;background:#111;color:#fff;border-radius:var(--radius-full);padding:var(--space-100) var(--space-150);display:flex;align-items:center;gap:var(--space-150);box-shadow:var(--shadow-overlay);font-size:var(--font-control-size);pointer-events:none;}
+    .pv3-switcher button{background:none;border:none;color:#fff;cursor:pointer;font-size:1rem;padding:0 var(--space-050);pointer-events:auto;}
+  `;
+  document.head.appendChild(style);
+
+  const SCALES = {
+    short: {
+      key:'short', label:'4단계(현행)', name:'성숙도 등급',
+      labels:['Conformity','Established','Mature','Leading'],
+      guidance:{Conformity:'기준 미충족, 개선 필요', Established:'기본 요건 충족', Mature:'체계적으로 운영되고 있음', Leading:'업계 선도 수준, 지속 개선 체계 갖춤'},
+    },
+    long: {
+      key:'long', label:'9단계(긴 척도)', name:'세부 성숙도',
+      labels:['0단계','1단계','2단계','3단계','4단계','5단계','6단계','7단계','8단계'],
+      guidance:{'0단계':'전혀 시작 안 함', '8단계':'완전 정착, 지속 개선'},
+    },
+    numeric: {
+      key:'numeric', label:'숫자 5점', name:'숫자 척도',
+      labels:['1','2','3','4','5'],
+      guidance:{},
+    },
+  };
+
+  const state = {
+    variant: (params.get('variant') || 'A').toUpperCase(),
+    scale: SCALES[params.get('scale')] ? params.get('scale') : 'short',
+    selected: '',
+    sheetOpen: false,
+    result: '',
+  };
+  const VARIANTS = ['A','B','C'];
+  const VARIANT_LABEL = {A:'카드 리스트(현행 일반화)', B:'세그먼트 버튼 줄바꿈', C:'한 줄 트리거 + 선택 시트'};
+
+  function currentScale(){ return SCALES[state.scale]; }
+
+  function requirementCard(){
+    return `<div class="check-input-card">
+      <div class="check-input-top">
+        <span class="check-input-no">07</span>
+        <div class="check-input-content">
+          <div class="check-input-section">3.3 품질 관리</div>
+          <div class="check-input-question">공정능력지수(Cpk)가 목표치를 만족하는가</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function resultPanel(){
+    const options = [['YES','YES','selected-ok'],['NO','NO','selected-ng'],['OBS','OBS','selected-obs'],['N/A','N/A','selected-na']];
+    return `<div class="result-panel">
+      <div class="result-panel-title">Result</div>
+      <div class="field-result-row">
+        ${options.map(([v,l,c])=>`<button type="button" class="field-choice ${state.result===v?c:''}" onclick="__pv3.setResult('${v}')">${l}</button>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  function widgetA(scale){
+    return `<div class="maturity-panel">
+      <div class="maturity-panel-title">Maturity Assessment</div>
+      <div class="maturity-level-list" role="radiogroup" aria-label="Maturity Assessment">
+        ${scale.labels.map(level=>{
+          const g = scale.guidance[level];
+          const sel = state.selected===level;
+          return `<div class="maturity-card ${sel?'selected':''}" role="radio" aria-checked="${sel}" tabindex="0" onclick="__pv3.select('${esc(level)}')">
+            <div class="maturity-card-head">
+              <span class="maturity-radio" aria-hidden="true"></span>
+              <div class="maturity-card-title">${esc(level)}</div>
+              ${g ? `<div class="maturity-card-summary">${esc(g)}</div>` : ''}
+            </div>
+            ${g ? `<details class="maturity-details"><summary>기준 자세히</summary><div>${esc(g)}</div></details>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  function widgetB(scale){
+    const g = scale.guidance[state.selected];
+    return `<div class="maturity-panel">
+      <div class="maturity-panel-title">Maturity Assessment</div>
+      <div class="pv-seg-row" role="radiogroup" aria-label="Maturity Assessment">
+        ${scale.labels.map(level=>{
+          const sel = state.selected===level;
+          return `<button type="button" class="pv-seg-btn ${sel?'selected':''}" role="radio" aria-checked="${sel}" onclick="__pv3.select('${esc(level)}')">${esc(level)}</button>`;
+        }).join('')}
+      </div>
+      ${g ? `<div class="pv-seg-guidance">${esc(g)}</div>` : ''}
+    </div>`;
+  }
+
+  function widgetC(scale){
+    return `<div class="maturity-panel">
+      <div class="maturity-panel-title">Maturity Assessment</div>
+      <button type="button" class="pv-picker-trigger" onclick="__pv3.openSheet()">
+        <span>${state.selected ? esc(state.selected) : '선택 안 함'}</span><span aria-hidden="true">▾</span>
+      </button>
+    </div>
+    ${state.sheetOpen ? `<div class="modal-backdrop open" style="z-index:520" onclick="if(event.target===this)__pv3.closeSheet()">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title">${esc(scale.name)} 선택</div>
+        <div class="modal-body">
+          ${scale.labels.map(level=>{
+            const g = scale.guidance[level];
+            const sel = state.selected===level;
+            return `<div class="pv-sheet-row" onclick="__pv3.select('${esc(level)}');__pv3.closeSheet()">
+              <span class="maturity-radio" aria-hidden="true" style="${sel?'border-color:var(--ads-brand);background:var(--ads-brand);':''}"></span>
+              <div class="pv-sheet-row-body">
+                <div class="pv-sheet-row-title">${esc(level)}</div>
+                ${g ? `<div class="pv-sheet-row-guidance">${esc(g)}</div>` : ''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>` : ''}`;
+  }
+
+  function render(){
+    let root = byId('pv3-root');
+    if(!root){
+      root = document.createElement('div');
+      root.id = 'pv3-root';
+      document.body.appendChild(root);
+    }
+    const scale = currentScale();
+    const widget = state.variant==='B' ? widgetB(scale) : state.variant==='C' ? widgetC(scale) : widgetA(scale);
+    root.innerHTML = `<div class="pv3-badge">PROTOTYPE — 점검 수행 화면 성숙도 위젯</div>
+      <div class="pv3-scenario-row">
+        ${Object.values(SCALES).map(s=>`<button type="button" class="pv3-scenario-btn ${state.scale===s.key?'active':''}" onclick="__pv3.setScale('${s.key}')">${esc(s.label)}</button>`).join('')}
+      </div>
+      <div class="pv3-page">
+        <div class="pv3-card-wrap">
+          ${requirementCard()}
+          ${resultPanel()}
+          ${widget}
+        </div>
+      </div>`;
+
+    let switcher = byId('pv3-switcher');
+    if(!switcher){
+      switcher = document.createElement('div');
+      switcher.id = 'pv3-switcher';
+      switcher.className = 'pv3-switcher';
+      document.body.appendChild(switcher);
+    }
+    switcher.innerHTML = `<button type="button" onclick="__pv3.cycle(-1)">←</button><span>${state.variant} — ${esc(VARIANT_LABEL[state.variant])}</span><button type="button" onclick="__pv3.cycle(1)">→</button>`;
+  }
+
+  window.__pv3 = {
+    select(level){ state.selected = level; render(); },
+    setResult(v){ state.result = v; render(); },
+    setScale(key){ state.scale = key; state.selected = ''; render(); const url=new URL(location.href); url.searchParams.set('scale',key); history.replaceState(null,'',url); },
+    openSheet(){ state.sheetOpen = true; render(); },
+    closeSheet(){ state.sheetOpen = false; render(); },
+    cycle(dir){
+      const idx = VARIANTS.indexOf(state.variant);
+      state.variant = VARIANTS[(idx + dir + VARIANTS.length) % VARIANTS.length];
+      const url = new URL(location.href);
+      url.searchParams.set('variant', state.variant);
+      history.replaceState(null, '', url);
+      render();
+    },
+  };
+
+  window.addEventListener('keydown', e=>{
+    if(params.get('prototype') !== 'maturity-widget') return;
+    const tag = (e.target && e.target.tagName || '').toLowerCase();
+    if(tag==='input' || tag==='textarea' || e.target.isContentEditable) return;
+    if(e.key==='ArrowLeft') __pv3.cycle(-1);
+    if(e.key==='ArrowRight') __pv3.cycle(1);
+  });
+
+  window.addEventListener('load', () => setTimeout(render, 0));
+})();
 </script>
 </body>
 </html>
