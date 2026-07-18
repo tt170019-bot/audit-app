@@ -3035,6 +3035,245 @@ if('serviceWorker' in navigator){
       .catch(e => appWarn('SW error:', e));
   });
 }
+
+// ═══════════════════════════════════════════════
+//  PROTOTYPE — 검토/설정 모달 화면 설계 (wayfinder #2)
+//  Throwaway. Open with ?prototype=review-modal[&variant=A|B|C]
+//  Cut this whole block before merging to main; capture on branch prototype/review-modal.
+// ═══════════════════════════════════════════════
+(function(){
+  const params = new URLSearchParams(location.search);
+  if(params.get('prototype') !== 'review-modal') return;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .pv-backdrop{position:fixed;inset:0;background:rgba(9,30,66,.54);z-index:500;display:flex;align-items:flex-end;justify-content:center;}
+    .pv-sheet{background:var(--ads-surface-overlay);border-radius:var(--radius-xxlarge) var(--radius-xxlarge) 0 0;width:100%;max-width:40rem;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-overlay);}
+    .pv-title{font-size:var(--ads-heading-small-size);font-weight:var(--ads-weight-semibold);padding:var(--space-200) var(--space-250) var(--space-150);border-bottom:var(--ui-border-width) solid var(--ads-border);color:var(--ads-text);display:flex;align-items:center;justify-content:space-between;}
+    .pv-body{padding:var(--space-200) var(--space-250);}
+    .pv-actions{position:sticky;bottom:0;display:flex;gap:var(--space-150);padding:var(--space-200) var(--space-250);border-top:var(--ui-border-width) solid var(--ads-border);background:var(--ads-surface-overlay);}
+    .pv-sub{color:var(--ads-text-subtle);font-size:var(--font-helper-size);margin-bottom:var(--space-200);}
+    .pv-scale-box{background:var(--ads-surface-container);border-radius:var(--radius-large);padding:var(--space-200);margin-bottom:var(--space-200);}
+    .pv-scale-name{width:100%;height:var(--ui-field-height);border:var(--ui-border-width) solid var(--ads-border-input);border-radius:var(--radius-medium);padding:0 var(--space-150);font-size:var(--font-input-size);margin-bottom:var(--space-150);}
+    .pv-label-row{display:flex;align-items:center;gap:var(--space-100);margin-bottom:var(--space-100);}
+    .pv-label-row input{flex:1;height:2.25rem;border:var(--ui-border-width) solid var(--ads-border-input);border-radius:var(--radius-medium);padding:0 var(--space-150);font-size:var(--font-input-size);}
+    .pv-icon-btn{width:2.25rem;height:2.25rem;border:var(--ui-border-width) solid var(--ads-border);border-radius:var(--radius-medium);background:var(--ads-surface);cursor:pointer;flex-shrink:0;}
+    .pv-icon-btn:hover{background:var(--ads-surface-container-hovered);}
+    .pv-add-label{font-size:var(--font-control-size);color:var(--ads-link);background:none;border:none;cursor:pointer;padding:var(--space-050) 0;}
+    .pv-preview{display:flex;flex-wrap:wrap;gap:var(--space-100);margin-top:var(--space-150);}
+    .pv-preview .maturity-card{flex:1 1 6rem;pointer-events:none;}
+    .pv-item-row{display:flex;align-items:center;gap:var(--space-150);padding:var(--space-150) 0;border-bottom:var(--ui-border-width) solid var(--ads-border);}
+    .pv-item-row:last-child{border-bottom:none;}
+    .pv-item-main{flex:1;min-width:0;}
+    .pv-item-tag{font-size:var(--font-caption-size);color:var(--ads-text-subtlest);}
+    .pv-item-q{font-size:var(--font-body-size);color:var(--ads-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .pv-item-hint{font-size:var(--font-caption-size);color:var(--ads-information-text);}
+    .pv-toggle{position:relative;width:2.75rem;height:1.5rem;border-radius:var(--radius-full);background:var(--ads-border-bold);border:none;cursor:pointer;flex-shrink:0;transition:background 150ms;}
+    .pv-toggle.on{background:var(--ads-brand);}
+    .pv-toggle::after{content:'';position:absolute;top:0.125rem;left:0.125rem;width:1.25rem;height:1.25rem;border-radius:50%;background:#fff;transition:transform 150ms;}
+    .pv-toggle.on::after{transform:translateX(1.25rem);}
+    .pv-section-head{display:flex;align-items:center;justify-content:space-between;padding:var(--space-150) 0;cursor:pointer;}
+    .pv-section-name{font-weight:var(--ads-weight-semibold);}
+    .pv-section-count{font-size:var(--font-caption-size);color:var(--ads-text-subtlest);margin-left:var(--space-100);}
+    .pv-bulk-btn{font-size:var(--font-caption-size);background:none;border:var(--ui-border-width) solid var(--ads-border);border-radius:var(--radius-full);padding:var(--space-025) var(--space-150);cursor:pointer;}
+    .pv-wizard-steps{display:flex;gap:var(--space-100);margin-bottom:var(--space-200);}
+    .pv-wizard-step{flex:1;text-align:center;font-size:var(--font-caption-size);padding:var(--space-100);border-radius:var(--radius-medium);background:var(--ads-surface-container);color:var(--ads-text-subtle);}
+    .pv-wizard-step.active{background:var(--ads-information-bg);color:var(--ads-information-text);font-weight:var(--ads-weight-semibold);}
+    .pv-drawer-backdrop{position:fixed;inset:0;background:rgba(9,30,66,.3);z-index:510;}
+    .pv-drawer{position:fixed;top:0;right:0;bottom:0;width:min(22rem,90vw);background:var(--ads-surface-overlay);z-index:511;box-shadow:var(--shadow-overlay);overflow-y:auto;}
+    .pv-switcher{position:fixed;bottom:5.5rem;left:50%;transform:translateX(-50%);z-index:600;background:#111;color:#fff;border-radius:var(--radius-full);padding:var(--space-100) var(--space-150);display:flex;align-items:center;gap:var(--space-150);box-shadow:var(--shadow-overlay);font-size:var(--font-control-size);pointer-events:none;}
+    .pv-switcher button{background:none;border:none;color:#fff;cursor:pointer;font-size:1rem;padding:0 var(--space-050);pointer-events:auto;}
+    .pv-hidden{display:none !important;}
+  `;
+  document.head.appendChild(style);
+
+  // ── Fixture: parsed Excel rows, mixing items with/without legacy criteria text ──
+  const FIXTURE_ITEMS = [
+    {section:'일반 안전', ref:'1.1', question:'작업장 내 소화기가 규정 위치에 비치되어 있는가', conformityCriteria:'', establishedCriteria:'', matureCriteria:'', leadingCriteria:''},
+    {section:'일반 안전', ref:'1.2', question:'비상 대피로 표지판이 식별 가능하게 부착되어 있는가', conformityCriteria:'', establishedCriteria:'', matureCriteria:'', leadingCriteria:''},
+    {section:'일반 안전', ref:'1.3', question:'위험구역 출입 통제 절차가 문서화되어 있는가', conformityCriteria:'절차 존재', establishedCriteria:'절차+교육 존재', matureCriteria:'절차+교육+점검', leadingCriteria:'절차+교육+점검+개선'},
+    {section:'설비 관리', ref:'2.1', question:'정기 설비 점검 이력이 관리되고 있는가', conformityCriteria:'이력 존재', establishedCriteria:'주기적 이력', matureCriteria:'주기적+분석', leadingCriteria:'주기적+분석+예방정비'},
+    {section:'설비 관리', ref:'2.2', question:'고장 설비에 대한 표시(LOTO)가 되어 있는가', conformityCriteria:'', establishedCriteria:'', matureCriteria:'', leadingCriteria:''},
+    {section:'설비 관리', ref:'2.3', question:'설비 이상 발생 시 보고 체계가 있는가', conformityCriteria:'보고체계 존재', establishedCriteria:'체계+기록', matureCriteria:'체계+기록+분석', leadingCriteria:'체계+기록+분석+피드백'},
+    {section:'설비 관리', ref:'2.4', question:'노후 설비 교체 계획이 수립되어 있는가', conformityCriteria:'계획 존재', establishedCriteria:'계획+예산', matureCriteria:'계획+예산+실행', leadingCriteria:'계획+예산+실행+검증'},
+    {section:'품질 관리', ref:'3.1', question:'수입검사 기준서가 최신 버전으로 관리되는가', conformityCriteria:'', establishedCriteria:'', matureCriteria:'', leadingCriteria:''},
+    {section:'품질 관리', ref:'3.2', question:'부적합품 격리 구역이 별도 지정되어 있는가', conformityCriteria:'', establishedCriteria:'', matureCriteria:'', leadingCriteria:''},
+    {section:'품질 관리', ref:'3.3', question:'공정능력지수(Cpk)가 목표치를 만족하는가', conformityCriteria:'측정만', establishedCriteria:'측정+관리도', matureCriteria:'측정+관리도+개선', leadingCriteria:'측정+관리도+개선+예측'},
+    {section:'품질 관리', ref:'3.4', question:'고객 클레임 재발방지대책이 이행되는가', conformityCriteria:'대책수립', establishedCriteria:'대책+실행', matureCriteria:'대책+실행+검증', leadingCriteria:'대책+실행+검증+수평전개'},
+    {section:'품질 관리', ref:'3.5', question:'검사 기록이 전산으로 관리되는가', conformityCriteria:'', establishedCriteria:'', matureCriteria:'', leadingCriteria:''},
+  ];
+
+  function suggestedOn(item){
+    return Boolean(item.conformityCriteria || item.establishedCriteria || item.matureCriteria || item.leadingCriteria);
+  }
+
+  const state = {
+    variant: (params.get('variant') || 'A').toUpperCase(),
+    scaleName: '성숙도 등급',
+    labels: ['Conformity', 'Established', 'Mature', 'Leading'],
+    items: FIXTURE_ITEMS.map((it, i) => ({...it, _idx:i, maturityOn: suggestedOn(it), _suggested: suggestedOn(it)})),
+    wizardStep: 1,
+    drawerOpen: false,
+  };
+  const VARIANTS = ['A','B','C'];
+  const VARIANT_LABEL = {A:'한 화면 리스트', B:'2단계 마법사', C:'섹션 그룹 + 척도 서랍'};
+
+  function confirmStub(){
+    const onCount = state.items.filter(i=>i.maturityOn).length;
+    const payload = {
+      scale: {name: state.scaleName, labels: state.labels},
+      items: state.items.map(i => ({ref:i.ref, question:i.question, maturityOn:i.maturityOn})),
+    };
+    console.log('[prototype review-modal] confirm payload', payload);
+    showToast(`확인: ${onCount}/${state.items.length}개 항목 성숙도 켜짐, 척도: ${state.scaleName} (${state.labels.length}단계) — 콘솔 참고`);
+  }
+
+  function scaleLabelEditor(){
+    return `<div class="pv-scale-box">
+      <input class="pv-scale-name" value="${esc(state.scaleName)}" placeholder="척도 이름 (예: 성숙도 등급)" oninput="__pv.setScaleName(this.value)">
+      ${state.labels.map((l,i)=>`<div class="pv-label-row">
+        <input value="${esc(l)}" oninput="__pv.setLabel(${i},this.value)">
+        <button type="button" class="pv-icon-btn" title="위로" ${i===0?'disabled':''} onclick="__pv.moveLabel(${i},-1)">↑</button>
+        <button type="button" class="pv-icon-btn" title="아래로" ${i===state.labels.length-1?'disabled':''} onclick="__pv.moveLabel(${i},1)">↓</button>
+        <button type="button" class="pv-icon-btn" title="삭제" onclick="__pv.removeLabel(${i})">✕</button>
+      </div>`).join('')}
+      <button type="button" class="pv-add-label" onclick="__pv.addLabel()">+ 라벨 추가</button>
+      <div class="pv-preview">
+        ${state.labels.map(l=>`<div class="maturity-card"><div class="maturity-card-head"><span class="maturity-radio" aria-hidden="true"></span><div class="maturity-card-title">${esc(l)}</div></div></div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  function itemRow(item){
+    return `<div class="pv-item-row">
+      <div class="pv-item-main">
+        <div class="pv-item-tag">${esc(item.section)} · ${esc(item.ref)}</div>
+        <div class="pv-item-q">${esc(item.question)}</div>
+        ${item._suggested ? `<div class="pv-item-hint">criteria 텍스트 있음 → 기본 제안 ON</div>` : ''}
+      </div>
+      <button type="button" class="pv-toggle ${item.maturityOn?'on':''}" role="switch" aria-checked="${item.maturityOn}" onclick="__pv.toggleItem(${item._idx})"></button>
+    </div>`;
+  }
+
+  function renderA(){
+    return `<div class="pv-body">
+      <div class="pv-sub">척도를 정의하고, 항목별로 성숙도 평가 여부를 확인하세요. criteria 텍스트가 있던 항목은 기본으로 켜져 있습니다.</div>
+      ${scaleLabelEditor()}
+      <div>${state.items.map(itemRow).join('')}</div>
+    </div>
+    <div class="pv-actions">
+      <button type="button" class="btn btn-ghost flex-1" onclick="__pv.close()">취소</button>
+      <button type="button" class="btn btn-teal flex-2" onclick="__pv.confirm()">확인 (${state.items.filter(i=>i.maturityOn).length}/${state.items.length}개 성숙도 ON)</button>
+    </div>`;
+  }
+
+  function renderB(){
+    const step1 = state.wizardStep===1;
+    return `<div class="pv-body">
+      <div class="pv-wizard-steps">
+        <div class="pv-wizard-step ${step1?'active':''}">1. 척도 정의</div>
+        <div class="pv-wizard-step ${!step1?'active':''}">2. 항목 검토</div>
+      </div>
+      ${step1 ? `
+        <div class="pv-sub">이 템플릿의 모든 성숙도 항목이 공유할 척도를 정의하세요.</div>
+        ${scaleLabelEditor()}
+      ` : `
+        <div class="pv-sub">척도: <b>${esc(state.scaleName)}</b> (${state.labels.length}단계) — <a href="#" onclick="event.preventDefault();__pv.gotoStep(1)">수정</a></div>
+        <div>${state.items.map(itemRow).join('')}</div>
+      `}
+    </div>
+    <div class="pv-actions">
+      ${step1
+        ? `<button type="button" class="btn btn-ghost flex-1" onclick="__pv.close()">취소</button>
+           <button type="button" class="btn btn-teal flex-2" onclick="__pv.gotoStep(2)">다음</button>`
+        : `<button type="button" class="btn btn-ghost flex-1" onclick="__pv.gotoStep(1)">이전</button>
+           <button type="button" class="btn btn-teal flex-2" onclick="__pv.confirm()">확인 (${state.items.filter(i=>i.maturityOn).length}/${state.items.length}개 성숙도 ON)</button>`}
+    </div>`;
+  }
+
+  function renderC(){
+    const sections = [...new Set(state.items.map(i=>i.section))];
+    return `<div class="pv-body">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="__pv.toggleDrawer()">⚙ 척도 설정: ${esc(state.scaleName)} (${state.labels.length}단계)</button>
+      <div class="pv-sub" style="margin-top:var(--space-150)">섹션별로 항목을 확인하고, 필요하면 섹션 전체를 한번에 켜거나 끄세요.</div>
+      ${sections.map(sec=>{
+        const secItems = state.items.filter(i=>i.section===sec);
+        const onCount = secItems.filter(i=>i.maturityOn).length;
+        return `<div>
+          <div class="pv-section-head">
+            <div><span class="pv-section-name">${esc(sec)}</span><span class="pv-section-count">${onCount}/${secItems.length} ON</span></div>
+            <div style="display:flex;gap:var(--space-100)">
+              <button type="button" class="pv-bulk-btn" onclick="__pv.bulkSet('${esc(sec)}',true)">전체 켜기</button>
+              <button type="button" class="pv-bulk-btn" onclick="__pv.bulkSet('${esc(sec)}',false)">전체 끄기</button>
+            </div>
+          </div>
+          ${secItems.map(itemRow).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="pv-actions">
+      <button type="button" class="btn btn-ghost flex-1" onclick="__pv.close()">취소</button>
+      <button type="button" class="btn btn-teal flex-2" onclick="__pv.confirm()">확인 (${state.items.filter(i=>i.maturityOn).length}/${state.items.length}개 성숙도 ON)</button>
+    </div>
+    ${state.drawerOpen ? `<div class="pv-drawer-backdrop" onclick="__pv.toggleDrawer()"></div><div class="pv-drawer"><div class="pv-title">척도 설정<button type="button" class="pv-icon-btn" onclick="__pv.toggleDrawer()">✕</button></div><div class="pv-body">${scaleLabelEditor()}</div></div>` : ''}`;
+  }
+
+  function render(){
+    let backdrop = byId('pv-modal-backdrop');
+    if(!backdrop){
+      backdrop = document.createElement('div');
+      backdrop.id = 'pv-modal-backdrop';
+      backdrop.className = 'pv-backdrop';
+      document.body.appendChild(backdrop);
+    }
+    const body = state.variant==='B' ? renderB() : state.variant==='C' ? renderC() : renderA();
+    backdrop.innerHTML = `<div class="pv-sheet">
+      <div class="pv-title">검토/설정 — ${esc(VARIANT_LABEL[state.variant])}<button type="button" class="pv-icon-btn" onclick="__pv.close()">✕</button></div>
+      ${body}
+    </div>`;
+
+    let switcher = byId('pv-switcher');
+    if(!switcher){
+      switcher = document.createElement('div');
+      switcher.id = 'pv-switcher';
+      switcher.className = 'pv-switcher';
+      document.body.appendChild(switcher);
+    }
+    switcher.innerHTML = `<button type="button" onclick="__pv.cycle(-1)">←</button><span>${state.variant} — ${esc(VARIANT_LABEL[state.variant])}</span><button type="button" onclick="__pv.cycle(1)">→</button>`;
+  }
+
+  window.__pv = {
+    close(){ appLog('[prototype] closed (no-op, reopen with URL param)'); },
+    confirm: confirmStub,
+    setScaleName(v){ state.scaleName = v; },
+    setLabel(i,v){ state.labels[i] = v; render(); },
+    addLabel(){ state.labels.push('새 라벨'); render(); },
+    removeLabel(i){ state.labels.splice(i,1); render(); },
+    moveLabel(i,dir){ const j=i+dir; if(j<0||j>=state.labels.length) return; [state.labels[i],state.labels[j]]=[state.labels[j],state.labels[i]]; render(); },
+    toggleItem(idx){ const it = state.items.find(x=>x._idx===idx); it.maturityOn = !it.maturityOn; render(); },
+    bulkSet(section,on){ state.items.filter(i=>i.section===section).forEach(i=>i.maturityOn=on); render(); },
+    gotoStep(n){ state.wizardStep = n; render(); },
+    toggleDrawer(){ state.drawerOpen = !state.drawerOpen; render(); },
+    cycle(dir){
+      const idx = VARIANTS.indexOf(state.variant);
+      state.variant = VARIANTS[(idx + dir + VARIANTS.length) % VARIANTS.length];
+      const url = new URL(location.href);
+      url.searchParams.set('variant', state.variant);
+      history.replaceState(null, '', url);
+      render();
+    },
+  };
+
+  window.addEventListener('keydown', e=>{
+    if(params.get('prototype') !== 'review-modal') return;
+    const tag = (e.target && e.target.tagName || '').toLowerCase();
+    if(tag==='input' || tag==='textarea' || e.target.isContentEditable) return;
+    if(e.key==='ArrowLeft') __pv.cycle(-1);
+    if(e.key==='ArrowRight') __pv.cycle(1);
+  });
+
+  window.addEventListener('load', () => setTimeout(render, 0));
+})();
 </script>
 </body>
 </html>
