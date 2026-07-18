@@ -39,4 +39,41 @@ assert.match(
   '성숙도 저장은 메모 저장과 같은 심사별 대기열을 사용해야 합니다',
 );
 
+// wayfinder #7 — item-level maturity flag + template-level custom scale
+assert.doesNotMatch(
+  source,
+  /function isMaturityChecklistAudit\(/,
+  '전체 체크리스트 단위 성숙도 판정 함수는 제거되어야 합니다 (항목 단위 플래그로 대체)',
+);
+
+assert.doesNotMatch(
+  source,
+  /function renderStandardChecklistItem\(|function renderFieldChecklistItem\(/,
+  '점검항목 렌더 함수는 하나로 합쳐져야 합니다 (성숙도 패널만 조건부로 삽입)',
+);
+
+assert.match(
+  source,
+  /function renderChecklistItem\(audit, item\)\{[\s\S]*?isItemMaturityOn\(audit, item\) \? renderMaturityPanel\(audit, item\) : ''/,
+  '점검항목은 항목 단위 성숙도 플래그가 켜져 있을 때만 Maturity Assessment 패널을 렌더링해야 합니다',
+);
+
+assert.match(
+  source,
+  /function renderMaturityPanel\(audit, item\)\{[\s\S]*?scale\.labels\.map\(\(level, levelIndex\)=>\{/,
+  'Maturity Assessment 패널은 하드코딩된 4단계 대신 템플릿의 가변 척도를 순회해야 합니다',
+);
+
+assert.match(
+  source,
+  /\$\{c\.title \? `<details class="maturity-details">/,
+  '안내 텍스트가 없는 성숙도 레벨은 details(기준 자세히)를 렌더링하지 않아야 합니다',
+);
+
+assert.match(
+  source,
+  /function renderFieldAuditItem\(item, index\)\{[\s\S]*?const maturityLevels = AuditRules\.MATURITY_LEVELS;/,
+  'Word 보고서 출력용 렌더러는 이번 변경과 무관하게 그대로 유지되어야 합니다 (범위 밖)',
+);
+
 console.log('checklist UI tests passed');

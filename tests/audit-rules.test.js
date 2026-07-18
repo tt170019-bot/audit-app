@@ -11,4 +11,41 @@ assert.equal(rules.canCompleteAudit({items:[{result:'YES'}, {result:'OBS'}]}), t
 assert.equal(rules.canCompleteAudit({items:[{result:'YES'}, {result:''}]}), false);
 assert.equal(rules.getMaturityConsideration({}, 'Leading').title, '예방과 개선 활동으로 절차를 고도화하는 수준');
 
+// wayfinder #7 — item-level maturity flag + template-level custom scale
+assert.deepEqual(
+  rules.deriveMaturityScale({checklistUiType:'maturity'}),
+  {name:'성숙도 등급', labels:['Conformity','Established','Mature','Leading']},
+  '기존 성숙도 체크리스트는 레거시 4단계 척도로 어댑팅되어야 합니다',
+);
+assert.equal(
+  rules.deriveMaturityScale({checklistUiType:'standard'}), null,
+  '일반 체크리스트는 척도가 없어야 합니다',
+);
+assert.deepEqual(
+  rules.deriveMaturityScale({filename:'현장탑승심사표.xlsx'}),
+  {name:'성숙도 등급', labels:['Conformity','Established','Mature','Leading']},
+  'checklistUiType가 없으면 getChecklistUiType으로 재추론해야 합니다',
+);
+
+assert.equal(
+  rules.getMaturityGuidanceForScale({conformityCriteria:'커스텀 기준 텍스트'}, ['Conformity','Established','Mature','Leading'], 0).title,
+  '커스텀 기준 텍스트',
+  '4단계 척도는 위치 기준으로 레거시 criteria 컬럼을 재사용해야 합니다',
+);
+assert.equal(
+  rules.getMaturityGuidanceForScale({}, ['Conformity','Established','Mature','Leading'], 0).title,
+  '',
+  '4단계 척도라도 criteria 텍스트가 없으면 안내문 없이 비어 있어야 합니다 (커스텀 척도엔 기본 안내문 없음)',
+);
+assert.equal(
+  rules.getMaturityGuidanceForScale({conformityCriteria:'있어도 무시됨'}, ['1','2','3'], 0).title,
+  '',
+  '4단계가 아닌 척도는 레거시 criteria 컬럼을 재사용하지 않아야 합니다',
+);
+assert.equal(
+  rules.getMaturityGuidanceForScale({maturityGuidance:['직접 입력한 안내문']}, ['1','2','3'], 0).title,
+  '직접 입력한 안내문',
+  '4단계가 아닌 척도는 item.maturityGuidance에서 직접 입력된 안내문을 읽어야 합니다',
+);
+
 console.log('audit-rules tests passed');

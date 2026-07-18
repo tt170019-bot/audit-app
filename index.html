@@ -1601,12 +1601,19 @@ function getMaturityConsideration(item, level){
   return AuditRules.getMaturityConsideration(item, level);
 }
 
-function isMaturityChecklistAudit(audit){
-  // UI split rule: Type 2 input UI is based only on checklist identity.
-  // reportTemplate is intentionally ignored because some Type 1 checklists may use a Type 2 export form.
-  if(audit?.checklistUiType === 'maturity') return true;
-  if(audit?.checklistUiType === 'standard') return false;
-  return getChecklistUiType(audit) === 'maturity';
+function deriveMaturityScale(source){
+  return AuditRules.deriveMaturityScale(source);
+}
+
+// Audits/items stored before wayfinder #7 never had maturityScale/maturityOn
+// persisted — fall back to deriving them from the legacy whole-checklist flag
+// rather than migrating old IndexedDB records.
+function getAuditMaturityScale(audit){
+  return audit.maturityScale || deriveMaturityScale(audit);
+}
+
+function isItemMaturityOn(audit, item){
+  return item.maturityOn ?? Boolean(getAuditMaturityScale(audit));
 }
 
 function normalizeResultValue(value){
@@ -1679,21 +1686,28 @@ function renderResultPanel(audit, item){
 function renderMaturityPanel(audit, item){
   const idx = item._idx;
   const maturity = item.maturity || '';
-  const maturityLevels = AuditRules.MATURITY_LEVELS;
+  const scale = getAuditMaturityScale(audit) || { name: '성숙도 등급', labels: AuditRules.MATURITY_LEVELS };
+  // The legacy 4-level scale keeps using getMaturityConsideration exactly as
+  // before (name-keyed, falls back to DEFAULT_MATURITY canned copy) so
+  // existing checklists render identically. Any other scale (custom length,
+  // or a 4-length scale with different label text) uses the generalized,
+  // position-based lookup with no canned fallback.
+  const isLegacyScale = scale.labels.length === AuditRules.MATURITY_LEVELS.length
+    && scale.labels.every((label, i) => label === AuditRules.MATURITY_LEVELS[i]);
 
   return `<div class="maturity-panel">
     <div class="maturity-panel-title">Maturity Assessment</div>
     <div class="maturity-level-list" role="radiogroup" aria-label="Maturity Assessment">
-      ${maturityLevels.map(level=>{
-        const c = getMaturityConsideration(item, level);
+      ${scale.labels.map((level, levelIndex)=>{
+        const c = isLegacyScale ? getMaturityConsideration(item, level) : AuditRules.getMaturityGuidanceForScale(item, scale.labels, levelIndex);
         const selected = maturity === level;
         return `<div class="maturity-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected ? 'true' : 'false'}" aria-disabled="${audit.status===AUDIT_STATUS.DONE ? 'true' : 'false'}" tabindex="${audit.status===AUDIT_STATUS.DONE ? '-1' : '0'}" ${audit.status===AUDIT_STATUS.DONE ? '' : `onclick="setMaturityResult(${audit.id},${idx},'${level}', event)" onkeydown="if(event.key==='Enter'||event.key===' '){setMaturityResult(${audit.id},${idx},'${level}', event)}"`}>
           <div class="maturity-card-head">
             <span class="maturity-radio" aria-hidden="true"></span>
-            <div class="maturity-card-title">${level}</div>
-            <div class="maturity-card-summary">${esc(c.title)}</div>
+            <div class="maturity-card-title">${esc(level)}</div>
+            ${c.title ? `<div class="maturity-card-summary">${esc(c.title)}</div>` : ''}
           </div>
-          <details class="maturity-details"><summary>기준 자세히</summary><div>${esc(c.title)}${c.body ? `<br>${esc(c.body)}` : ''}</div></details>
+          ${c.title ? `<details class="maturity-details"><summary>기준 자세히</summary><div>${esc(c.title)}${c.body ? `<br>${esc(c.body)}` : ''}</div></details>` : ''}
         </div>`;
       }).join('')}
     </div>
@@ -1725,27 +1739,14 @@ function renderEvidencePanel(audit, item){
   </div>`;
 }
 
-function renderStandardChecklistItem(audit, item){
+function renderChecklistItem(audit, item){
   const idx = item._idx;
   const result = item.result || '';
   return `<div class="field-check-card ${result?'answered':''}" id="ci-${idx}">
     ${renderRequirementTable(audit, item)}
     <div class="check-body" id="cb-${idx}">
       ${renderResultPanel(audit, item)}
-      ${renderCommentPanel(audit, item)}
-      ${renderEvidencePanel(audit, item)}
-    </div>
-  </div>`;
-}
-
-function renderFieldChecklistItem(audit, item){
-  const result = item.result || '';
-  const idx = item._idx;
-  return `<div class="field-check-card ${result?'answered':''}" id="ci-${idx}">
-    ${renderRequirementTable(audit, item)}
-    <div class="check-body" id="cb-${idx}">
-      ${renderResultPanel(audit, item)}
-      ${renderMaturityPanel(audit, item)}
+      ${isItemMaturityOn(audit, item) ? renderMaturityPanel(audit, item) : ''}
       ${renderCommentPanel(audit, item)}
       ${renderEvidencePanel(audit, item)}
     </div>
@@ -1938,7 +1939,7 @@ function renderChecklist(audit){
               <span class="detail-section-title">${esc(sec)}</span>
               <span class="check-section-summary check-section-summary-inline">${getSectionCompletion(secItems).answered}/${getSectionCompletion(secItems).total}</span>
             </div>
-            ${secItems.map(item=>isMaturityChecklistAudit(audit) ? renderFieldChecklistItem(audit, item) : renderStandardChecklistItem(audit, item)).join('')}
+            ${secItems.map(item=>renderChecklistItem(audit, item)).join('')}
           `).join('')}
         </div>
         <div class="detail-scroll-tail" aria-hidden="true"></div>
@@ -2256,6 +2257,7 @@ async function createAudit(){
   if(!tpl){ showToast('점검표를 불러올 수 없습니다'); return; }
   if(!tpl.items.length){ showToast('점검표 항목 형식이 맞지 않습니다. 다시 업로드하세요'); return; }
 
+  const maturityScale = deriveMaturityScale(tpl);
   const audit = {
     title, date, auditor, dept,
     templateId: tplId,
@@ -2263,9 +2265,10 @@ async function createAudit(){
     templateVersion: getTemplateVersionLabel(tpl),
     checklistUiType: tpl.checklistUiType || getChecklistUiType(tpl),
     reportTemplate: tpl.reportTemplate || inferReportTemplateType(tpl),
+    maturityScale,
     status: AUDIT_STATUS.PROGRESS,
     createdAt: new Date().toISOString(),
-    items: tpl.items.map(i=>({...i, result:null, note:'', photos:[]}))
+    items: tpl.items.map(i=>({...i, result:null, note:'', photos:[], maturityOn: Boolean(maturityScale)}))
   };
   const id = await dbPut('audits', audit);
   closeModal('modal-newaudit');
