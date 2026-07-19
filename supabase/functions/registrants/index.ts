@@ -17,6 +17,10 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// Explicit, so the invite email always lands back on the deployed app
+// regardless of the project's Auth "Site URL" setting.
+const APP_URL = "https://tt170019-bot.github.io/audit-app/";
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type",
@@ -62,7 +66,9 @@ Deno.serve(async (req) => {
 
   if (payload.action === "invite") {
     if (!payload.email) return json({ error: "email is required" }, 400);
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(payload.email);
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(payload.email, {
+      redirectTo: APP_URL,
+    });
     if (error) return json({ error: error.message }, 400);
     return json({ user: { id: data.user.id, email: data.user.email } });
   }

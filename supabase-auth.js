@@ -77,7 +77,23 @@
       return session;
     }
 
-    return { signIn, signOut, getSession, restoreSession };
+    // Sets a password using the one-time access token from an invite or
+    // password-recovery email link, then treats the caller as signed in
+    // immediately — accepting an invite shouldn't require a separate login.
+    async function acceptInvite(accessToken, refreshToken, expiresIn, password){
+      const response = await fetch(`${client.url}/auth/v1/user`, {
+        method: 'PUT',
+        headers: { apikey: client.anonKey, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const data = await response.json().catch(() => ({}));
+      if(!response.ok) throw new Error(data?.error_description || data?.msg || `Supabase Auth HTTP ${response.status}`);
+      session = { accessToken, refreshToken, expiresAt: Date.now() + (expiresIn || 3600) * 1000, user: data };
+      writeStoredSession(session);
+      return session;
+    }
+
+    return { signIn, signOut, getSession, restoreSession, acceptInvite };
   }
 
   let auth = null;

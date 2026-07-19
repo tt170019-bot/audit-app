@@ -242,4 +242,29 @@ assert.match(
   '"등록자 관리" 버튼은 로그인했을 때만 보여야 합니다',
 );
 
+// 초대/비밀번호 재설정 링크 수락 (invite/recovery access_token URL 해시 처리)
+assert.match(
+  source,
+  /<div class="modal-backdrop" id="modal-accept-invite">/,
+  '초대 수락 모달이 있어야 합니다',
+);
+
+assert.match(
+  source,
+  /initInviteAcceptanceFromUrl\(\);/,
+  '앱 시작 시 URL의 초대\\/복구 링크를 감지해야 합니다',
+);
+
+assert.match(
+  source,
+  /type !== 'invite' && type !== 'recovery'/,
+  '초대 링크와 비밀번호 재설정 링크를 모두 처리해야 합니다',
+);
+
+assert.match(
+  source,
+  /getRegistrantAuth\(\)\.acceptInvite\(pendingInviteTokens\.accessToken, pendingInviteTokens\.refreshToken, pendingInviteTokens\.expiresIn, password\)/,
+  '초대 수락은 URL에서 받은 access token으로 비밀번호를 설정해야 합니다',
+);
+
 console.log('checklist UI tests passed');

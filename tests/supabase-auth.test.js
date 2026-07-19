@@ -94,6 +94,37 @@ async function main(){
     assert.equal(session.accessToken, 'stale', '오프라인이면 기존 캐시된 세션을 그대로 유지해야 합니다');
   }
 
+  // acceptInvite() sets a password on the invited/recovering user via their
+  // one-time access token (from the email link), then treats them as signed
+  // in immediately — no separate login step after accepting.
+  {
+    let capturedUrl, capturedOptions, capturedBody;
+    global.fetch = async (url, options) => {
+      capturedUrl = url; capturedOptions = options; capturedBody = JSON.parse(options.body);
+      return { ok: true, json: async () => ({ id: 'u9', email: 'invited@x.com' }) };
+    };
+    const { SupabaseAuth, localStorage } = loadModule();
+    const auth = SupabaseAuth.createAuth(client);
+    const session = await auth.acceptInvite('invite-access-token', 'invite-refresh-token', 3600, 'new-pass-123');
+    assert.equal(capturedUrl, 'https://example.supabase.co/auth/v1/user');
+    assert.equal(capturedOptions.method, 'PUT');
+    assert.equal(capturedOptions.headers.Authorization, 'Bearer invite-access-token');
+    assert.deepEqual(capturedBody, { password: 'new-pass-123' });
+    assert.equal(session.accessToken, 'invite-access-token');
+    assert.equal(session.refreshToken, 'invite-refresh-token');
+    assert.equal(session.user.email, 'invited@x.com');
+    assert.equal(auth.getSession().accessToken, 'invite-access-token', '수락 즉시 로그인 상태여야 합니다');
+    assert.ok(localStorage.getItem('auditAppSupabaseSession'), '세션이 로컬에 저장되어야 합니다');
+  }
+
+  // acceptInvite() surfaces a server error (e.g. an already-used/expired token)
+  {
+    global.fetch = async () => ({ ok: false, status: 401, json: async () => ({ error_description: 'Email link is invalid or has expired' }) });
+    const { SupabaseAuth } = loadModule();
+    const auth = SupabaseAuth.createAuth(client);
+    await assert.rejects(auth.acceptInvite('bad-token', 'rt', 3600, 'new-pass-123'), /expired/);
+  }
+
   // getAuth()/setAuth() — a stubbable module-level singleton for tests
   {
     const { SupabaseAuth } = loadModule();

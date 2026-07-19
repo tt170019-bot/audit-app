@@ -662,6 +662,23 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   </div>
 </div>
 
+<div class="modal-backdrop" id="modal-accept-invite">
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-invite-title">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="accept-invite-title">등록자 초대 수락</div>
+    <div class="modal-body">
+      <div class="check-label">새 비밀번호</div>
+      <input type="password" id="accept-invite-password" autocomplete="new-password" placeholder="6자 이상">
+      <div class="check-label field-gap">비밀번호 확인</div>
+      <input type="password" id="accept-invite-password2" autocomplete="new-password">
+      <div class="sub text-danger" id="accept-invite-error" style="display:none;"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-teal flex-2" onclick="confirmAcceptInvite()">확인</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modal-review">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-review-title">
     <div class="modal-handle"></div>
@@ -823,6 +840,7 @@ function setAdminMode(enabled){
 //  Init
 // ═══════════════════════════════════════════════
 initAdminModeFromUrl();
+initInviteAcceptanceFromUrl();
 
 openDB().then(()=>{
   updateOnlineTag();
@@ -1108,6 +1126,60 @@ async function removeRegistrant(userId){
     await renderRegistrantsModal();
   }catch(e){
     showToast('제거에 실패했습니다: ' + (e.message || ''));
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  초대/비밀번호 재설정 링크 수락
+//  Supabase 초대·복구 메일 링크는 access_token을 URL 해시로 들고 돌아온다
+//  (#access_token=...&type=invite). 이걸 감지해서 새 비밀번호를 설정하고
+//  바로 로그인 상태로 전환한다 — 별도 로그인 단계 없이 즉시 사용 가능.
+// ═══════════════════════════════════════════════
+let pendingInviteTokens = null;
+
+function parseAuthHashParams(){
+  const hash = location.hash.startsWith('#') ? location.hash.slice(1) : '';
+  if(!hash) return null;
+  const params = new URLSearchParams(hash);
+  const accessToken = params.get('access_token');
+  const type = params.get('type');
+  if(!accessToken || (type !== 'invite' && type !== 'recovery')) return null;
+  return {
+    accessToken,
+    refreshToken: params.get('refresh_token') || '',
+    expiresIn: Number(params.get('expires_in') || '3600'),
+    type
+  };
+}
+
+function initInviteAcceptanceFromUrl(){
+  const parsed = parseAuthHashParams();
+  if(!parsed) return;
+  pendingInviteTokens = parsed;
+  history.replaceState(null, '', location.pathname + location.search);
+  document.getElementById('accept-invite-title').textContent = parsed.type === 'recovery' ? '비밀번호 재설정' : '등록자 초대 수락';
+  openModal('modal-accept-invite');
+}
+
+async function confirmAcceptInvite(){
+  const password = document.getElementById('accept-invite-password').value;
+  const password2 = document.getElementById('accept-invite-password2').value;
+  const errorEl = document.getElementById('accept-invite-error');
+  setVisible(errorEl, false);
+
+  if(!password || password.length < 6){ setVisible(errorEl, true); errorEl.textContent = '비밀번호는 6자 이상이어야 합니다'; return; }
+  if(password !== password2){ setVisible(errorEl, true); errorEl.textContent = '비밀번호가 일치하지 않습니다'; return; }
+  if(!pendingInviteTokens){ setVisible(errorEl, true); errorEl.textContent = '초대 링크 정보를 찾을 수 없습니다. 링크를 다시 열어주세요'; return; }
+
+  try{
+    await getRegistrantAuth().acceptInvite(pendingInviteTokens.accessToken, pendingInviteTokens.refreshToken, pendingInviteTokens.expiresIn, password);
+    pendingInviteTokens = null;
+    closeModal('modal-accept-invite');
+    showToast('등록자로 활성화되었습니다');
+    switchTab('templates');
+  }catch(e){
+    setVisible(errorEl, true);
+    errorEl.textContent = e.message || '처리에 실패했습니다. 링크가 만료되었을 수 있습니다';
   }
 }
 
