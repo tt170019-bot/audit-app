@@ -199,4 +199,47 @@ assert.match(
   '등록된 점검표 카드에는 로그인한 Registrant에게만 수정 버튼이 보여야 합니다',
 );
 
+// wayfinder #12 — 등록자 관리 (초대/목록/제거)
+assert.match(
+  source,
+  /<script src="registrants\.js"><\/script>/,
+  'registrants.js가 로드되어야 합니다',
+);
+
+assert.match(
+  source,
+  /<div class="modal-backdrop" id="modal-registrants">/,
+  '등록자 관리 모달이 있어야 합니다',
+);
+
+assert.match(
+  source,
+  /async function openRegistrantsModal\(\)\{\s*const session = getRegistrantSession\(\);\s*if\(!session\?\.user\)/,
+  '등록자 관리 화면은 로그인하지 않으면 열리지 않아야 합니다',
+);
+
+assert.match(
+  source,
+  /Registrants\.getRegistrants\(SupabaseClient\.getClient\(\)\)\.list\(session\.accessToken\)/,
+  '등록자 목록 조회는 로그인 사용자의 access token으로 Edge Function을 호출해야 합니다',
+);
+
+assert.match(
+  source,
+  /Registrants\.getRegistrants\(SupabaseClient\.getClient\(\)\)\.invite\(session\.accessToken, email\)/,
+  '초대도 로그인 사용자의 access token으로 Edge Function을 호출해야 합니다',
+);
+
+assert.match(
+  source,
+  /Registrants\.getRegistrants\(SupabaseClient\.getClient\(\)\)\.remove\(session\.accessToken, userId\)/,
+  '제거도 로그인 사용자의 access token으로 Edge Function을 호출해야 합니다',
+);
+
+assert.match(
+  source,
+  /registrantSession\?\.user \? `<button type="button" class="btn btn-ghost btn-sm" onclick="openRegistrantsModal\(\)">등록자 관리<\/button>` : ''/,
+  '"등록자 관리" 버튼은 로그인했을 때만 보여야 합니다',
+);
+
 console.log('checklist UI tests passed');

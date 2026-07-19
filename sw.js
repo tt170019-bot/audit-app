@@ -13,6 +13,7 @@ const CACHE_FILES = [
   './checklist-source.js',
   './supabase-client.js',
   './supabase-auth.js',
+  './registrants.js',
 
   // Local font for offline use
   './fonts/PretendardVariable.woff2'

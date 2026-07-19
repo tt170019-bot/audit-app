@@ -17,6 +17,7 @@
 <script src="checklist-source.js"></script>
 <script src="supabase-client.js"></script>
 <script src="supabase-auth.js"></script>
+<script src="registrants.js"></script>
 <style>
 @font-face {
   font-family: "Pretendard";
@@ -650,6 +651,17 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   </div>
 </div>
 
+<div class="modal-backdrop" id="modal-registrants">
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-registrants-title">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-registrants-title">등록자 관리</div>
+    <div class="modal-body" id="registrants-body">불러오는 중입니다...</div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost flex-1" onclick="closeModal('modal-registrants')">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modal-review">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-review-title">
     <div class="modal-handle"></div>
@@ -1031,6 +1043,72 @@ async function registrantSignOut(){
   await getRegistrantAuth().signOut();
   showToast('로그아웃되었습니다');
   if(currentTab === 'templates'){ const c = document.getElementById('content'); if(c) renderTemplates(c); }
+}
+
+// ═══════════════════════════════════════════════
+//  wayfinder #12 — 등록자 관리 (초대/목록/제거)
+//  Admin API가 필요한 작업이라 registrants.js를 통해 Edge Function만 호출한다.
+// ═══════════════════════════════════════════════
+async function openRegistrantsModal(){
+  const session = getRegistrantSession();
+  if(!session?.user){ showToast('로그인이 필요합니다'); return; }
+  openModal('modal-registrants');
+  await renderRegistrantsModal();
+}
+
+async function renderRegistrantsModal(){
+  const session = getRegistrantSession();
+  const body = document.getElementById('registrants-body');
+  if(!session?.user){ body.innerHTML = `<div class="sub text-danger">로그인이 필요합니다</div>`; return; }
+
+  body.innerHTML = '불러오는 중입니다...';
+  try{
+    const users = await Registrants.getRegistrants(SupabaseClient.getClient()).list(session.accessToken);
+    body.innerHTML = `
+      <div class="check-label">새 등록자 초대</div>
+      <input type="email" id="registrant-invite-email" placeholder="you@example.com">
+      <button type="button" class="btn btn-teal btn-sm field-gap" onclick="inviteRegistrant()">초대</button>
+      <div class="sub text-danger" id="registrant-error" style="display:none;"></div>
+      <div class="section-header mt-150">현재 등록자 (${users.length})</div>
+      ${users.map(u => `
+      <div class="card-row">
+        <div class="flex-1"><div class="label">${esc(u.email || u.id)}</div></div>
+        ${u.id === session.user.id ? `<span class="sub">나</span>` : `<button type="button" class="btn btn-danger btn-sm" onclick="removeRegistrant('${u.id}')">제거</button>`}
+      </div>`).join('')}
+    `;
+  }catch(e){
+    body.innerHTML = `<div class="sub text-danger">등록자 목록을 불러오지 못했습니다: ${esc(e.message||'')}</div>`;
+  }
+}
+
+async function inviteRegistrant(){
+  const session = getRegistrantSession();
+  if(!session?.user){ showToast('로그인이 필요합니다'); return; }
+  const email = document.getElementById('registrant-invite-email').value.trim();
+  const errorEl = document.getElementById('registrant-error');
+  setVisible(errorEl, false);
+  if(!email){ setVisible(errorEl, true); errorEl.textContent = '이메일을 입력하세요'; return; }
+
+  try{
+    await Registrants.getRegistrants(SupabaseClient.getClient()).invite(session.accessToken, email);
+    showToast(`${email}님을 초대했습니다`);
+    await renderRegistrantsModal();
+  }catch(e){
+    setVisible(errorEl, true);
+    errorEl.textContent = e.message || '초대에 실패했습니다';
+  }
+}
+
+async function removeRegistrant(userId){
+  const session = getRegistrantSession();
+  if(!session?.user){ showToast('로그인이 필요합니다'); return; }
+  try{
+    await Registrants.getRegistrants(SupabaseClient.getClient()).remove(session.accessToken, userId);
+    showToast('등록자를 제거했습니다');
+    await renderRegistrantsModal();
+  }catch(e){
+    showToast('제거에 실패했습니다: ' + (e.message || ''));
+  }
 }
 
 function getPresetTemplateKey(cl){
@@ -1435,9 +1513,12 @@ async function renderTemplates(c){
         <div class="label">등록자 로그인</div>
         <div class="sub">${registrantSession?.user?.email ? `${esc(registrantSession.user.email)}로 로그인됨` : '로그인하지 않음 · 감사 진행에는 영향 없음'}</div>
       </div>
-      ${registrantSession?.user
-        ? `<button type="button" class="btn btn-ghost btn-sm" onclick="registrantSignOut()">로그아웃</button>`
-        : `<button type="button" class="btn btn-ghost btn-sm" onclick="openModal('modal-login')">로그인</button>`}
+      <div class="template-actions">
+        ${registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openRegistrantsModal()">등록자 관리</button>` : ''}
+        ${registrantSession?.user
+          ? `<button type="button" class="btn btn-ghost btn-sm" onclick="registrantSignOut()">로그아웃</button>`
+          : `<button type="button" class="btn btn-ghost btn-sm" onclick="openModal('modal-login')">로그인</button>`}
+      </div>
     </div>
   </div>
 
