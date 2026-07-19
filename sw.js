@@ -14,6 +14,10 @@ const CACHE_FILES = [
   './supabase-client.js',
   './supabase-auth.js',
   './registrants.js',
+  './report-export.js',
+  './registrant-ui.js',
+  './review-wizard.js',
+  './styles.css',
 
   // Local font for offline use
   './fonts/PretendardVariable.woff2'

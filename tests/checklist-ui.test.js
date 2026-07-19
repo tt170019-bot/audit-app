@@ -1,7 +1,16 @@
 const assert = require('assert/strict');
 const fs = require('fs');
 
-const source = fs.readFileSync(require.resolve('../index.html'), 'utf8');
+// index.html was split (report-export.js / registrant-ui.js / review-wizard.js
+// carved out to keep the main file from growing without bound) — concatenate
+// them all so the existing regex assertions below don't care which physical
+// file a given piece of UI wiring now lives in.
+const source = [
+  '../index.html',
+  '../report-export.js',
+  '../registrant-ui.js',
+  '../review-wizard.js',
+].map(p => fs.readFileSync(require.resolve(p), 'utf8')).join('\n');
 
 assert.match(
   source,
