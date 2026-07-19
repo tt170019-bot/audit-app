@@ -40,11 +40,12 @@
       return data;
     }
 
-    async function signIn(email, password){
-      const data = await authRequest('token?grant_type=password', { email, password });
-      session = toSession(data);
-      writeStoredSession(session);
-      return session;
+    // Sends a magic-link email. create_user:false means only an email Supabase
+    // already knows (i.e. previously invited via the registrants Edge Function)
+    // will ever receive a working link — this is the access-control boundary
+    // for who can become signed in, not anything the UI enforces.
+    async function requestMagicLink(email){
+      await authRequest('otp', { email, create_user: false });
     }
 
     async function signOut(){
@@ -63,7 +64,7 @@
     }
 
     // Refreshes the access token on startup so a Registrant doesn't have to
-    // re-enter a password every visit. If the refresh call fails (offline, or
+    // click a new email link every visit. If the refresh call fails (offline, or
     // the network is just slow) the previously cached session is kept as-is —
     // this must never block or degrade the anonymous auditor read/take-audit
     // flow, which doesn't touch auth at all.
@@ -77,14 +78,13 @@
       return session;
     }
 
-    // Sets a password using the one-time access token from an invite or
-    // password-recovery email link, then treats the caller as signed in
-    // immediately — accepting an invite shouldn't require a separate login.
-    async function acceptInvite(accessToken, refreshToken, expiresIn, password){
+    // Builds a session directly from the access/refresh tokens Supabase put in
+    // the URL hash after an invite or magic-link email click, then treats the
+    // caller as signed in immediately — no separate login step needed.
+    async function completeSessionFromTokens(accessToken, refreshToken, expiresIn){
       const response = await fetch(`${client.url}/auth/v1/user`, {
-        method: 'PUT',
-        headers: { apikey: client.anonKey, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        method: 'GET',
+        headers: { apikey: client.anonKey, Authorization: `Bearer ${accessToken}` }
       });
       const data = await response.json().catch(() => ({}));
       if(!response.ok) throw new Error(data?.error_description || data?.msg || `Supabase Auth HTTP ${response.status}`);
@@ -93,7 +93,7 @@
       return session;
     }
 
-    return { signIn, signOut, getSession, restoreSession, acceptInvite };
+    return { requestMagicLink, signOut, getSession, restoreSession, completeSessionFromTokens };
   }
 
   let auth = null;

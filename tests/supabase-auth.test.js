@@ -26,31 +26,28 @@ const client = { url: 'https://example.supabase.co', anonKey: 'anon-key' };
 async function main(){
   const originalFetch = global.fetch;
 
-  // signIn() posts email/password grant, stores the session, returns it
+  // requestMagicLink() posts the email to the otp endpoint; it does not sign the caller in
   {
     let capturedUrl, capturedBody;
     global.fetch = async (url, options) => {
       capturedUrl = url;
       capturedBody = JSON.parse(options.body);
-      return { ok: true, json: async () => ({ access_token: 'at-1', refresh_token: 'rt-1', expires_in: 3600, user: { id: 'u1', email: 'a@b.com' } }) };
+      return { ok: true, json: async () => ({}) };
     };
-    const { SupabaseAuth, localStorage } = loadModule();
-    const auth = SupabaseAuth.createAuth(client);
-    const session = await auth.signIn('a@b.com', 'pw');
-    assert.equal(capturedUrl, 'https://example.supabase.co/auth/v1/token?grant_type=password');
-    assert.deepEqual(capturedBody, { email: 'a@b.com', password: 'pw' });
-    assert.equal(session.user.email, 'a@b.com');
-    assert.equal(auth.getSession().accessToken, 'at-1');
-    assert.ok(localStorage.getItem('auditAppSupabaseSession'), '세션은 로컬에 저장되어야 합니다');
-  }
-
-  // signIn() throws with the server's error message on bad credentials
-  {
-    global.fetch = async () => ({ ok: false, status: 400, json: async () => ({ error_description: '이메일 또는 비밀번호가 올바르지 않습니다' }) });
     const { SupabaseAuth } = loadModule();
     const auth = SupabaseAuth.createAuth(client);
-    await assert.rejects(auth.signIn('a@b.com', 'wrong'), /이메일 또는 비밀번호/);
-    assert.equal(auth.getSession(), null, '로그인 실패 시 세션이 없어야 합니다');
+    await auth.requestMagicLink('a@b.com');
+    assert.equal(capturedUrl, 'https://example.supabase.co/auth/v1/otp');
+    assert.deepEqual(capturedBody, { email: 'a@b.com', create_user: false });
+    assert.equal(auth.getSession(), null, '링크 요청만으로는 로그인되지 않아야 합니다');
+  }
+
+  // requestMagicLink() throws with the server's error message (e.g. unregistered email)
+  {
+    global.fetch = async () => ({ ok: false, status: 422, json: async () => ({ msg: 'Signups not allowed for otp' }) });
+    const { SupabaseAuth } = loadModule();
+    const auth = SupabaseAuth.createAuth(client);
+    await assert.rejects(auth.requestMagicLink('nobody@x.com'), /Signups not allowed for otp/);
   }
 
   // signOut() clears the session both in memory and in localStorage
@@ -94,35 +91,34 @@ async function main(){
     assert.equal(session.accessToken, 'stale', '오프라인이면 기존 캐시된 세션을 그대로 유지해야 합니다');
   }
 
-  // acceptInvite() sets a password on the invited/recovering user via their
-  // one-time access token (from the email link), then treats them as signed
-  // in immediately — no separate login step after accepting.
+  // completeSessionFromTokens() fetches the user profile for the access token from
+  // the email link and treats the caller as signed in immediately — no separate
+  // login step after clicking an invite or magic-link email.
   {
-    let capturedUrl, capturedOptions, capturedBody;
+    let capturedUrl, capturedOptions;
     global.fetch = async (url, options) => {
-      capturedUrl = url; capturedOptions = options; capturedBody = JSON.parse(options.body);
+      capturedUrl = url; capturedOptions = options;
       return { ok: true, json: async () => ({ id: 'u9', email: 'invited@x.com' }) };
     };
     const { SupabaseAuth, localStorage } = loadModule();
     const auth = SupabaseAuth.createAuth(client);
-    const session = await auth.acceptInvite('invite-access-token', 'invite-refresh-token', 3600, 'new-pass-123');
+    const session = await auth.completeSessionFromTokens('link-access-token', 'link-refresh-token', 3600);
     assert.equal(capturedUrl, 'https://example.supabase.co/auth/v1/user');
-    assert.equal(capturedOptions.method, 'PUT');
-    assert.equal(capturedOptions.headers.Authorization, 'Bearer invite-access-token');
-    assert.deepEqual(capturedBody, { password: 'new-pass-123' });
-    assert.equal(session.accessToken, 'invite-access-token');
-    assert.equal(session.refreshToken, 'invite-refresh-token');
+    assert.equal(capturedOptions.method, 'GET');
+    assert.equal(capturedOptions.headers.Authorization, 'Bearer link-access-token');
+    assert.equal(session.accessToken, 'link-access-token');
+    assert.equal(session.refreshToken, 'link-refresh-token');
     assert.equal(session.user.email, 'invited@x.com');
-    assert.equal(auth.getSession().accessToken, 'invite-access-token', '수락 즉시 로그인 상태여야 합니다');
+    assert.equal(auth.getSession().accessToken, 'link-access-token', '완료 즉시 로그인 상태여야 합니다');
     assert.ok(localStorage.getItem('auditAppSupabaseSession'), '세션이 로컬에 저장되어야 합니다');
   }
 
-  // acceptInvite() surfaces a server error (e.g. an already-used/expired token)
+  // completeSessionFromTokens() surfaces a server error (e.g. an already-used/expired token)
   {
     global.fetch = async () => ({ ok: false, status: 401, json: async () => ({ error_description: 'Email link is invalid or has expired' }) });
     const { SupabaseAuth } = loadModule();
     const auth = SupabaseAuth.createAuth(client);
-    await assert.rejects(auth.acceptInvite('bad-token', 'rt', 3600, 'new-pass-123'), /expired/);
+    await assert.rejects(auth.completeSessionFromTokens('bad-token', 'rt', 3600), /expired/);
   }
 
   // getAuth()/setAuth() — a stubbable module-level singleton for tests
