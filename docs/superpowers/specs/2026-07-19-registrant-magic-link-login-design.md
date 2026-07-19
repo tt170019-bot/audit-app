@@ -54,11 +54,14 @@ recover) and is deleted.
   - Disables the submit button and shows "전송 중..." for the duration of the request
     (in-flight guard against double submit; no client-side cooldown timer — server-side
     rate limiting is authoritative and its error surfaces as-is if hit).
-  - On success, replaces the modal body with a neutral confirmation: "등록된 이메일이면
-    로그인 링크를 보냈습니다. 메일함을 확인하세요." — worded so it doesn't confirm or
-    deny that the address is a registered Registrant (Supabase's own `create_user:false`
-    behavior doesn't leak this either, so the UI shouldn't undo that by being specific).
-    Includes a "다시 보내기" action that re-runs the same request for the same email.
+  - On success, replaces the modal body with a confirmation: "로그인 링크를 보냈습니다.
+    메일함을 확인하세요." Includes a "다시 보내기" action that re-runs the same request
+    for the same email.
+  - On failure — including the case where `create_user:false` rejects an
+    unregistered email (GoTrue returns a 422 here, it does not silently no-op) —
+    show `e.message` in `login-error`, the same pattern already used by
+    `registrantSignIn`/`inviteRegistrant`'s existing catch blocks. No special-casing
+    or translation of individual error codes.
   - Modal close (existing `closeModal('modal-login')` path) resets the modal back to
     the email-entry state, so reopening it never shows a stale "sent" screen.
 
@@ -70,6 +73,13 @@ recover) and is deleted.
   for invite vs recovery, and its trigger). Invite acceptance now flows through the
   same `initEmailLinkSignIn()` path as magic-link login — no modal needed for it.
 - Remove `confirmAcceptInvite()` and `pendingInviteTokens` and their references.
+
+### Redirect target
+
+`POST /auth/v1/otp` is called with no explicit redirect override — it relies on the
+project's already-configured Auth "Site URL", the same default the existing password
+-recovery links have been landing on correctly. If manual testing (below) shows the
+link redirecting anywhere else, add a `redirect_to` query param to the request URL.
 
 ### `supabase/functions/registrants/index.ts`
 
