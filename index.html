@@ -1155,7 +1155,12 @@ function initInviteAcceptanceFromUrl(){
   const parsed = parseAuthHashParams();
   if(!parsed) return;
   pendingInviteTokens = parsed;
-  history.replaceState(null, '', location.pathname + location.search);
+  // Deliberately NOT stripping the hash here. First-time visitors on a fresh
+  // browser get force-reloaded by the service worker's controllerchange
+  // handler (below) shortly after load, which wipes all in-memory state —
+  // if the hash were gone too, the invite would be unrecoverable. Leaving it
+  // in place means the reload just re-runs this same detection. Only cleared
+  // on successful acceptance, in confirmAcceptInvite().
   document.getElementById('accept-invite-title').textContent = parsed.type === 'recovery' ? '비밀번호 재설정' : '등록자 초대 수락';
   openModal('modal-accept-invite');
 }
@@ -1173,6 +1178,7 @@ async function confirmAcceptInvite(){
   try{
     await getRegistrantAuth().acceptInvite(pendingInviteTokens.accessToken, pendingInviteTokens.refreshToken, pendingInviteTokens.expiresIn, password);
     pendingInviteTokens = null;
+    history.replaceState(null, '', location.pathname + location.search);
     closeModal('modal-accept-invite');
     showToast('등록자로 활성화되었습니다');
     switchTab('templates');
