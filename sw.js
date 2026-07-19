@@ -11,6 +11,7 @@ const CACHE_FILES = [
   './audit-rules.js',
   './audit-store.js',
   './checklist-source.js',
+  './supabase-client.js',
 
   // Local font for offline use
   './fonts/PretendardVariable.woff2'

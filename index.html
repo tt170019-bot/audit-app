@@ -15,6 +15,7 @@
 <script src="audit-rules.js"></script>
 <script src="audit-store.js"></script>
 <script src="checklist-source.js"></script>
+<script src="supabase-client.js"></script>
 <style>
 @font-face {
   font-family: "Pretendard";
@@ -801,6 +802,11 @@ function normalizeChecklistItem(item){
     type: String(item.type ?? item.answerType ?? item['점검유형'] ?? 'YES/NO/OBS/N/A').trim() || 'YES/NO/OBS/N/A',
     result: normalizeResultValue(item.result) || null,
     maturity: item.maturity ?? '',
+    // wayfinder #8 — item-level maturityOn/maturityGuidance are authored per
+    // item (e.g. a Supabase-registered template), unlike the other fields
+    // above which are always inferred/defaulted from a raw spreadsheet row.
+    maturityOn: item.maturityOn,
+    maturityGuidance: Array.isArray(item.maturityGuidance) ? item.maturityGuidance : undefined,
     note: String(item.note ?? item.memo ?? item.comment ?? item['비고'] ?? ''),
     photos: Array.isArray(item.photos) ? item.photos : []
   };
@@ -914,6 +920,23 @@ async function loadChecklistIndex(){
   }
 }
 
+// wayfinder #8 — Supabase 익명 읽기. GitHub 자동 동기화와 나란히 동작하는
+// 두 번째 점검표 소스: 로그인 없이 목록을 읽고, 실패해도 기존 저장분은 그대로 둔다.
+let supabaseSyncState = { checked: false, reachable: null, message: 'Supabase 점검표 서버 확인 전' };
+
+async function loadSupabaseChecklists(){
+  try{
+    const client = SupabaseClient.getClient();
+    const templates = await ChecklistSource.loadSupabaseTemplates(client);
+    supabaseSyncState = { checked: true, reachable: true, message: 'Supabase 점검표 서버 접근 가능' };
+    return templates;
+  } catch(e){
+    supabaseSyncState = { checked: true, reachable: false, message: '온라인 상태와 별개로 Supabase 점검표 서버 접근 실패' };
+    appWarn('Supabase templates 조회 실패. 저장된 점검표를 계속 사용합니다.', e);
+    return [];
+  }
+}
+
 function getPresetTemplateKey(cl){
   return `${cl.filename}@@${cl.fingerprint || cl.sha || cl.updatedAt || 'unversioned'}`;
 }
@@ -927,7 +950,7 @@ function getTemplateVersionLabel(template){
 }
 
 function getTemplateSourceLabel(template){
-  if((template?.source === 'github-api' || template?.source === 'github-index')) return '자동동기화';
+  if((template?.source === 'github-api' || template?.source === 'github-index' || template?.source === 'supabase')) return '자동동기화';
   if(template?.source === 'preset') return '자동등록';
   return '수동등록';
 }
@@ -978,11 +1001,10 @@ async function autoLoadChecklists(){
 
   if(index.length === 0){
     appLog('동기화할 GitHub 점검표가 없습니다. checklists 폴더를 확인하세요.');
-    return 0;
   }
 
   const indexFilenames = new Set(index.map(cl => cl.filename));
-  await markSupersededTemplates(null, null, indexFilenames);
+  if(index.length > 0) await markSupersededTemplates(null, null, indexFilenames);
 
   for(const cl of index){
     const existing = await dbAll('templates');
@@ -1028,6 +1050,31 @@ async function autoLoadChecklists(){
     } catch(e){
       appWarn(`점검표 동기화 실패: ${cl.filename}`, e);
     }
+  }
+
+  const supabaseTemplates = await loadSupabaseChecklists();
+  for(const tpl of supabaseTemplates){
+    const existing = await dbAll('templates');
+    const sameVersion = existing.find(t => t.templateKey === tpl.templateKey);
+    if(sameVersion){
+      if(sameVersion.active === false){
+        await dbPut('templates', {...sameVersion, active:true, restoredAt:new Date().toISOString()});
+      }
+      continue;
+    }
+
+    const stale = existing.filter(t => t.source === 'supabase' && t.supabaseId === tpl.supabaseId && t.templateKey !== tpl.templateKey && t.active !== false);
+    for(const s of stale) await dbPut('templates', {...s, active:false, supersededAt:new Date().toISOString()});
+
+    await dbPut('templates', {
+      ...tpl,
+      reportTemplate: inferReportTemplateType(tpl),
+      active: true,
+      importedAt: new Date().toISOString()
+    });
+    added += 1;
+    updated += stale.length > 0 ? 1 : 0;
+    appLog(`Supabase 점검표 동기화: ${tpl.name} (${tpl.supabaseId})`);
   }
 
   if(added > 0){
@@ -1257,7 +1304,7 @@ async function renderTemplates(c){
   const admin = isAdminMode();
   const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
   const activeCount = templates.filter(t => t.active !== false).length;
-  const autoCount = templates.filter(t => (t.source === 'github-api' || t.source === 'github-index') && t.active !== false).length;
+  const autoCount = templates.filter(t => (t.source === 'github-api' || t.source === 'github-index' || t.source === 'supabase') && t.active !== false).length;
   const syncStatusLabel = !navigator.onLine
     ? '오프라인 저장본 사용 중'
     : checklistSyncState.reachable === false
@@ -1269,10 +1316,10 @@ async function renderTemplates(c){
   c.innerHTML=`
   <div class="section-header">공식 점검표</div>
   <div class="admin-panel">
-    <div class="admin-panel-title">GitHub 공식 점검표 동기화</div>
+    <div class="admin-panel-title">공식 점검표 동기화</div>
     <div class="admin-panel-desc">
-      앱은 GitHub <code>checklists/</code> 폴더의 Excel 파일을 자동 스캔하여 공식 점검표를 동기화합니다.
-      기존 심사 기록은 변경하지 않고, 새 심사부터 최신 점검표가 적용됩니다.
+      앱은 GitHub <code>checklists/</code> 폴더의 Excel 파일과 Supabase에 등록된 점검표를 자동으로 동기화합니다.
+      로그인 없이 조회되며, 기존 심사 기록은 변경하지 않고 새 심사부터 최신 점검표가 적용됩니다.
     </div>
   </div>
   <div class="card template-sync-card">
@@ -2257,7 +2304,7 @@ async function createAudit(){
   if(!tpl){ showToast('점검표를 불러올 수 없습니다'); return; }
   if(!tpl.items.length){ showToast('점검표 항목 형식이 맞지 않습니다. 다시 업로드하세요'); return; }
 
-  const maturityScale = deriveMaturityScale(tpl);
+  const maturityScale = tpl.maturityScale || deriveMaturityScale(tpl);
   const audit = {
     title, date, auditor, dept,
     templateId: tplId,
@@ -2268,7 +2315,7 @@ async function createAudit(){
     maturityScale,
     status: AUDIT_STATUS.PROGRESS,
     createdAt: new Date().toISOString(),
-    items: tpl.items.map(i=>({...i, result:null, note:'', photos:[], maturityOn: Boolean(maturityScale)}))
+    items: tpl.items.map(i=>({...i, result:null, note:'', photos:[], maturityOn: i.maturityOn ?? Boolean(maturityScale)}))
   };
   const id = await dbPut('audits', audit);
   closeModal('modal-newaudit');

@@ -76,4 +76,41 @@ assert.match(
   'Word 보고서 출력용 렌더러는 이번 변경과 무관하게 그대로 유지되어야 합니다 (범위 밖)',
 );
 
+// wayfinder #8 — Supabase 익명 읽기
+assert.match(
+  source,
+  /<script src="supabase-client\.js"><\/script>/,
+  'supabase-client.js가 로드되어야 합니다',
+);
+
+assert.match(
+  source,
+  /async function loadSupabaseChecklists\(\)\{[\s\S]*?ChecklistSource\.loadSupabaseTemplates\(client\)/,
+  'Supabase 템플릿 조회는 ChecklistSource.loadSupabaseTemplates를 사용해야 합니다',
+);
+
+assert.match(
+  source,
+  /async function autoLoadChecklists\(\)\{[\s\S]*?const supabaseTemplates = await loadSupabaseChecklists\(\);/,
+  '자동 동기화는 GitHub와 나란히 Supabase 소스도 처리해야 합니다',
+);
+
+assert.match(
+  source,
+  /const maturityScale = tpl\.maturityScale \|\| deriveMaturityScale\(tpl\);/,
+  '심사 생성 시 템플릿에 저장된 커스텀 척도를 레거시 추론보다 우선해야 합니다',
+);
+
+assert.match(
+  source,
+  /maturityOn: i\.maturityOn \?\? Boolean\(maturityScale\)/,
+  '심사 생성 시 항목별 maturityOn 플래그가 템플릿에 있으면 그대로 사용해야 합니다',
+);
+
+assert.match(
+  source,
+  /maturityOn: item\.maturityOn,/,
+  '점검표 항목 정규화는 항목별 maturityOn 플래그를 보존해야 합니다',
+);
+
 console.log('checklist UI tests passed');

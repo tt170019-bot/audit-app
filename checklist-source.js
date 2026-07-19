@@ -35,5 +35,31 @@
     return (Array.isArray(data) ? data : []).map(normalize).filter(Boolean).sort((a, b) => a.filename.localeCompare(b.filename, 'ko'));
   }
 
-  return { displayName, extractRows, loadGitHubIndex };
+  // wayfinder #8 — Supabase rows already carry parsed items (plus the
+  // per-item maturityOn flag and template-level custom scale from #7),
+  // so this is a straight normalize, no xlsx parsing step.
+  function normalizeSupabaseTemplate(row){
+    if(!row || row.id == null || !Array.isArray(row.items) || row.items.length === 0) return null;
+    const updatedAt = String(row.updated_at || row.created_at || '').trim();
+    return {
+      name: String(row.name || '이름 없는 점검표').trim(),
+      filename: String(row.filename || '').trim(),
+      source: 'supabase',
+      supabaseId: row.id,
+      templateKey: `supabase:${row.id}@@${updatedAt || 'unversioned'}`,
+      sections: Array.isArray(row.sections) && row.sections.length ? row.sections : [...new Set(row.items.map(i => i?.section || '일반'))],
+      items: row.items,
+      maturityScale: row.maturity_scale || null,
+      createdBy: row.created_by || '',
+      updatedBy: row.updated_by || '',
+      updatedAt
+    };
+  }
+
+  async function loadSupabaseTemplates(client){
+    const rows = await client.selectAll('templates');
+    return (Array.isArray(rows) ? rows : []).map(normalizeSupabaseTemplate).filter(Boolean);
+  }
+
+  return { displayName, extractRows, loadGitHubIndex, loadSupabaseTemplates };
 });
