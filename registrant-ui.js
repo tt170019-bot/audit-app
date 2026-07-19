@@ -1,7 +1,5 @@
-// wayfinder #9/#12 — Registrant 로그인/세션, 등록자 관리, 초대 수락 화면.
+// wayfinder #9/#12 — Registrant 로그인/세션, 등록자 관리, 이메일 링크 로그인 화면.
 // index.html의 showToast/closeModal/openModal/esc/switchTab 등 전역을 그대로 쓴다.
-
-let pendingInviteTokens = null;
 
 // wayfinder #9 — Registrant 인증. 로그인 상태는 등록(체크리스트 쓰기)/등록자
 // 관리 화면에서만 쓰인다 — 감사자의 익명 읽기/감사 진행 플로우는 이 모듈을
@@ -18,22 +16,38 @@ async function restoreRegistrantSession(){
   return getRegistrantAuth().restoreSession();
 }
 
-async function registrantSignIn(){
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  const errorEl = document.getElementById('login-error');
-  setVisible(errorEl, false);
-  if(!email || !password){ setVisible(errorEl, true); errorEl.textContent = '이메일과 비밀번호를 입력하세요'; return; }
+function openLoginModal(){
+  document.getElementById('login-email').value = '';
+  setVisible('login-error', false);
+  setVisible('login-sent', false);
+  const btn = document.getElementById('login-submit-btn');
+  btn.textContent = '로그인 링크 받기';
+  btn.disabled = false;
+  openModal('modal-login');
+}
 
+async function requestLoginLink(){
+  const email = document.getElementById('login-email').value.trim();
+  const errorEl = document.getElementById('login-error');
+  const sentEl = document.getElementById('login-sent');
+  const btn = document.getElementById('login-submit-btn');
+  setVisible(errorEl, false);
+  if(!email){ setVisible(errorEl, true); errorEl.textContent = '이메일을 입력하세요'; return; }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '전송 중...';
   try{
-    await getRegistrantAuth().signIn(email, password);
-    closeModal('modal-login');
-    document.getElementById('login-password').value = '';
-    showToast('로그인되었습니다');
-    if(currentTab === 'templates'){ const c = document.getElementById('content'); if(c) renderTemplates(c); }
+    await getRegistrantAuth().requestMagicLink(email);
+    setVisible(sentEl, true);
+    sentEl.textContent = '로그인 링크를 보냈습니다. 메일함을 확인하세요.';
+    btn.textContent = '다시 보내기';
+    btn.disabled = false;
   }catch(e){
     setVisible(errorEl, true);
-    errorEl.textContent = e.message || '로그인에 실패했습니다';
+    errorEl.textContent = e.message || '전송에 실패했습니다';
+    btn.textContent = originalLabel;
+    btn.disabled = false;
   }
 }
 
@@ -110,59 +124,50 @@ async function removeRegistrant(userId){
 }
 
 // ═══════════════════════════════════════════════
-//  초대/비밀번호 재설정 링크 수락
-//  Supabase 초대·복구 메일 링크는 access_token을 URL 해시로 들고 돌아온다
-//  (#access_token=...&type=invite). 이걸 감지해서 새 비밀번호를 설정하고
-//  바로 로그인 상태로 전환한다 — 별도 로그인 단계 없이 즉시 사용 가능.
+//  이메일 링크 로그인/초대 수락
+//  Supabase 초대·매직링크 메일은 access_token을 URL 해시로 들고 돌아온다
+//  (#access_token=...&type=invite 또는 &type=magiclink). 둘 다 같은 방식으로
+//  처리한다 — 비밀번호 설정 단계 없이 토큰으로 바로 로그인 상태가 된다.
 // ═══════════════════════════════════════════════
 function parseAuthHashParams(){
   const hash = location.hash.startsWith('#') ? location.hash.slice(1) : '';
   if(!hash) return null;
   const params = new URLSearchParams(hash);
+  if(params.get('error')) return { error: true };
   const accessToken = params.get('access_token');
   const type = params.get('type');
-  if(!accessToken || (type !== 'invite' && type !== 'recovery')) return null;
+  if(!accessToken || (type !== 'invite' && type !== 'magiclink')) return null;
   return {
     accessToken,
     refreshToken: params.get('refresh_token') || '',
-    expiresIn: Number(params.get('expires_in') || '3600'),
-    type
+    expiresIn: Number(params.get('expires_in') || '3600')
   };
 }
 
-function initInviteAcceptanceFromUrl(){
+async function initEmailLinkSignIn(){
   const parsed = parseAuthHashParams();
   if(!parsed) return;
-  pendingInviteTokens = parsed;
-  // Deliberately NOT stripping the hash here. First-time visitors on a fresh
-  // browser get force-reloaded by the service worker's controllerchange
-  // handler (below) shortly after load, which wipes all in-memory state —
-  // if the hash were gone too, the invite would be unrecoverable. Leaving it
-  // in place means the reload just re-runs this same detection. Only cleared
-  // on successful acceptance, in confirmAcceptInvite().
-  document.getElementById('accept-invite-title').textContent = parsed.type === 'recovery' ? '비밀번호 재설정' : '등록자 초대 수락';
-  openModal('modal-accept-invite');
-}
 
-async function confirmAcceptInvite(){
-  const password = document.getElementById('accept-invite-password').value;
-  const password2 = document.getElementById('accept-invite-password2').value;
-  const errorEl = document.getElementById('accept-invite-error');
-  setVisible(errorEl, false);
-
-  if(!password || password.length < 6){ setVisible(errorEl, true); errorEl.textContent = '비밀번호는 6자 이상이어야 합니다'; return; }
-  if(password !== password2){ setVisible(errorEl, true); errorEl.textContent = '비밀번호가 일치하지 않습니다'; return; }
-  if(!pendingInviteTokens){ setVisible(errorEl, true); errorEl.textContent = '초대 링크 정보를 찾을 수 없습니다. 링크를 다시 열어주세요'; return; }
+  // Clear the hash only after the outcome is handled, not before — a
+  // first-time visitor's service worker registration can force a reload via
+  // the controllerchange handler (below) partway through, and if the hash
+  // were already gone the link would be unrecoverable. A reload mid-flight
+  // just re-runs this same detection from the top.
+  if(parsed.error){
+    history.replaceState(null, '', location.pathname + location.search);
+    showToast('링크가 만료되었습니다. 다시 요청하세요');
+    openLoginModal();
+    return;
+  }
 
   try{
-    await getRegistrantAuth().acceptInvite(pendingInviteTokens.accessToken, pendingInviteTokens.refreshToken, pendingInviteTokens.expiresIn, password);
-    pendingInviteTokens = null;
+    await getRegistrantAuth().completeSessionFromTokens(parsed.accessToken, parsed.refreshToken, parsed.expiresIn);
     history.replaceState(null, '', location.pathname + location.search);
-    closeModal('modal-accept-invite');
-    showToast('등록자로 활성화되었습니다');
+    showToast('로그인되었습니다');
     switchTab('templates');
   }catch(e){
-    setVisible(errorEl, true);
-    errorEl.textContent = e.message || '처리에 실패했습니다. 링크가 만료되었을 수 있습니다';
+    history.replaceState(null, '', location.pathname + location.search);
+    showToast('로그인에 실패했습니다: ' + (e.message || ''));
+    openLoginModal();
   }
 }

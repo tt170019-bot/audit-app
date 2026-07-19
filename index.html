@@ -90,13 +90,12 @@
     <div class="modal-body">
       <div class="check-label">이메일</div>
       <input type="email" id="login-email" placeholder="you@example.com" autocomplete="username">
-      <div class="check-label field-gap">비밀번호</div>
-      <input type="password" id="login-password" autocomplete="current-password">
       <div class="sub text-danger" id="login-error" style="display:none;"></div>
+      <div class="sub" id="login-sent" style="display:none;"></div>
     </div>
     <div class="modal-actions">
-      <button type="button" class="btn btn-ghost flex-1" onclick="closeModal('modal-login')">취소</button>
-      <button type="button" class="btn btn-teal flex-2" onclick="registrantSignIn()">로그인</button>
+      <button type="button" class="btn btn-ghost flex-1" onclick="closeModal('modal-login')">닫기</button>
+      <button type="button" class="btn btn-teal flex-2" id="login-submit-btn" onclick="requestLoginLink()">로그인 링크 받기</button>
     </div>
   </div>
 </div>
@@ -108,23 +107,6 @@
     <div class="modal-body" id="registrants-body">불러오는 중입니다...</div>
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost flex-1" onclick="closeModal('modal-registrants')">닫기</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="modal-accept-invite">
-  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-invite-title">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="accept-invite-title">등록자 초대 수락</div>
-    <div class="modal-body">
-      <div class="check-label">새 비밀번호</div>
-      <input type="password" id="accept-invite-password" autocomplete="new-password" placeholder="6자 이상">
-      <div class="check-label field-gap">비밀번호 확인</div>
-      <input type="password" id="accept-invite-password2" autocomplete="new-password">
-      <div class="sub text-danger" id="accept-invite-error" style="display:none;"></div>
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn btn-teal flex-2" onclick="confirmAcceptInvite()">확인</button>
     </div>
   </div>
 </div>
@@ -286,7 +268,7 @@ function setAdminMode(enabled){
 //  Init
 // ═══════════════════════════════════════════════
 initAdminModeFromUrl();
-initInviteAcceptanceFromUrl();
+initEmailLinkSignIn();
 
 openDB().then(()=>{
   updateOnlineTag();
@@ -876,7 +858,7 @@ async function renderTemplates(c){
         ${registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openRegistrantsModal()">등록자 관리</button>` : ''}
         ${registrantSession?.user
           ? `<button type="button" class="btn btn-ghost btn-sm" onclick="registrantSignOut()">로그아웃</button>`
-          : `<button type="button" class="btn btn-ghost btn-sm" onclick="openModal('modal-login')">로그인</button>`}
+          : `<button type="button" class="btn btn-ghost btn-sm" onclick="openLoginModal()">로그인</button>`}
       </div>
     </div>
   </div>

@@ -137,8 +137,14 @@ assert.match(
 
 assert.match(
   source,
-  /async function registrantSignIn\(\)\{[\s\S]*?getRegistrantAuth\(\)\.signIn\(email, password\)/,
-  '로그인은 SupabaseAuth 모듈을 통해야 합니다',
+  /async function requestLoginLink\(\)\{[\s\S]*?getRegistrantAuth\(\)\.requestMagicLink\(email\)/,
+  '로그인은 SupabaseAuth 모듈을 통해 매직링크를 요청해야 합니다',
+);
+
+assert.doesNotMatch(
+  source,
+  /id="login-password"/,
+  '비밀번호 입력 필드는 더 이상 없어야 합니다',
 );
 
 assert.match(
@@ -251,29 +257,41 @@ assert.match(
   '"등록자 관리" 버튼은 로그인했을 때만 보여야 합니다',
 );
 
-// 초대/비밀번호 재설정 링크 수락 (invite/recovery access_token URL 해시 처리)
-assert.match(
+// 이메일 링크 로그인/초대 수락 (access_token URL 해시 처리 — invite와 magiclink는 동일 경로)
+assert.doesNotMatch(
   source,
-  /<div class="modal-backdrop" id="modal-accept-invite">/,
-  '초대 수락 모달이 있어야 합니다',
+  /id="modal-accept-invite"/,
+  '비밀번호 입력용 초대 수락 모달은 더 이상 없어야 합니다',
 );
 
 assert.match(
   source,
-  /initInviteAcceptanceFromUrl\(\);/,
-  '앱 시작 시 URL의 초대\\/복구 링크를 감지해야 합니다',
+  /initEmailLinkSignIn\(\);/,
+  '앱 시작 시 URL의 초대\\/매직링크를 감지해야 합니다',
 );
 
 assert.match(
   source,
-  /type !== 'invite' && type !== 'recovery'/,
-  '초대 링크와 비밀번호 재설정 링크를 모두 처리해야 합니다',
+  /type !== 'invite' && type !== 'magiclink'/,
+  '초대 링크와 매직링크 로그인을 모두 같은 경로로 처리해야 합니다',
 );
 
 assert.match(
   source,
-  /getRegistrantAuth\(\)\.acceptInvite\(pendingInviteTokens\.accessToken, pendingInviteTokens\.refreshToken, pendingInviteTokens\.expiresIn, password\)/,
-  '초대 수락은 URL에서 받은 access token으로 비밀번호를 설정해야 합니다',
+  /getRegistrantAuth\(\)\.completeSessionFromTokens\(parsed\.accessToken, parsed\.refreshToken, parsed\.expiresIn\)/,
+  '이메일 링크의 access token으로 바로 세션을 완성해야 합니다 (비밀번호 단계 없음)',
+);
+
+assert.match(
+  source,
+  /if\(params\.get\('error'\)\) return \{ error: true \};/,
+  '만료\\/무효 링크(에러 해시)도 감지해서 처리해야 합니다',
+);
+
+assert.match(
+  source,
+  /function openLoginModal\(\)\{/,
+  '로그인 모달은 열 때마다 이전 상태(전송됨 메시지, 이전 이메일 등)를 초기화해야 합니다',
 );
 
 console.log('checklist UI tests passed');
