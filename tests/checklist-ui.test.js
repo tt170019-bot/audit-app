@@ -113,4 +113,35 @@ assert.match(
   '점검표 항목 정규화는 항목별 maturityOn 플래그를 보존해야 합니다',
 );
 
+// wayfinder #9 — Registrant 인증 기반
+assert.match(
+  source,
+  /<script src="supabase-auth\.js"><\/script>/,
+  'supabase-auth.js가 로드되어야 합니다',
+);
+
+assert.match(
+  source,
+  /restoreRegistrantSession\(\)/,
+  '앱 시작 시 로컬에 남은 등록자 세션을 복원 시도해야 합니다',
+);
+
+assert.match(
+  source,
+  /async function registrantSignIn\(\)\{[\s\S]*?getRegistrantAuth\(\)\.signIn\(email, password\)/,
+  '로그인은 SupabaseAuth 모듈을 통해야 합니다',
+);
+
+assert.match(
+  source,
+  /async function registrantSignOut\(\)\{[\s\S]*?getRegistrantAuth\(\)\.signOut\(\)/,
+  '로그아웃은 SupabaseAuth 모듈을 통해야 합니다',
+);
+
+assert.doesNotMatch(
+  source,
+  /function loadChecklistIndex\(\)[\s\S]{0,400}getRegistrantSession/,
+  '익명 읽기(GitHub/Supabase 동기화) 경로는 로그인 상태를 확인하지 않아야 합니다',
+);
+
 console.log('checklist UI tests passed');

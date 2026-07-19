@@ -16,6 +16,7 @@
 <script src="audit-store.js"></script>
 <script src="checklist-source.js"></script>
 <script src="supabase-client.js"></script>
+<script src="supabase-auth.js"></script>
 <style>
 @font-face {
   font-family: "Pretendard";
@@ -606,6 +607,24 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   </div>
 </div>
 
+<div class="modal-backdrop" id="modal-login">
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-login-title">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-login-title">등록자 로그인</div>
+    <div class="modal-body">
+      <div class="check-label">이메일</div>
+      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="username">
+      <div class="check-label field-gap">비밀번호</div>
+      <input type="password" id="login-password" autocomplete="current-password">
+      <div class="sub text-danger" id="login-error" style="display:none;"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost flex-1" onclick="closeModal('modal-login')">취소</button>
+      <button type="button" class="btn btn-teal flex-2" onclick="registrantSignIn()">로그인</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modal-photo">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-photo-title">
     <div class="modal-handle"></div>
@@ -771,6 +790,9 @@ openDB().then(()=>{
     .then(() => autoLoadChecklists())
     .catch(e => appWarn('자동 점검표 로드 실패:', e))
     .finally(()=> switchTab('home'));
+  restoreRegistrantSession()
+    .catch(e => appWarn('등록자 세션 복원 실패:', e))
+    .then(() => { if(currentTab === 'templates'){ const c = document.getElementById('content'); if(c) renderTemplates(c); } });
 }).catch(e=>{
   appError('DB 초기화 실패:', e);
   document.getElementById('content').innerHTML = '<div class="empty"><h3>앱 초기화 실패</h3><p>브라우저 저장소 접근을 확인한 뒤 다시 실행하세요.</p></div>';
@@ -935,6 +957,46 @@ async function loadSupabaseChecklists(){
     appWarn('Supabase templates 조회 실패. 저장된 점검표를 계속 사용합니다.', e);
     return [];
   }
+}
+
+// wayfinder #9 — Registrant 인증. 로그인 상태는 등록(체크리스트 쓰기)/등록자
+// 관리 화면에서만 쓰인다 — 감사자의 익명 읽기/감사 진행 플로우는 이 모듈을
+// 전혀 거치지 않는다.
+function getRegistrantAuth(){
+  return SupabaseAuth.getAuth(SupabaseClient.getClient());
+}
+
+function getRegistrantSession(){
+  return getRegistrantAuth().getSession();
+}
+
+async function restoreRegistrantSession(){
+  return getRegistrantAuth().restoreSession();
+}
+
+async function registrantSignIn(){
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+  setVisible(errorEl, false);
+  if(!email || !password){ setVisible(errorEl, true); errorEl.textContent = '이메일과 비밀번호를 입력하세요'; return; }
+
+  try{
+    await getRegistrantAuth().signIn(email, password);
+    closeModal('modal-login');
+    document.getElementById('login-password').value = '';
+    showToast('로그인되었습니다');
+    if(currentTab === 'templates'){ const c = document.getElementById('content'); if(c) renderTemplates(c); }
+  }catch(e){
+    setVisible(errorEl, true);
+    errorEl.textContent = e.message || '로그인에 실패했습니다';
+  }
+}
+
+async function registrantSignOut(){
+  await getRegistrantAuth().signOut();
+  showToast('로그아웃되었습니다');
+  if(currentTab === 'templates'){ const c = document.getElementById('content'); if(c) renderTemplates(c); }
 }
 
 function getPresetTemplateKey(cl){
@@ -1302,6 +1364,7 @@ async function renderAudits(c){
 // ═══════════════════════════════════════════════
 async function renderTemplates(c){
   const admin = isAdminMode();
+  const registrantSession = getRegistrantSession();
   const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
   const activeCount = templates.filter(t => t.active !== false).length;
   const autoCount = templates.filter(t => (t.source === 'github-api' || t.source === 'github-index' || t.source === 'supabase') && t.active !== false).length;
@@ -1329,6 +1392,18 @@ async function renderTemplates(c){
         <div class="sub">활성 ${activeCount}건 · 자동동기화 ${autoCount}건 · ${syncStatusLabel}</div>
       </div>
       <button type="button" class="btn btn-ghost btn-sm" onclick="syncChecklistsNow()">동기화</button>
+    </div>
+  </div>
+
+  <div class="card template-sync-card">
+    <div class="card-row">
+      <div class="flex-1">
+        <div class="label">등록자 로그인</div>
+        <div class="sub">${registrantSession?.user?.email ? `${esc(registrantSession.user.email)}로 로그인됨` : '로그인하지 않음 · 감사 진행에는 영향 없음'}</div>
+      </div>
+      ${registrantSession?.user
+        ? `<button type="button" class="btn btn-ghost btn-sm" onclick="registrantSignOut()">로그아웃</button>`
+        : `<button type="button" class="btn btn-ghost btn-sm" onclick="openModal('modal-login')">로그인</button>`}
     </div>
   </div>
 
