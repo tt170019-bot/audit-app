@@ -44,8 +44,14 @@
     // already knows (i.e. previously invited via the registrants Edge Function)
     // will ever receive a working link — this is the access-control boundary
     // for who can become signed in, not anything the UI enforces.
+    //
+    // redirect_to is explicit because the Supabase project's Auth "Site URL"
+    // points at the bare GitHub Pages domain, not this /audit-app/ sub-path —
+    // without it, the emailed link lands somewhere that never loads this app's
+    // JS at all, so the access_token in the hash is never picked up.
     async function requestMagicLink(email){
-      await authRequest('otp', { email, create_user: false });
+      const redirectTo = encodeURIComponent(location.origin + location.pathname);
+      await authRequest(`otp?redirect_to=${redirectTo}`, { email, create_user: false });
     }
 
     async function signOut(){

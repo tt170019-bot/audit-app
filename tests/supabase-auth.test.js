@@ -15,7 +15,8 @@ function loadModule(localStorage){
   const context = {
     globalThis: {},
     fetch: (...args) => global.fetch(...args),
-    localStorage: localStorage || makeLocalStorage()
+    localStorage: localStorage || makeLocalStorage(),
+    location: { origin: 'https://example.github.io', pathname: '/audit-app/' }
   };
   vm.runInNewContext(fs.readFileSync(require.resolve('../supabase-auth.js'), 'utf8'), context);
   return { SupabaseAuth: context.globalThis.SupabaseAuth, localStorage: context.localStorage };
@@ -37,7 +38,7 @@ async function main(){
     const { SupabaseAuth } = loadModule();
     const auth = SupabaseAuth.createAuth(client);
     await auth.requestMagicLink('a@b.com');
-    assert.equal(capturedUrl, 'https://example.supabase.co/auth/v1/otp');
+    assert.equal(capturedUrl, 'https://example.supabase.co/auth/v1/otp?redirect_to=https%3A%2F%2Fexample.github.io%2Faudit-app%2F');
     assert.deepEqual(capturedBody, { email: 'a@b.com', create_user: false });
     assert.equal(auth.getSession(), null, '링크 요청만으로는 로그인되지 않아야 합니다');
   }
