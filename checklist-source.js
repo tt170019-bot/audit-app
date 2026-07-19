@@ -61,5 +61,31 @@
     return (Array.isArray(rows) ? rows : []).map(normalizeSupabaseTemplate).filter(Boolean);
   }
 
-  return { displayName, extractRows, loadGitHubIndex, loadSupabaseTemplates };
+  // wayfinder #11 — registration write path. Both functions stamp who made the
+  // change (created_by only on insert, updated_by on both) and hand the saved
+  // row straight back through normalizeSupabaseTemplate so callers get the
+  // exact same shape as the read path (loadSupabaseTemplates).
+  function toSupabaseRow({name, filename, sections, items, maturityScale}){
+    return {
+      name: String(name || '이름 없는 점검표').trim(),
+      filename: filename || null,
+      sections: Array.isArray(sections) ? sections : [],
+      items: Array.isArray(items) ? items : [],
+      maturity_scale: maturityScale || null
+    };
+  }
+
+  async function registerSupabaseTemplate(client, accessToken, userId, payload){
+    const row = { ...toSupabaseRow(payload), created_by: userId, updated_by: userId };
+    const saved = await client.insert('templates', row, accessToken);
+    return normalizeSupabaseTemplate(saved);
+  }
+
+  async function updateSupabaseTemplate(client, accessToken, userId, id, payload){
+    const row = { ...toSupabaseRow(payload), updated_by: userId, updated_at: new Date().toISOString() };
+    const saved = await client.update('templates', id, row, accessToken);
+    return normalizeSupabaseTemplate(saved);
+  }
+
+  return { displayName, extractRows, loadGitHubIndex, loadSupabaseTemplates, registerSupabaseTemplate, updateSupabaseTemplate };
 });

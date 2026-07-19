@@ -144,4 +144,59 @@ assert.doesNotMatch(
   '익명 읽기(GitHub/Supabase 동기화) 경로는 로그인 상태를 확인하지 않아야 합니다',
 );
 
+// wayfinder #10/#11 — 등록 검토 마법사 + Supabase 실제 저장
+assert.match(
+  source,
+  /<div class="modal-backdrop" id="modal-review">/,
+  '등록 검토 마법사 모달이 있어야 합니다',
+);
+
+assert.match(
+  source,
+  /function handleFileSelect\(file\)\{[\s\S]*?if\(!getRegistrantSession\(\)\?\.user\)/,
+  '엑셀 업로드는 로그인한 Registrant만 시작할 수 있어야 합니다',
+);
+
+assert.match(
+  source,
+  /openReviewWizard\(\{[\s\S]{0,120}mode: 'new'/,
+  '엑셀 파싱 직후에는 바로 저장하지 않고 검토 마법사를 열어야 합니다',
+);
+
+assert.doesNotMatch(
+  source,
+  /function handleFileSelect\(file\)\{[\s\S]*?source: 'manual'/,
+  '엑셀 업로드는 더 이상 기기 로컬(source:manual)로 바로 저장하지 않아야 합니다',
+);
+
+assert.match(
+  source,
+  /async function confirmReviewWizard\(\)\{[\s\S]*?if\(!session\?\.user\)\{ showToast\('로그인이 필요합니다'\); return; \}/,
+  '확인 시점에도 다시 한번 로그인 여부를 확인해야 합니다',
+);
+
+assert.match(
+  source,
+  /await ChecklistSource\.registerSupabaseTemplate\(client, session\.accessToken, session\.user\.id, payload\)/,
+  '새 점검표 등록은 로그인 사용자의 access token으로 Supabase에 써야 합니다',
+);
+
+assert.match(
+  source,
+  /await ChecklistSource\.updateSupabaseTemplate\(client, session\.accessToken, session\.user\.id, w\.templateId, payload\)/,
+  '기존 점검표 수정도 로그인 사용자의 access token으로 Supabase에 써야 합니다',
+);
+
+assert.match(
+  source,
+  /\$\{registrantSession\?\.user \? `\s*<div class="section-header">점검표 등록<\/div>/,
+  '업로드 영역은 관리자 모드가 아니라 로그인한 Registrant 여부로 표시되어야 합니다',
+);
+
+assert.match(
+  source,
+  /t\.source === 'supabase' && registrantSession\?\.user[\s\S]{0,80}openReviewWizardForEdit/,
+  '등록된 점검표 카드에는 로그인한 Registrant에게만 수정 버튼이 보여야 합니다',
+);
+
 console.log('checklist UI tests passed');

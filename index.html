@@ -539,6 +539,31 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .template-card-inactive { opacity: 0.68; }
 .template-actions { display: flex; gap: var(--space-100); flex-wrap: wrap; }
 
+/* wayfinder #10 — 등록 검토 마법사 (prototype/review-modal variant B에서 채택) */
+.review-steps { display: flex; gap: var(--space-100); margin-bottom: var(--space-200); }
+.review-step { flex: 1; text-align: center; font-size: var(--font-caption-size); padding: var(--space-100); border-radius: var(--radius-medium); background: var(--ads-surface-container); color: var(--ads-text-subtle); }
+.review-step.active { background: var(--ads-information-bg); color: var(--ads-information-text); font-weight: var(--ads-weight-semibold); }
+.review-sub { color: var(--ads-text-subtle); font-size: var(--font-helper-size); margin-bottom: var(--space-200); }
+.review-scale-box { background: var(--ads-surface-container); border-radius: var(--radius-large); padding: var(--space-200); margin-bottom: var(--space-200); }
+.review-scale-name { width: 100%; height: var(--ui-field-height); border: var(--ui-border-width) solid var(--ads-border-input); border-radius: var(--radius-medium); padding: 0 var(--space-150); font-size: var(--font-input-size); margin-bottom: var(--space-150); }
+.review-label-row { display: flex; align-items: center; gap: var(--space-100); margin-bottom: var(--space-100); }
+.review-label-row input { flex: 1; height: 2.25rem; border: var(--ui-border-width) solid var(--ads-border-input); border-radius: var(--radius-medium); padding: 0 var(--space-150); font-size: var(--font-input-size); }
+.review-icon-btn { width: 2.25rem; height: 2.25rem; border: var(--ui-border-width) solid var(--ads-border); border-radius: var(--radius-medium); background: var(--ads-surface); cursor: pointer; flex-shrink: 0; }
+.review-icon-btn:hover { background: var(--ads-surface-container-hovered); }
+.review-add-label { font-size: var(--font-control-size); color: var(--ads-link); background: none; border: none; cursor: pointer; padding: var(--space-050) 0; }
+.review-preview { display: flex; flex-wrap: wrap; gap: var(--space-100); margin-top: var(--space-150); }
+.review-preview .maturity-card { flex: 1 1 6rem; pointer-events: none; }
+.review-item-row { display: flex; align-items: center; gap: var(--space-150); padding: var(--space-150) 0; border-bottom: var(--ui-border-width) solid var(--ads-border); }
+.review-item-row:last-child { border-bottom: none; }
+.review-item-main { flex: 1; min-width: 0; }
+.review-item-tag { font-size: var(--font-caption-size); color: var(--ads-text-subtlest); }
+.review-item-q { font-size: var(--font-body-size); color: var(--ads-text); }
+.review-item-hint { font-size: var(--font-caption-size); color: var(--ads-information-text); }
+.review-toggle { position: relative; width: 2.75rem; height: 1.5rem; border-radius: var(--radius-full); background: var(--ads-border-bold); border: none; cursor: pointer; flex-shrink: 0; transition: background 150ms; }
+.review-toggle.on { background: var(--ads-brand); }
+.review-toggle::after { content: ''; position: absolute; top: 0.125rem; left: 0.125rem; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: #fff; transition: transform 150ms; }
+.review-toggle.on::after { transform: translateX(1.25rem); }
+
 ::-webkit-scrollbar { width: var(--space-050); }
 ::-webkit-scrollbar-thumb { background: var(--ads-border-bold); border-radius: var(--radius-full); }
 .icon { display: inline-flex; align-items: center; justify-content: center; }
@@ -622,6 +647,15 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
       <button type="button" class="btn btn-ghost flex-1" onclick="closeModal('modal-login')">취소</button>
       <button type="button" class="btn btn-teal flex-2" onclick="registrantSignIn()">로그인</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-review">
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-review-title">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-review-title">점검표 등록 검토</div>
+    <div class="modal-body" id="review-body"></div>
+    <div class="modal-actions" id="review-actions"></div>
   </div>
 </div>
 
@@ -1436,7 +1470,7 @@ async function renderTemplates(c){
   <div class="section-header">관리자 기능</div>
   <div class="admin-panel">
     <div class="admin-panel-title">관리자 모드</div>
-    <div class="admin-panel-desc">수동 Excel 업로드와 삭제 버튼이 표시됩니다. 이 모드는 편의 기능이며 접근제어 또는 보안 기능이 아닙니다.</div>
+    <div class="admin-panel-desc">삭제 버튼이 표시됩니다. 이 모드는 편의 기능이며 접근제어 또는 보안 기능이 아닙니다.</div>
   </div>
   <div class="section-header">저장 데이터 리셋</div>
   <div class="card template-sync-card">
@@ -1461,8 +1495,14 @@ async function renderTemplates(c){
       </div>
       <button type="button" class="btn btn-danger btn-sm" onclick="resetAllLocalData()">전체 삭제</button>
     </div>
+  </div>` : ''}
+
+  ${registrantSession?.user ? `
+  <div class="section-header">점검표 등록</div>
+  <div class="admin-panel">
+    <div class="admin-panel-title">Registrant 점검표 등록</div>
+    <div class="admin-panel-desc">Excel을 업로드하면 성숙도 척도와 항목별 평가 여부를 검토한 뒤 Supabase에 등록합니다. 등록/수정한 사람과 시각이 함께 기록됩니다.</div>
   </div>
-  <div class="section-header">수동 점검표 업로드</div>
   <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-excel').click()"
     ondragover="event.preventDefault();this.classList.add('drag')"
     ondragleave="this.classList.remove('drag')"
@@ -1490,7 +1530,7 @@ async function renderTemplates(c){
   <div class="section-header">운영 안내</div>
   <div class="admin-panel">
     <div class="admin-panel-title">심사원 화면</div>
-    <div class="admin-panel-desc">점검표는 관리자가 GitHub checklists 폴더에 배포한 공식 파일을 사용합니다. 수동 업로드와 삭제는 관리자 모드에서만 가능하지만, 관리자 모드는 보안 기능이 아닌 화면 표시용 편의 기능입니다.</div>
+    <div class="admin-panel-desc">점검표는 등록자(Registrant)가 등록한 공식 자료를 사용합니다. 새 점검표를 등록하거나 기존 점검표를 수정하려면 위에서 로그인하세요.</div>
   </div>`}
 
   <div class="section-header">저장된 점검표 (${templates.length})</div>
@@ -1502,7 +1542,10 @@ async function renderTemplates(c){
         <div class="label">${esc(t.name)}</div>
         <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))} · ${esc(getTemplateSourceLabel(t))} · UI ${t.checklistUiType === 'maturity' ? '성숙도' : '일반'} · Word ${esc(getReportTemplateLabel(t.reportTemplate || inferReportTemplateType(t)))}${t.active === false ? ' · 비활성' : ''}</div>
       </div>
-      ${admin ? `<button type="button" class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
+      <div class="template-actions">
+        ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openReviewWizardForEdit(${t.id})">수정</button>` : ''}
+        ${admin ? `<button type="button" class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
+      </div>
     </div>
   </div>`).join('')}</div>`}
   ${admin ? `<div class="align-end-row"><button type="button" class="btn btn-ghost btn-sm" onclick="setAdminMode(false)">관리자 모드 끄기</button></div>` : `<div class="align-end-row"><button type="button" class="btn btn-ghost btn-sm" onclick="setAdminMode(true)">관리자 모드 켜기</button></div>`}
@@ -2411,6 +2454,7 @@ function handleDrop(e){
 
 function handleFileSelect(file){
   if(!file) return;
+  if(!getRegistrantSession()?.user){ showToast('점검표를 등록하려면 먼저 로그인하세요'); return; }
   const ext = file.name.split('.').pop().toLowerCase();
   if(!['xlsx','xls'].includes(ext)){ showToast('Excel 파일(.xlsx)만 지원합니다'); return; }
 
@@ -2442,28 +2486,183 @@ function handleFileSelect(file){
       }
       if(items.length===0){ showToast('항목을 찾을 수 없습니다. 형식을 확인하세요'); return; }
 
-      const importedAt = new Date().toISOString();
-      const tpl = {
+      openReviewWizard({
+        mode: 'new',
         name: file.name.replace(/\.[^.]+$/,''),
         filename: file.name,
-        version: file.lastModified ? new Date(file.lastModified).toISOString().slice(0,10) : importedAt.slice(0,10),
-        source: 'manual',
-        reportTemplate: inferReportTemplateType({name:file.name, filename:file.name}),
-        checklistUiType: getChecklistUiType({name:file.name, filename:file.name}),
-        templateKey: `${file.name}@@manual@@${importedAt}`,
-        importedAt,
         sections: [...sections],
-        items
-      };
-      dbPut('templates', tpl).then(()=>{
-        showToast(`${items.length}개 항목 가져오기 완료`);
-        switchTab('templates');
+        items,
+        scaleName: '성숙도 등급',
+        labels: [...AuditRules.MATURITY_LEVELS]
       });
     } catch(err){
       showToast('파일을 읽을 수 없습니다: '+err.message);
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+// ═══════════════════════════════════════════════
+//  wayfinder #10/#11 — 등록 검토 마법사 (2단계: 척도 정의 → 항목 검토)
+//  prototype/review-modal variant B의 마크업/동작을 실제 데이터에 연동.
+//  확인 시 Supabase에 실제로 등록/수정한다 (#11).
+// ═══════════════════════════════════════════════
+let reviewWizard = null;
+
+function openReviewWizard({mode, templateId, name, filename, sections, items, scaleName, labels}){
+  reviewWizard = {
+    mode, templateId,
+    name, filename,
+    sections: sections || [],
+    items: items.map((it, i) => ({...it, _idx:i, maturityOn: it.maturityOn ?? AuditRules.suggestMaturityOn(it), _suggested: AuditRules.suggestMaturityOn(it)})),
+    scaleName: scaleName || '성숙도 등급',
+    labels: labels && labels.length ? [...labels] : ['Conformity','Established','Mature','Leading'],
+    step: 1
+  };
+  renderReviewWizard();
+  openModal('modal-review');
+}
+
+function closeReviewWizard(){
+  reviewWizard = null;
+  closeModal('modal-review');
+}
+
+function reviewScaleEditor(){
+  const w = reviewWizard;
+  return `<div class="review-scale-box">
+    <input class="review-scale-name" value="${esc(w.scaleName)}" placeholder="척도 이름 (예: 성숙도 등급)" oninput="reviewSetScaleName(this.value)">
+    ${w.labels.map((l,i)=>`<div class="review-label-row">
+      <input value="${esc(l)}" oninput="reviewSetLabel(${i},this.value)">
+      <button type="button" class="review-icon-btn" title="위로" ${i===0?'disabled':''} onclick="reviewMoveLabel(${i},-1)">↑</button>
+      <button type="button" class="review-icon-btn" title="아래로" ${i===w.labels.length-1?'disabled':''} onclick="reviewMoveLabel(${i},1)">↓</button>
+      <button type="button" class="review-icon-btn" title="삭제" onclick="reviewRemoveLabel(${i})">✕</button>
+    </div>`).join('')}
+    <button type="button" class="review-add-label" onclick="reviewAddLabel()">+ 라벨 추가</button>
+    <div class="review-preview">
+      ${w.labels.map(l=>`<div class="maturity-card"><div class="maturity-card-head"><span class="maturity-radio" aria-hidden="true"></span><div class="maturity-card-title">${esc(l)}</div></div></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function reviewItemRow(item){
+  return `<div class="review-item-row">
+    <div class="review-item-main">
+      <div class="review-item-tag">${esc(item.section)} · ${esc(item.ref || '')}</div>
+      <div class="review-item-q">${esc(item.question)}</div>
+      ${item._suggested ? `<div class="review-item-hint">criteria 텍스트 있음 → 기본 제안 ON</div>` : ''}
+    </div>
+    <button type="button" class="review-toggle ${item.maturityOn?'on':''}" role="switch" aria-checked="${item.maturityOn}" onclick="reviewToggleItem(${item._idx})"></button>
+  </div>`;
+}
+
+function renderReviewWizard(){
+  const w = reviewWizard;
+  if(!w) return;
+  const step1 = w.step === 1;
+  const onCount = w.items.filter(i=>i.maturityOn).length;
+
+  document.getElementById('modal-review-title').textContent = w.mode === 'edit' ? `점검표 수정 — ${w.name}` : '점검표 등록 검토';
+
+  document.getElementById('review-body').innerHTML = `
+    <div class="review-steps">
+      <div class="review-step ${step1?'active':''}">1. 척도 정의</div>
+      <div class="review-step ${!step1?'active':''}">2. 항목 검토</div>
+    </div>
+    ${step1 ? `
+      <div class="review-sub">이 템플릿의 모든 성숙도 항목이 공유할 척도를 정의하세요. 라벨은 자유롭게 추가/삭제/순서변경할 수 있습니다.</div>
+      ${reviewScaleEditor()}
+    ` : `
+      <div class="review-sub">척도: <b>${esc(w.scaleName)}</b> (${w.labels.length}단계) — <a href="#" onclick="event.preventDefault();reviewGotoStep(1)">수정</a></div>
+      <div>${w.items.map(reviewItemRow).join('')}</div>
+    `}
+  `;
+
+  document.getElementById('review-actions').innerHTML = step1
+    ? `<button type="button" class="btn btn-ghost flex-1" onclick="closeReviewWizard()">취소</button>
+       <button type="button" class="btn btn-teal flex-2" onclick="reviewGotoStep(2)">다음</button>`
+    : `<button type="button" class="btn btn-ghost flex-1" onclick="reviewGotoStep(1)">이전</button>
+       <button type="button" class="btn btn-teal flex-2" onclick="confirmReviewWizard()">확인 (${onCount}/${w.items.length}개 성숙도 ON)</button>`;
+}
+
+function reviewSetScaleName(v){ reviewWizard.scaleName = v; }
+function reviewSetLabel(i,v){ reviewWizard.labels[i] = v; }
+function reviewAddLabel(){ reviewWizard.labels.push('새 라벨'); renderReviewWizard(); }
+function reviewRemoveLabel(i){ reviewWizard.labels.splice(i,1); renderReviewWizard(); }
+function reviewMoveLabel(i,dir){
+  const labels = reviewWizard.labels;
+  const j = i + dir;
+  if(j < 0 || j >= labels.length) return;
+  [labels[i], labels[j]] = [labels[j], labels[i]];
+  renderReviewWizard();
+}
+function reviewToggleItem(idx){
+  const item = reviewWizard.items.find(i=>i._idx===idx);
+  item.maturityOn = !item.maturityOn;
+  renderReviewWizard();
+}
+function reviewGotoStep(n){
+  if(n === 2){
+    const check = AuditRules.validateMaturityScale({name:reviewWizard.scaleName, labels:reviewWizard.labels});
+    if(!check.valid){ showToast(check.error); return; }
+  }
+  reviewWizard.step = n;
+  renderReviewWizard();
+}
+
+async function confirmReviewWizard(){
+  const w = reviewWizard;
+  const session = getRegistrantSession();
+  if(!session?.user){ showToast('로그인이 필요합니다'); return; }
+
+  const check = AuditRules.validateMaturityScale({name:w.scaleName, labels:w.labels});
+  if(!check.valid){ showToast(check.error); return; }
+
+  const payload = {
+    name: w.name,
+    filename: w.filename,
+    sections: w.sections,
+    items: w.items.map(({_idx, _suggested, ...item}) => item),
+    maturityScale: {name: w.scaleName, labels: w.labels}
+  };
+
+  try{
+    const client = SupabaseClient.getClient();
+    const saved = w.mode === 'edit'
+      ? await ChecklistSource.updateSupabaseTemplate(client, session.accessToken, session.user.id, w.templateId, payload)
+      : await ChecklistSource.registerSupabaseTemplate(client, session.accessToken, session.user.id, payload);
+
+    const existing = await dbAll('templates');
+    const localMatch = existing.find(t => t.source === 'supabase' && t.supabaseId === saved.supabaseId);
+    await dbPut('templates', {
+      ...saved,
+      reportTemplate: inferReportTemplateType(saved),
+      active: true,
+      importedAt: new Date().toISOString(),
+      ...(localMatch ? {id: localMatch.id} : {})
+    });
+
+    closeReviewWizard();
+    showToast(w.mode === 'edit' ? '점검표가 수정되었습니다' : '점검표가 등록되었습니다');
+    switchTab('templates');
+  }catch(e){
+    showToast('저장에 실패했습니다: ' + (e.message || ''));
+  }
+}
+
+async function openReviewWizardForEdit(localId){
+  const tpl = await getNormalizedTemplate(localId);
+  if(!tpl || tpl.source !== 'supabase'){ showToast('수정할 수 없는 점검표입니다'); return; }
+  openReviewWizard({
+    mode: 'edit',
+    templateId: tpl.supabaseId,
+    name: tpl.name,
+    filename: tpl.filename,
+    sections: tpl.sections,
+    items: tpl.items,
+    scaleName: tpl.maturityScale?.name || '성숙도 등급',
+    labels: tpl.maturityScale?.labels || [...AuditRules.MATURITY_LEVELS]
+  });
 }
 
 const BACKUP_FORMAT = 'audit-app-backup';

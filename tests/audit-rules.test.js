@@ -48,4 +48,29 @@ assert.equal(
   '4단계가 아닌 척도는 item.maturityGuidance에서 직접 입력된 안내문을 읽어야 합니다',
 );
 
+// wayfinder #10 — 등록 검토 마법사가 쓰는 순수 함수
+assert.equal(
+  rules.suggestMaturityOn({conformityCriteria:'기준 있음'}), true,
+  'criteria 컬럼에 텍스트가 있으면 기본 제안은 ON이어야 합니다',
+);
+assert.equal(
+  rules.suggestMaturityOn({establishedCriteria:'', matureCriteria:'', leadingCriteria:''}), false,
+  'criteria 컬럼이 전부 비어 있으면 기본 제안은 OFF여야 합니다',
+);
+assert.equal(rules.suggestMaturityOn({}), false);
+
+assert.equal(rules.validateMaturityScale({name:'등급', labels:['A']}).valid, true);
+assert.equal(
+  rules.validateMaturityScale({name:'', labels:['A']}).valid, false,
+  '척도 이름이 없으면 유효하지 않아야 합니다',
+);
+assert.equal(
+  rules.validateMaturityScale({name:'등급', labels:[]}).valid, false,
+  '라벨이 하나도 없으면 유효하지 않아야 합니다',
+);
+assert.equal(
+  rules.validateMaturityScale({name:'등급', labels:['', '  ']}).valid, false,
+  '공백뿐인 라벨은 없는 것으로 취급해야 합니다',
+);
+
 console.log('audit-rules tests passed');

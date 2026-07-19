@@ -12,7 +12,35 @@
       if(!response.ok) throw new Error(`Supabase REST HTTP ${response.status} (${table})`);
       return response.json();
     }
-    return { url, anonKey, selectAll };
+
+    // wayfinder #11 — writes go through the caller's own access token (not the
+    // anon key) so Postgres RLS sees the real Registrant and can enforce
+    // created_by/updated_by server-side, not just as a client-side convention.
+    async function writeRequest(method, path, body, accessToken){
+      const response = await fetch(`${url}/rest/v1/${path}`, {
+        method,
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        },
+        body: JSON.stringify(body)
+      });
+      const data = await response.json().catch(() => null);
+      if(!response.ok) throw new Error(data?.message || `Supabase REST HTTP ${response.status} (${path})`);
+      return Array.isArray(data) ? data[0] : data;
+    }
+
+    function insert(table, row, accessToken){
+      return writeRequest('POST', table, row, accessToken);
+    }
+
+    function update(table, id, patch, accessToken){
+      return writeRequest('PATCH', `${table}?id=eq.${encodeURIComponent(id)}`, patch, accessToken);
+    }
+
+    return { url, anonKey, selectAll, insert, update };
   }
 
   let client = null;

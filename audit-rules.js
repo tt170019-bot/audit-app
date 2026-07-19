@@ -76,5 +76,19 @@
     return custom ? { title: custom, body: '' } : { title: '', body: '' };
   }
 
-  return { MATURITY_LEVELS, inferReportTemplateType, getChecklistUiType, normalizeResultValue, getMaturityConsideration, canCompleteAudit, deriveMaturityScale, getMaturityGuidanceForScale };
+  // wayfinder #10 — 등록 검토 마법사: criteria 컬럼 존재 여부로 항목별
+  // maturityOn 기본값을 제안한다 (항상 수동으로 override 가능).
+  function suggestMaturityOn(item){
+    return Boolean(item?.conformityCriteria || item?.establishedCriteria || item?.matureCriteria || item?.leadingCriteria);
+  }
+
+  function validateMaturityScale(scale){
+    const name = String(scale?.name || '').trim();
+    const labels = Array.isArray(scale?.labels) ? scale.labels.map(l => String(l || '').trim()).filter(Boolean) : [];
+    if(!name) return { valid: false, error: '척도 이름을 입력하세요' };
+    if(labels.length === 0) return { valid: false, error: '라벨을 하나 이상 추가하세요' };
+    return { valid: true, error: '' };
+  }
+
+  return { MATURITY_LEVELS, inferReportTemplateType, getChecklistUiType, normalizeResultValue, getMaturityConsideration, canCompleteAudit, deriveMaturityScale, getMaturityGuidanceForScale, suggestMaturityOn, validateMaturityScale };
 });
