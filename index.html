@@ -776,6 +776,7 @@ let checklistFilter = 'all';
 let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
 let checklistSyncState = { checked: false, reachable: null, message: '점검표 서버 확인 전' };
+let pendingInviteTokens = null;
 
 // Debug logging is disabled by default in production.
 // Add ?debug=1 to the URL when console diagnostics are needed.
@@ -1135,8 +1136,6 @@ async function removeRegistrant(userId){
 //  (#access_token=...&type=invite). 이걸 감지해서 새 비밀번호를 설정하고
 //  바로 로그인 상태로 전환한다 — 별도 로그인 단계 없이 즉시 사용 가능.
 // ═══════════════════════════════════════════════
-let pendingInviteTokens = null;
-
 function parseAuthHashParams(){
   const hash = location.hash.startsWith('#') ? location.hash.slice(1) : '';
   if(!hash) return null;
