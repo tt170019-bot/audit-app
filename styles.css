@@ -446,7 +446,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   #content.web-content .audit-item,
   #content.web-content .admin-panel,
   #content.web-content .upload-zone { margin-inline: auto; }
-  .detail-shell { max-width: none; width: 100%; margin: 0; }
+  .detail-shell { max-width: 80rem; width: 100%; margin-inline: auto; --detail-inset: max(0px, calc((100vw - 80rem) / 2)); }
   .detail-anchor-nav { display: none; }
   .detail-section-action { display: none; }
   .detail-body { display: grid; grid-template-columns: 14rem minmax(0, 1fr); align-items: start; }
@@ -459,7 +459,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .detail-sidebar .anchor-chip-label { max-width: 9rem; }
   .detail-content { min-width: 0; padding-inline: var(--mobile-page-padding); padding-bottom: calc(var(--mobile-action-height) + var(--space-500) + env(safe-area-inset-bottom, 0)); }
   .detail-checklist-column { max-width: 52rem; margin-inline: auto; padding-top: var(--space-150); }
-  .detail-bottom-action { left: 14rem; right: 0; max-width: none; transform: none; border-inline: 0; border-radius: 0; }
+  .detail-bottom-action { left: calc(var(--detail-inset) + 14rem); right: var(--detail-inset); max-width: none; transform: none; border-inline: 0; border-radius: 0; }
   .field-check-card { margin-inline: 0; }
   .modal-sheet { max-width: 40rem; border-radius: var(--radius-xxlarge); margin-bottom: var(--space-300); }
   #tabbar { display: none; }
@@ -475,7 +475,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .detail-body { grid-template-columns: 16rem minmax(0, 1fr); }
   .detail-sidebar { padding-inline: var(--space-150); }
   .detail-sidebar .anchor-chip-label { max-width: 11rem; }
-  .detail-bottom-action { left: 16rem; }
+  .detail-bottom-action { left: calc(var(--detail-inset) + 16rem); }
 }
 
 @media (min-width: 80rem) {
