@@ -1492,6 +1492,7 @@ function renderChecklist(audit){
           <div class="detail-title">${esc(audit.title)}</div>
           <div class="detail-meta">${esc(audit.auditor||'심사원 미입력')} · ${esc(audit.dept||'부서 미입력')} · ${esc(audit.date||'일자 미입력')}</div>
         </div>
+        <span class="detail-top-ratio">${summary.answered}/${summary.total}</span>
         <span class="badge ${audit.status===AUDIT_STATUS.DONE?'badge-ok':'badge-obs'}">${audit.status===AUDIT_STATUS.DONE?'완료':'진행 중'}</span>
       </div>
       <div class="detail-progress">
