@@ -422,6 +422,13 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .detail-result-counts { gap: var(--space-050); }
   .detail-result-counts .badge { padding-inline: var(--space-050); }
   .field-check-card { margin-left: var(--mobile-page-padding); margin-right: var(--mobile-page-padding); margin-bottom: var(--card-stack-gap); }
+  .detail-meta,
+  .detail-result-counts,
+  .detail-prog-wrap,
+  .checklist-filter-row { display: none; }
+  .detail-title-wrap { flex: 0 1 auto; }
+  .detail-top-row .badge { background: none; border: 0; padding-inline: 0; min-height: auto; font-size: var(--ads-body-small-size); font-weight: var(--ads-weight-regular); color: var(--ads-text-subtle); }
+  .detail-top-row .badge::before { content: "· "; }
 }
 
 @media (min-width: 48rem) {
@@ -457,8 +464,8 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .detail-sidebar .anchor-chip:focus-visible { background: transparent; color: var(--ads-text-subtle); outline: var(--ui-border-width-strong) solid var(--ads-border-focused); outline-offset: var(--space-025); }
   .detail-sidebar .anchor-chip.is-current { background: var(--ads-information-bg); color: var(--ads-information-text); font-weight: var(--ads-weight-medium); }
   .detail-sidebar .anchor-chip-label { max-width: 9rem; }
-  .detail-content { min-width: 0; padding-inline: var(--mobile-page-padding); padding-bottom: calc(var(--mobile-action-height) + var(--space-500) + env(safe-area-inset-bottom, 0)); }
-  .detail-checklist-column { max-width: 52rem; margin-inline: auto; padding-top: var(--space-150); }
+  .detail-content { min-width: 0; padding-inline: var(--space-300); padding-bottom: calc(var(--mobile-action-height) + var(--space-500) + env(safe-area-inset-bottom, 0)); }
+  .detail-checklist-column { padding-top: var(--space-150); }
   .detail-bottom-action { left: calc(var(--detail-inset) + 14rem); right: var(--detail-inset); max-width: none; transform: none; border-inline: 0; border-radius: 0; }
   .field-check-card { margin-inline: 0; }
   .modal-sheet { max-width: 40rem; border-radius: var(--radius-xxlarge); margin-bottom: var(--space-300); }
@@ -476,10 +483,6 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .detail-sidebar { padding-inline: var(--space-150); }
   .detail-sidebar .anchor-chip-label { max-width: 11rem; }
   .detail-bottom-action { left: calc(var(--detail-inset) + 16rem); }
-}
-
-@media (min-width: 80rem) {
-  .detail-checklist-column { max-width: 58rem; }
 }
 
 /* Offline status / PWA helpers */
