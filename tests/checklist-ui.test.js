@@ -36,6 +36,18 @@ assert.doesNotMatch(
   '모바일 결과 선택은 1행 4열을 유지해야 합니다',
 );
 
+assert.doesNotMatch(
+  source,
+  /activeChips\.forEach\(chip => chip\.scrollIntoView/,
+  '섹션 칩 하이라이트는 scrollIntoView를 쓰면 안 됩니다 (사이드바가 #content 자식이라 실제 섹션 점프 스크롤과 충돌해 데스크톱에서 엉뚱한 위치로 이동하는 버그가 있었음) — scrollChipIntoOwnContainer로 사이드바/앵커바만 스크롤해야 합니다',
+);
+
+assert.match(
+  source,
+  /function scrollChipIntoOwnContainer\(chip\)\{/,
+  'scrollChipIntoOwnContainer 헬퍼가 있어야 섹션 칩 스크롤이 #content를 안 건드립니다',
+);
+
 assert.match(
   source,
   /async function setResult\([\s\S]*?return enqueueAuditWrite\(auditId, async \(\) => \{/,

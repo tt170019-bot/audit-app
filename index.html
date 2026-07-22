@@ -1392,6 +1392,24 @@ function getCurrentChecklistSectionIndex(){
   return currentIndex;
 }
 
+function scrollChipIntoOwnContainer(chip){
+  // Scroll only the chip's own strip (sidebar / anchor-nav), never bubble to
+  // the outer #content scroller — that one is driven separately by
+  // scrollToAlignedTarget and native scrollIntoView() fighting it here was
+  // what made the desktop sidebar jump land in the wrong place.
+  const box = chip.closest('.detail-sidebar, .detail-anchor-nav');
+  if(!box) return;
+
+  const chipRect = chip.getBoundingClientRect();
+  const boxRect = box.getBoundingClientRect();
+
+  if(chipRect.left < boxRect.left) box.scrollLeft -= (boxRect.left - chipRect.left);
+  else if(chipRect.right > boxRect.right) box.scrollLeft += (chipRect.right - boxRect.right);
+
+  if(chipRect.top < boxRect.top) box.scrollTop -= (boxRect.top - chipRect.top);
+  else if(chipRect.bottom > boxRect.bottom) box.scrollTop += (chipRect.bottom - boxRect.bottom);
+}
+
 function setCurrentSectionChip(index, shouldAlignStart = true){
   if(index < 0) return;
   const indexChanged = index !== currentSectionChipIndex;
@@ -1410,7 +1428,7 @@ function setCurrentSectionChip(index, shouldAlignStart = true){
   activeChips.forEach(chip => chip.classList.add('is-current'));
 
   if(shouldAlignStart && indexChanged){
-    activeChips.forEach(chip => chip.scrollIntoView({behavior:'smooth', inline:'start', block:'nearest'}));
+    activeChips.forEach(chip => scrollChipIntoOwnContainer(chip));
   }
 }
 
