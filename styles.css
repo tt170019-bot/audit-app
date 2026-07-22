@@ -126,7 +126,7 @@
   --mobile-action-height: 3.5rem;
   --mobile-card-padding: var(--space-200);
   --mobile-page-padding: var(--space-200);
-  --card-stack-gap: var(--space-200);
+  --card-stack-gap: var(--space-300);
   --mobile-bottom-safe-area: env(safe-area-inset-bottom);
   --ui-border-width: 0.0625rem;
   --ui-border-width-strong: 0.125rem;
@@ -260,7 +260,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .upload-zone p { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtlest); }
 
 /* Stats */
-.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); column-gap: var(--space-100); row-gap: var(--card-stack-gap); padding: var(--space-0) var(--mobile-page-padding); }
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); column-gap: var(--space-200); row-gap: var(--card-stack-gap); padding: var(--space-0) var(--mobile-page-padding); }
 .stat-card { padding: var(--space-200); text-align: center; }
 .stat-val { font-size: var(--ads-heading-large-size); line-height: var(--ads-heading-large-line); font-weight: var(--ads-weight-bold); color: var(--ads-brand); }
 .stat-lbl { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtlest); margin-top: var(--space-050); }
@@ -426,7 +426,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 }
 
 @media (min-width: 48rem) {
-  #topbar-inner { width: min(80rem, calc(100% - 4rem)); margin-inline: auto; padding-inline: 0; }
+  #topbar-inner { width: min(75rem, calc(100% - 4rem)); margin-inline: auto; padding-inline: 0; }
   .detail-top-ratio { display: none; }
   #topbar h1 { flex: 0 1 auto; }
   .desktop-nav { display: flex; align-items: center; gap: var(--space-050); margin-left: auto; }
@@ -434,8 +434,8 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .desktop-nav-btn:hover { background: var(--ads-surface-container); color: var(--ads-text); }
   .desktop-nav-btn.active { background: var(--ads-information-bg); color: var(--ads-information-text); }
   #content { max-width: none; width: 100%; }
-  #content.web-content { padding-inline: var(--space-400); }
-  #content.web-content > * { max-width: 80rem; margin-inline: auto; }
+  #content.web-content { padding-inline: var(--space-300); }
+  #content.web-content > * { max-width: 75rem; margin-inline: auto; }
   #content.web-content .home-hero,
   #content.web-content .section-header,
   #content.web-content .quick-actions,
@@ -448,7 +448,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   #content.web-content .audit-item,
   #content.web-content .admin-panel,
   #content.web-content .upload-zone { margin-inline: auto; }
-  .detail-shell { max-width: 80rem; width: 100%; margin-inline: auto; --detail-inset: max(0px, calc((100vw - 80rem) / 2)); }
+  .detail-shell { max-width: 75rem; width: 100%; margin-inline: auto; --detail-inset: max(0px, calc((100vw - 75rem) / 2)); }
   .detail-anchor-nav { display: none; }
   .detail-section-action { display: none; }
   .detail-body { display: grid; grid-template-columns: 14rem minmax(0, 1fr); align-items: start; }
@@ -469,7 +469,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .tab-btn { flex: 0 1 10rem; max-width: 10rem; min-height: 2.75rem; flex-direction: row; gap: var(--space-075); border-radius: var(--radius-medium); }
   .tab-btn.active { background: var(--ads-information-bg); }
   .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); padding-inline: var(--space-200); }
-  .audit-list-grid, .export-list-grid, .template-list-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-150); row-gap: var(--card-stack-gap); padding: 0 var(--mobile-page-padding); }
+  .audit-list-grid, .export-list-grid, .template-list-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-200); row-gap: var(--card-stack-gap); padding: 0 var(--mobile-page-padding); }
   .audit-list-grid .audit-item, .export-list-grid .export-card, .template-list-grid .template-format-card { margin: 0; }
 }
 
