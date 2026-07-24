@@ -785,9 +785,6 @@ async function renderAudits(c){
     return;
   }
   c.innerHTML=`
-  <div class="align-end-row">
-    <button type="button" class="btn btn-teal btn-sm" onclick="openNewAuditModal()">+ 새 심사</button>
-  </div>
   <div class="audit-list-grid">${audits.map(a=>{
     const summary = getAuditSummary(a);
     return`<div class="audit-item" onclick="openAudit(${a.id})">
