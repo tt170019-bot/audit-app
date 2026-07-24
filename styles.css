@@ -279,6 +279,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .empty p { font-size: var(--ads-body-size); line-height: var(--ads-body-line); color: var(--ads-text-subtlest); }
 
 /* Audit list */
+.audit-list-grid { padding-top: var(--space-200); }
 .audit-item { margin: var(--space-0) var(--mobile-page-padding) var(--card-stack-gap); padding: var(--space-200); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease; }
 .audit-item:hover, .audit-item:active { background: var(--ads-surface-container); border-color: var(--ads-border-bold); }
 .audit-item-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-075); }
@@ -469,7 +470,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
   .tab-btn { flex: 0 1 10rem; max-width: 10rem; min-height: 2.75rem; flex-direction: row; gap: var(--space-075); border-radius: var(--radius-medium); }
   .tab-btn.active { background: var(--ads-information-bg); }
   .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); padding-inline: var(--space-200); }
-  .audit-list-grid, .export-list-grid, .template-list-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--card-stack-gap); padding: 0 var(--mobile-page-padding); }
+  .audit-list-grid, .export-list-grid, .template-list-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--card-stack-gap); padding-inline: var(--mobile-page-padding); }
   .audit-list-grid .audit-item, .export-list-grid .export-card, .template-list-grid .template-format-card { margin: 0; width: 100%; }
 }
 
