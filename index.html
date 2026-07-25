@@ -120,6 +120,15 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="modal-history">
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-history-title">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-history-title">점검표 개정 이력</div>
+    <div class="modal-body" id="history-body"></div>
+    <div class="modal-actions" id="history-actions"></div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modal-photo">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-photo-title">
     <div class="modal-handle"></div>
@@ -207,7 +216,6 @@ let currentAudit = null;
 let checklistFilter = 'all';
 let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
-let checklistSyncState = { checked: false, reachable: null, message: '점검표 서버 확인 전' };
 
 // Debug logging is disabled by default in production.
 // Add ?debug=1 to the URL when console diagnostics are needed.
@@ -243,7 +251,7 @@ function getChecklistUiType(source){
 
 
 // 관리자 모드
-// - 일반 사용자는 GitHub에서 동기화된 공식 점검표로 심사만 수행한다.
+// - 일반 사용자는 Supabase에서 동기화된 공식 점검표로 심사만 수행한다.
 // - 관리자는 URL에 ?admin=1을 붙여 점검표 업로드/삭제 등 관리 기능을 표시한다.
 const ADMIN_MODE_STORAGE_KEY = 'auditAppAdminMode';
 
@@ -390,52 +398,12 @@ async function repairStoredTemplates(){
 }
 
 // ═══════════════════════════════════════════════
-//  자동 점검표 동기화 (GitHub Contents API 폴더 스캔 기준)
-//  - 관리자는 GitHub checklists 폴더에 Excel을 추가/교체한다.
-//  - 앱은 GitHub Contents API로 checklists 폴더를 조회한다.
-//  - .xlsx/.xls 파일만 자동 동기화한다.
-//  - GitHub SHA를 기준으로 변경된 파일만 IndexedDB에 반영한다.
+//  자동 점검표 동기화 (Supabase)
+//  - Registrant가 앱에서 점검표를 등록/수정한다 (review-wizard.js).
+//  - 앱은 로그인 없이 Supabase templates 테이블을 조회한다.
 //  - 기존 심사 데이터는 수정하지 않고, 새 심사부터 최신 점검표를 사용한다.
 // ═══════════════════════════════════════════════
-const CHECKLIST_FOLDER_PATH = 'checklists';
-const GITHUB_BRANCH = 'main';
-
-function getGitHubRepoInfo(){
-  const host = location.hostname;
-  const pathParts = location.pathname.split('/').filter(Boolean);
-
-  if(host.endsWith('.github.io') && pathParts.length > 0){
-    return {
-      owner: host.replace('.github.io', ''),
-      repo: pathParts[0],
-      branch: GITHUB_BRANCH
-    };
-  }
-
-  // 로컬 테스트 또는 커스텀 도메인에서는 아래 값을 필요 시 직접 수정한다.
-  return {
-    owner: 'tt170019-bot',
-    repo: 'audit-app',
-    branch: GITHUB_BRANCH
-  };
-}
-
-async function loadChecklistIndex(){
-  const repo = getGitHubRepoInfo();
-
-  try{
-    const index = await ChecklistSource.loadGitHubIndex({...repo, folderPath:CHECKLIST_FOLDER_PATH});
-    checklistSyncState = { checked: true, reachable: true, message: 'GitHub 점검표 서버 접근 가능' };
-    return index;
-  } catch(e){
-    checklistSyncState = { checked: true, reachable: false, message: '온라인 상태와 별개로 GitHub 점검표 서버 접근 실패' };
-    appWarn('GitHub checklists 폴더 조회 실패. 저장된 점검표를 계속 사용합니다.', e);
-    return [];
-  }
-}
-
-// wayfinder #8 — Supabase 익명 읽기. GitHub 자동 동기화와 나란히 동작하는
-// 두 번째 점검표 소스: 로그인 없이 목록을 읽고, 실패해도 기존 저장분은 그대로 둔다.
+// wayfinder #8 — Supabase 익명 읽기. 로그인 없이 목록을 읽고, 실패해도 기존 저장분은 그대로 둔다.
 let supabaseSyncState = { checked: false, reachable: null, message: 'Supabase 점검표 서버 확인 전' };
 
 async function loadSupabaseChecklists(){
@@ -452,12 +420,11 @@ async function loadSupabaseChecklists(){
 }
 
 
-function getPresetTemplateKey(cl){
-  return `${cl.filename}@@${cl.fingerprint || cl.sha || cl.updatedAt || 'unversioned'}`;
-}
-
 function getTemplateVersionLabel(template){
-  if(template?.sha) return `SHA ${String(template.sha).slice(0, 7)}`;
+  const revisionNo = template?.revisionNo != null ? `개정 ${template.revisionNo}` : '';
+  const revisionDate = template?.revisionDate || '';
+  const revisionLabel = [revisionNo, revisionDate].filter(Boolean).join(' · ');
+  if(revisionLabel) return revisionLabel;
   if(template?.updatedAt) return `수정 ${new Date(template.updatedAt).toLocaleDateString('ko-KR')}`;
   if(template?.version) return `v${template.version}`;
   if(template?.importedAt) return `등록 ${new Date(template.importedAt).toLocaleDateString('ko-KR')}`;
@@ -465,8 +432,7 @@ function getTemplateVersionLabel(template){
 }
 
 function getTemplateSourceLabel(template){
-  if((template?.source === 'github-api' || template?.source === 'github-index' || template?.source === 'supabase')) return '자동동기화';
-  if(template?.source === 'preset') return '자동등록';
+  if(template?.source === 'supabase') return '자동동기화';
   return '수동등록';
 }
 
@@ -482,90 +448,9 @@ function sortTemplatesForDisplay(templates){
   });
 }
 
-function extractChecklistItemsFromRows(rows){
-  const items = [];
-  const sections = new Set();
-
-  for(const row of ChecklistSource.extractRows(rows)){
-    const normalized = normalizeChecklistItem(row);
-    if(!normalized) continue;
-    sections.add(normalized.section || '일반');
-    items.push(normalized);
-  }
-
-  return { items, sections: [...sections] };
-}
-
-async function markSupersededTemplates(filename, keepTemplateKey, indexFilenames){
-  const existing = await dbAll('templates');
-  for(const t of existing){
-    if(t.source !== 'github-api' && t.source !== 'github-index' && t.source !== 'preset') continue;
-    if(filename && t.filename === filename && t.templateKey !== keepTemplateKey && t.active !== false){
-      await dbPut('templates', {...t, active:false, supersededAt:new Date().toISOString()});
-    }
-    if(!filename && indexFilenames && t.filename && !indexFilenames.has(t.filename) && t.active !== false){
-      await dbPut('templates', {...t, active:false, removedFromIndexAt:new Date().toISOString()});
-    }
-  }
-}
-
 async function autoLoadChecklists(){
-  const index = await loadChecklistIndex();
   let added = 0;
   let updated = 0;
-
-  if(index.length === 0){
-    appLog('동기화할 GitHub 점검표가 없습니다. checklists 폴더를 확인하세요.');
-  }
-
-  const indexFilenames = new Set(index.map(cl => cl.filename));
-  if(index.length > 0) await markSupersededTemplates(null, null, indexFilenames);
-
-  for(const cl of index){
-    const existing = await dbAll('templates');
-    const templateKey = getPresetTemplateKey(cl);
-    const sameVersion = existing.find(t => t.templateKey === templateKey || (t.filename === cl.filename && t.fingerprint === cl.fingerprint));
-    if(sameVersion){
-      if(sameVersion.active === false){
-        await dbPut('templates', {...sameVersion, active:true, restoredAt:new Date().toISOString()});
-      }
-      continue;
-    }
-
-    try{
-      const res = await fetch(`${cl.path}?sha=${encodeURIComponent(cl.fingerprint)}&ts=${Date.now()}`, {cache:'no-store'});
-      if(!res.ok) throw new Error(`${cl.path} HTTP ${res.status}`);
-
-      const buf = await res.arrayBuffer();
-      const wb = XLSX.read(buf, {type:'array'});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-      const parsed = extractChecklistItemsFromRows(rows);
-      if(parsed.items.length===0) throw new Error('점검 항목을 찾을 수 없습니다. Excel 컬럼 형식을 확인하세요.');
-
-      await markSupersededTemplates(cl.filename, templateKey, null);
-      await dbPut('templates', {
-        name: cl.name,
-        filename: cl.filename,
-        sha: cl.sha || '',
-        updatedAt: cl.updatedAt || '',
-        fingerprint: cl.fingerprint,
-        templateKey,
-        source: 'github-api',
-        reportTemplate: inferReportTemplateType(cl),
-        checklistUiType: getChecklistUiType(cl),
-        active: true,
-        importedAt: new Date().toISOString(),
-        sections: parsed.sections,
-        items: parsed.items
-      });
-      added += 1;
-      updated += existing.some(t => t.filename === cl.filename) ? 1 : 0;
-      appLog(`점검표 동기화: ${cl.name} ${cl.sha ? cl.sha.slice(0, 7) : cl.updatedAt || ''}`);
-    } catch(e){
-      appWarn(`점검표 동기화 실패: ${cl.filename}`, e);
-    }
-  }
 
   const supabaseTemplates = await loadSupabaseChecklists();
   for(const tpl of supabaseTemplates){
@@ -817,12 +702,12 @@ async function renderTemplates(c){
   const registrantSession = getRegistrantSession();
   const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
   const activeCount = templates.filter(t => t.active !== false).length;
-  const autoCount = templates.filter(t => (t.source === 'github-api' || t.source === 'github-index' || t.source === 'supabase') && t.active !== false).length;
+  const autoCount = templates.filter(t => t.source === 'supabase' && t.active !== false).length;
   const syncStatusLabel = !navigator.onLine
     ? '오프라인 저장본 사용 중'
-    : checklistSyncState.reachable === false
+    : supabaseSyncState.reachable === false
       ? '온라인이나 점검표 서버 접근 실패'
-      : checklistSyncState.reachable === true
+      : supabaseSyncState.reachable === true
         ? '온라인 · 점검표 서버 접근 가능'
         : '온라인 확인 전';
 
@@ -831,7 +716,7 @@ async function renderTemplates(c){
   <div class="admin-panel">
     <div class="admin-panel-title">공식 점검표 동기화</div>
     <div class="admin-panel-desc">
-      앱은 GitHub <code>checklists/</code> 폴더의 Excel 파일과 Supabase에 등록된 점검표를 자동으로 동기화합니다.
+      앱은 Supabase에 등록된 점검표를 자동으로 동기화합니다.
       로그인 없이 조회되며, 기존 심사 기록은 변경하지 않고 새 심사부터 최신 점검표가 적용됩니다.
     </div>
   </div>
@@ -953,7 +838,7 @@ async function renderTemplates(c){
   </div>`}
 
   <div class="section-header">저장된 점검표 (${templates.length})</div>
-  ${templates.length===0?`<div class="template-empty-message">저장된 점검표가 없습니다. 온라인 상태에서 GitHub checklists 폴더 동기화를 실행하세요.</div>`:
+  ${templates.length===0?`<div class="template-empty-message">저장된 점검표가 없습니다. 온라인 상태에서 동기화를 실행하세요.</div>`:
   `<div class="template-list-grid">${templates.map(t=>`
   <div class="card template-format-card ${t.active === false ? 'template-card-inactive' : ''}">
     <div class="card-row">
@@ -963,6 +848,7 @@ async function renderTemplates(c){
       </div>
       <div class="template-actions">
         ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openReviewWizardForEdit(${t.id})">수정</button>` : ''}
+        ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openTemplateHistory(${t.id})">이력</button>` : ''}
         ${admin ? `<button type="button" class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
       </div>
     </div>

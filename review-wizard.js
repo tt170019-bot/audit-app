@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════
 let reviewWizard = null;
 
-function openReviewWizard({mode, templateId, name, filename, sections, items, scaleName, labels}){
+function openReviewWizard({mode, templateId, name, filename, sections, items, scaleName, labels, revisionNo, revisionDate}){
   reviewWizard = {
     mode, templateId,
     name, filename,
@@ -13,6 +13,8 @@ function openReviewWizard({mode, templateId, name, filename, sections, items, sc
     items: items.map((it, i) => ({...it, _idx:i, maturityOn: it.maturityOn ?? AuditRules.suggestMaturityOn(it), _suggested: AuditRules.suggestMaturityOn(it)})),
     scaleName: scaleName || '성숙도 등급',
     labels: labels && labels.length ? [...labels] : ['Conformity','Established','Mature','Leading'],
+    revisionNo: revisionNo ?? '',
+    revisionDate: revisionDate || '',
     step: 1
   };
   renderReviewWizard();
@@ -22,6 +24,16 @@ function openReviewWizard({mode, templateId, name, filename, sections, items, sc
 function closeReviewWizard(){
   reviewWizard = null;
   closeModal('modal-review');
+}
+
+function reviewRevisionEditor(){
+  const w = reviewWizard;
+  return `<div class="review-scale-box">
+    <div class="review-label-row">
+      <input type="number" step="1" value="${esc(w.revisionNo)}" placeholder="개정번호 (예: 3)" oninput="reviewSetRevisionNo(this.value)">
+      <input type="date" value="${esc(w.revisionDate)}" oninput="reviewSetRevisionDate(this.value)">
+    </div>
+  </div>`;
 }
 
 function reviewScaleEditor(){
@@ -66,6 +78,8 @@ function renderReviewWizard(){
       <div class="review-step ${!step1?'active':''}">2. 항목 검토</div>
     </div>
     ${step1 ? `
+      <div class="review-sub">개정번호와 개정일자를 입력하세요 (선택 사항).</div>
+      ${reviewRevisionEditor()}
       <div class="review-sub">이 템플릿의 모든 성숙도 항목이 공유할 척도를 정의하세요. 라벨은 자유롭게 추가/삭제/순서변경할 수 있습니다.</div>
       ${reviewScaleEditor()}
     ` : `
@@ -81,6 +95,8 @@ function renderReviewWizard(){
        <button type="button" class="btn btn-teal flex-2" onclick="confirmReviewWizard()">확인 (${onCount}/${w.items.length}개 성숙도 ON)</button>`;
 }
 
+function reviewSetRevisionNo(v){ reviewWizard.revisionNo = v; }
+function reviewSetRevisionDate(v){ reviewWizard.revisionDate = v; }
 function reviewSetScaleName(v){ reviewWizard.scaleName = v; }
 function reviewSetLabel(i,v){ reviewWizard.labels[i] = v; }
 function reviewAddLabel(){ reviewWizard.labels.push('새 라벨'); renderReviewWizard(); }
@@ -119,7 +135,9 @@ async function confirmReviewWizard(){
     filename: w.filename,
     sections: w.sections,
     items: w.items.map(({_idx, _suggested, ...item}) => item),
-    maturityScale: {name: w.scaleName, labels: w.labels}
+    maturityScale: {name: w.scaleName, labels: w.labels},
+    revisionNo: w.revisionNo,
+    revisionDate: w.revisionDate
   };
 
   try{
@@ -157,6 +175,116 @@ async function openReviewWizardForEdit(localId){
     sections: tpl.sections,
     items: tpl.items,
     scaleName: tpl.maturityScale?.name || '성숙도 등급',
-    labels: tpl.maturityScale?.labels || [...AuditRules.MATURITY_LEVELS]
+    labels: tpl.maturityScale?.labels || [...AuditRules.MATURITY_LEVELS],
+    revisionNo: tpl.revisionNo,
+    revisionDate: tpl.revisionDate
   });
+}
+
+// ═══════════════════════════════════════════════
+//  Checklist Template Revision history (ADR-0001/0002)
+//  Read-only list of past snapshots + restore, which just reopens the same
+//  edit wizard above prefilled with the old snapshot's content.
+// ═══════════════════════════════════════════════
+let templateHistory = null;
+
+async function openTemplateHistory(localId){
+  const tpl = await getNormalizedTemplate(localId);
+  if(!tpl || tpl.source !== 'supabase'){ showToast('이력을 볼 수 없는 점검표입니다'); return; }
+
+  templateHistory = { localId, templateId: tpl.supabaseId, name: tpl.name, revisions: null, viewingIndex: null };
+  openModal('modal-history');
+  renderTemplateHistory();
+
+  try{
+    const client = SupabaseClient.getClient();
+    templateHistory.revisions = await ChecklistSource.loadTemplateRevisions(client, tpl.supabaseId);
+  }catch(e){
+    templateHistory.revisions = [];
+    showToast('이력을 불러오지 못했습니다: ' + (e.message || ''));
+  }
+  renderTemplateHistory();
+}
+
+function closeTemplateHistory(){
+  templateHistory = null;
+  closeModal('modal-history');
+}
+
+function templateRevisionLabel(rev){
+  const no = rev.revisionNo != null ? `개정 ${rev.revisionNo}` : '';
+  const date = rev.revisionDate || '';
+  const label = [no, date].filter(Boolean).join(' · ');
+  if(label) return label;
+  return rev.updatedAt ? `수정 ${new Date(rev.updatedAt).toLocaleString('ko-KR')}` : '시각 정보 없음';
+}
+
+function templateHistoryRow(rev, idx){
+  return `<div class="review-item-row">
+    <div class="review-item-main">
+      <div class="review-item-tag">${esc(templateRevisionLabel(rev))}</div>
+      <div class="review-item-q">${esc(rev.name)} · 항목 ${rev.items.length}개</div>
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="viewTemplateRevision(${idx})">보기</button>
+  </div>`;
+}
+
+function renderTemplateHistory(){
+  const h = templateHistory;
+  if(!h) return;
+  document.getElementById('modal-history-title').textContent = `점검표 개정 이력 — ${h.name}`;
+
+  if(h.revisions === null){
+    document.getElementById('history-body').innerHTML = `<div class="review-sub">이력을 불러오는 중입니다…</div>`;
+    document.getElementById('history-actions').innerHTML = `<button type="button" class="btn btn-ghost flex-1" onclick="closeTemplateHistory()">닫기</button>`;
+    return;
+  }
+
+  if(h.viewingIndex === null){
+    document.getElementById('history-body').innerHTML = h.revisions.length
+      ? h.revisions.map((rev, idx) => templateHistoryRow(rev, idx)).join('')
+      : `<div class="review-sub">아직 수정 이력이 없습니다.</div>`;
+    document.getElementById('history-actions').innerHTML = `<button type="button" class="btn btn-ghost flex-1" onclick="closeTemplateHistory()">닫기</button>`;
+    return;
+  }
+
+  const rev = h.revisions[h.viewingIndex];
+  document.getElementById('history-body').innerHTML = `
+    <div class="review-sub">${esc(templateRevisionLabel(rev))} 시점의 내용 · 척도: <b>${esc(rev.maturityScale?.name || '없음')}</b></div>
+    <div>${rev.items.map(item => `<div class="review-item-row">
+      <div class="review-item-main">
+        <div class="review-item-tag">${esc(item.section)} · ${esc(item.ref || '')}</div>
+        <div class="review-item-q">${esc(item.question)}</div>
+      </div>
+    </div>`).join('')}</div>
+  `;
+  document.getElementById('history-actions').innerHTML = `
+    <button type="button" class="btn btn-ghost flex-1" onclick="viewTemplateRevision(null)">목록으로</button>
+    <button type="button" class="btn btn-teal flex-2" onclick="restoreTemplateRevision(${h.viewingIndex})">이 버전으로 복원</button>
+  `;
+}
+
+function viewTemplateRevision(idx){
+  templateHistory.viewingIndex = idx;
+  renderTemplateHistory();
+}
+
+function restoreTemplateRevision(idx){
+  const h = templateHistory;
+  const rev = h.revisions[idx];
+  const templateId = h.templateId;
+  closeTemplateHistory();
+  openReviewWizard({
+    mode: 'edit',
+    templateId,
+    name: rev.name,
+    filename: rev.filename,
+    sections: rev.sections,
+    items: rev.items,
+    scaleName: rev.maturityScale?.name || '성숙도 등급',
+    labels: rev.maturityScale?.labels || [...AuditRules.MATURITY_LEVELS],
+    revisionNo: rev.revisionNo,
+    revisionDate: rev.revisionDate
+  });
+  showToast('복원할 내용을 검토 후 저장하세요');
 }

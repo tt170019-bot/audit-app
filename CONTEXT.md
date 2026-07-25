@@ -24,6 +24,26 @@ _Avoid_: Maturity levels, scale (ambiguous alone), rubric
 An authenticated person invited to register new checklist templates or edit existing ones. Distinct from "admin mode": a local, unauthenticated UI toggle (`?admin=1`) that only shows or hides buttons on one device and grants no real write access. Being a Registrant is what actually authorizes writing to the shared checklist store.
 _Avoid_: Admin, administrator, manager
 
+**Checklist Template**:
+The shared, editable definition an Audit is created from — a name, its sections, its items, and (optionally) a Maturity Scale. It has a stable identity: a Registrant's edit overwrites it in place rather than creating a new one. The single source of truth lives in Supabase; GitHub-synced templates are retired (see below).
+_Avoid_: Checklist, preset, form
+
+**Checklist Template Revision**:
+An immutable snapshot of a Checklist Template's full content (name, sections, items, Maturity Scale), captured automatically the instant before a Registrant's edit overwrites the template. Revisions accumulate append-only per template and exist so a past edit can be inspected or restored. Distinct from an Audit Report's item snapshot: a Revision preserves the Template's own edit history; the Audit's snapshot preserves what a specific Audit used, and is untouched by later template edits either way.
+_Avoid_: Version, backup, template history
+
+**Revision Number / Revision Date**:
+A Checklist Template's own document-control identity — an integer and a calendar date a Registrant types in by hand when saving (e.g. "개정 3 · 2026-07-01"). Independent of `updated_at`: nothing derives or auto-increments it, so it can be left blank, skipped, or set out of order if that's what the paper trail says.
+_Avoid_: Version number, updated date
+
+**Template Version Label**:
+A display-only string shown next to a Checklist Template, derived on the fly for the UI. Prefers Revision Number/Date when the Registrant has set them; falls back to a formatted update date otherwise. Not a stored entity — do not confuse with Checklist Template Revision, which is an actual persisted record.
+_Avoid_: Version, revision
+
+**GitHub-synced Checklist** (retired):
+Templates used to also come from `.xlsx` files committed to a `checklists/` folder and read live via the GitHub Contents API, alongside the Supabase-registered ones. That path is retired; the Checklist Template is now Supabase-only. Listed here only so old code comments/commits referencing "GitHub sync", `github-api`/`github-index` sources, or `preset` templates can be traced back to what they meant.
+_Avoid_: Use "Checklist Template" (Supabase-backed) instead.
+
 **Evidence**:
 Supporting material attached to substantiate an audit result or maturity assessment.
 _Avoid_: Attachment, photo

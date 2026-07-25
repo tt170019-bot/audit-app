@@ -113,7 +113,14 @@ assert.match(
 assert.match(
   source,
   /async function autoLoadChecklists\(\)\{[\s\S]*?const supabaseTemplates = await loadSupabaseChecklists\(\);/,
-  '자동 동기화는 GitHub와 나란히 Supabase 소스도 처리해야 합니다',
+  '자동 동기화는 Supabase 소스를 처리해야 합니다',
+);
+
+// ADR-0001 — GitHub 기반 점검표 동기화(checklists/ 폴더 + Contents API)는 완전히 제거됨
+assert.doesNotMatch(
+  source,
+  /loadGitHubIndex|getGitHubRepoInfo|CHECKLIST_FOLDER_PATH|source === 'github-api'|source === 'github-index'/,
+  'GitHub 기반 점검표 동기화 경로는 남아있지 않아야 합니다',
 );
 
 assert.match(
@@ -167,8 +174,8 @@ assert.match(
 
 assert.doesNotMatch(
   source,
-  /function loadChecklistIndex\(\)[\s\S]{0,400}getRegistrantSession/,
-  '익명 읽기(GitHub/Supabase 동기화) 경로는 로그인 상태를 확인하지 않아야 합니다',
+  /function loadSupabaseChecklists\(\)[\s\S]{0,400}getRegistrantSession/,
+  '익명 읽기(Supabase 동기화) 경로는 로그인 상태를 확인하지 않아야 합니다',
 );
 
 // wayfinder #10/#11 — 등록 검토 마법사 + Supabase 실제 저장
@@ -202,6 +209,25 @@ assert.match(
   '확인 시점에도 다시 한번 로그인 여부를 확인해야 합니다',
 );
 
+// 개정번호/개정일자 — 수기 입력, 저장 페이로드에 포함
+assert.match(
+  source,
+  /<input type="number" step="1" value="\$\{esc\(w\.revisionNo\)\}"/,
+  '개정번호는 정수 입력칸이어야 합니다',
+);
+
+assert.match(
+  source,
+  /<input type="date" value="\$\{esc\(w\.revisionDate\)\}"/,
+  '개정일자는 날짜 입력칸이어야 합니다',
+);
+
+assert.match(
+  source,
+  /const payload = \{[\s\S]*?revisionNo: w\.revisionNo,[\s\S]{0,40}revisionDate: w\.revisionDate/,
+  '저장 페이로드에 개정번호/개정일자가 포함되어야 합니다',
+);
+
 assert.match(
   source,
   /await ChecklistSource\.registerSupabaseTemplate\(client, session\.accessToken, session\.user\.id, payload\)/,
@@ -224,6 +250,31 @@ assert.match(
   source,
   /t\.source === 'supabase' && registrantSession\?\.user[\s\S]{0,80}openReviewWizardForEdit/,
   '등록된 점검표 카드에는 로그인한 Registrant에게만 수정 버튼이 보여야 합니다',
+);
+
+// Checklist Template Revision history (ADR-0001/0002)
+assert.match(
+  source,
+  /t\.source === 'supabase' && registrantSession\?\.user[\s\S]{0,80}openTemplateHistory/,
+  '등록된 점검표 카드에는 로그인한 Registrant에게만 이력 버튼이 보여야 합니다',
+);
+
+assert.match(
+  source,
+  /<div class="modal-backdrop" id="modal-history">/,
+  '점검표 개정 이력 모달이 있어야 합니다',
+);
+
+assert.match(
+  source,
+  /async function openTemplateHistory\(localId\)\{[\s\S]*?ChecklistSource\.loadTemplateRevisions\(client, tpl\.supabaseId\)/,
+  '이력 조회는 ChecklistSource.loadTemplateRevisions를 사용해야 합니다',
+);
+
+assert.match(
+  source,
+  /function restoreTemplateRevision\(idx\)\{[\s\S]*?openReviewWizard\(\{[\s\S]{0,40}mode: 'edit'/,
+  '복원은 새 등록이 아니라 기존 수정 마법사(edit 모드)를 재사용해야 합니다',
 );
 
 // wayfinder #12 — 등록자 관리 (초대/목록/제거)

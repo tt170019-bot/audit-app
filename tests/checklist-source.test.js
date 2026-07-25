@@ -6,17 +6,6 @@ const context = { globalThis: {} };
 vm.runInNewContext(fs.readFileSync(require.resolve('../checklist-source.js'), 'utf8'), context);
 const source = context.globalThis.ChecklistSource;
 
-const rows = source.extractRows([
-  ['Section', 'No.', 'Question'],
-  ['운항', 'ORG 1.1.1', '절차가 있는가?', 'INT-1'],
-  ['운항', 'ORG 1.1.2', ''],
-]);
-
-assert.equal(rows.length, 1);
-assert.equal(rows[0].section, '운항');
-assert.equal(rows[0].ref, 'ORG 1.1.1');
-assert.equal(rows[0].type, 'YES/NO/OBS/N/A');
-
 async function main(){
   // wayfinder #8 — Supabase 익명 읽기: row is already parsed (no xlsx step),
   // and must carry the item-level maturity flag + custom scale through untouched.
@@ -72,12 +61,15 @@ async function main(){
     const saved = await source.registerSupabaseTemplate(insertClient, 'access-token-1', 'user-1', {
       name: '새 점검표', filename: 'a.xlsx', sections: ['운항'],
       items: [{ section:'운항', question:'Q1', maturityOn:true }],
-      maturityScale: { name:'등급', labels:['A','B'] }
+      maturityScale: { name:'등급', labels:['A','B'] },
+      revisionNo: '1', revisionDate: '2026-01-01'
     });
     assert.equal(insertedTable, 'templates');
     assert.equal(insertedToken, 'access-token-1');
     assert.equal(insertedRow.created_by, 'user-1');
     assert.equal(insertedRow.updated_by, 'user-1');
+    assert.equal(insertedRow.revision_no, 1, '개정번호는 정수로 저장되어야 합니다');
+    assert.equal(insertedRow.revision_date, '2026-01-01');
     assert.equal(saved.name, '새 점검표');
     assert.equal(saved.source, 'supabase');
     assert.equal(saved.supabaseId, 'new-row');
@@ -87,17 +79,53 @@ async function main(){
     const updateClient = {
       update: async (table, id, patch) => {
         updatedId = id; updatedRow = patch;
-        return { id, name: patch.name, items: patch.items, sections: patch.sections, maturity_scale: patch.maturity_scale, created_by: 'user-1', updated_by: patch.updated_by, updated_at: patch.updated_at };
+        return { id, name: patch.name, items: patch.items, sections: patch.sections, maturity_scale: patch.maturity_scale, revision_no: patch.revision_no, revision_date: patch.revision_date, created_by: 'user-1', updated_by: patch.updated_by, updated_at: patch.updated_at };
       }
     };
     const updated = await source.updateSupabaseTemplate(updateClient, 'access-token-2', 'user-2', 'existing-row', {
-      name: '수정된 점검표', sections: ['운항'], items: [{ section:'운항', question:'Q1', maturityOn:false }], maturityScale: null
+      name: '수정된 점검표', sections: ['운항'], items: [{ section:'운항', question:'Q1', maturityOn:false }], maturityScale: null,
+      revisionNo: '2', revisionDate: '2026-07-01'
     });
     assert.equal(updatedId, 'existing-row');
     assert.equal(updatedRow.updated_by, 'user-2');
     assert.ok(updatedRow.updated_at, '수정 시 updated_at을 직접 채워야 합니다');
     assert.equal(updated.name, '수정된 점검표');
     assert.equal(updated.supabaseId, 'existing-row');
+    assert.equal(updated.revisionNo, 2);
+    assert.equal(updated.revisionDate, '2026-07-01');
+
+    await source.updateSupabaseTemplate(updateClient, 'access-token-2', 'user-2', 'existing-row', {
+      name: '수정된 점검표', sections: ['운항'], items: [{ section:'운항', question:'Q1', maturityOn:false }], maturityScale: null,
+      revisionNo: '', revisionDate: ''
+    });
+    assert.equal(updatedRow.revision_no, null, '빈 개정번호는 null로 저장되어야 합니다');
+  }
+
+  // ADR-0002 — loadTemplateRevisions is a read-only view of the snapshots the
+  // DB trigger writes; it must filter by template_id and order newest-first.
+  {
+    let capturedTable, capturedQuery;
+    const revisionsClient = {
+      selectAll: async (table, query) => {
+        capturedTable = table; capturedQuery = query;
+        return [{
+          id: 9, template_id: 'existing-row', name: '수정 전 점검표',
+          sections: ['운항'], items: [{ section:'운항', question:'Q1', maturityOn:true }],
+          maturity_scale: { name:'등급', labels:['A','B'] },
+          revision_no: 1, revision_date: '2026-01-01',
+          updated_by: 'user-1', updated_at: '2026-07-01T00:00:00.000Z', created_at: '2026-07-20T00:00:00.000Z'
+        }];
+      }
+    };
+    const revisions = await source.loadTemplateRevisions(revisionsClient, 'existing-row');
+    assert.equal(capturedTable, 'template_revisions');
+    assert.equal(capturedQuery, 'template_id=eq.existing-row&order=created_at.desc');
+    assert.equal(revisions.length, 1);
+    assert.equal(revisions[0].templateId, 'existing-row');
+    assert.equal(revisions[0].name, '수정 전 점검표');
+    assert.deepEqual(revisions[0].maturityScale, { name:'등급', labels:['A','B'] });
+    assert.equal(revisions[0].revisionNo, 1);
+    assert.equal(revisions[0].revisionDate, '2026-01-01');
   }
 
   console.log('checklist source tests passed');

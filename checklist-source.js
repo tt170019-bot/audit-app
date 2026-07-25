@@ -1,40 +1,6 @@
 (function(root, factory){
   root.ChecklistSource = factory();
 })(typeof globalThis !== 'undefined' ? globalThis : this, function(){
-  function displayName(filename){
-    return String(filename || '').split('/').pop().replace(/\.(xlsx|xls)$/i, '').replace(/[_-]+/g, ' ').trim() || '이름 없는 점검표';
-  }
-
-  function normalize(item){
-    if(!item || item.type !== 'file' || !/\.(xlsx|xls)$/i.test(item.name || '') || String(item.name || '').startsWith('~$')) return null;
-    const filename = String(item.name || '').trim();
-    const path = String(item.download_url || '').trim();
-    if(!filename || !path) return null;
-    const sha = String(item.sha || '').trim();
-    return { filename, path, name:displayName(filename), sha, updatedAt:'', fingerprint:sha || filename, enabled:true };
-  }
-
-  function extractRows(rows){
-    if(!Array.isArray(rows)) return [];
-    return rows.slice(1).map(row => {
-      const [section, ref, question, refStd, externalRef, conformityCriteria, establishedCriteria, matureCriteria, leadingCriteria, type] = row || [];
-      if(!question) return null;
-      return {
-        section: section || '일반', ref, question, refStd, externalRef,
-        conformityCriteria, establishedCriteria, matureCriteria, leadingCriteria,
-        type: type || 'YES/NO/OBS/N/A'
-      };
-    }).filter(Boolean);
-  }
-
-  async function loadGitHubIndex({owner, repo, branch, folderPath}){
-    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${folderPath}?ref=${encodeURIComponent(branch)}&ts=${Date.now()}`;
-    const response = await fetch(url, {cache:'no-store', headers:{Accept:'application/vnd.github+json'}});
-    if(!response.ok) throw new Error(`GitHub Contents API HTTP ${response.status}`);
-    const data = await response.json();
-    return (Array.isArray(data) ? data : []).map(normalize).filter(Boolean).sort((a, b) => a.filename.localeCompare(b.filename, 'ko'));
-  }
-
   // wayfinder #8 — Supabase rows already carry parsed items (plus the
   // per-item maturityOn flag and template-level custom scale from #7),
   // so this is a straight normalize, no xlsx parsing step.
@@ -50,6 +16,8 @@
       sections: Array.isArray(row.sections) && row.sections.length ? row.sections : [...new Set(row.items.map(i => i?.section || '일반'))],
       items: row.items,
       maturityScale: row.maturity_scale || null,
+      revisionNo: row.revision_no ?? null,
+      revisionDate: row.revision_date || '',
       createdBy: row.created_by || '',
       updatedBy: row.updated_by || '',
       updatedAt
@@ -65,13 +33,15 @@
   // change (created_by only on insert, updated_by on both) and hand the saved
   // row straight back through normalizeSupabaseTemplate so callers get the
   // exact same shape as the read path (loadSupabaseTemplates).
-  function toSupabaseRow({name, filename, sections, items, maturityScale}){
+  function toSupabaseRow({name, filename, sections, items, maturityScale, revisionNo, revisionDate}){
     return {
       name: String(name || '이름 없는 점검표').trim(),
       filename: filename || null,
       sections: Array.isArray(sections) ? sections : [],
       items: Array.isArray(items) ? items : [],
-      maturity_scale: maturityScale || null
+      maturity_scale: maturityScale || null,
+      revision_no: revisionNo === '' || revisionNo == null ? null : parseInt(revisionNo, 10),
+      revision_date: revisionDate || null
     };
   }
 
@@ -87,5 +57,30 @@
     return normalizeSupabaseTemplate(saved);
   }
 
-  return { displayName, extractRows, loadGitHubIndex, loadSupabaseTemplates, registerSupabaseTemplate, updateSupabaseTemplate };
+  // Checklist Template Revisions — snapshots the DB trigger captured just
+  // before each edit (see ADR-0002). Read-only: there is no write path here
+  // because the only writer is the trigger itself.
+  function normalizeTemplateRevision(row){
+    return {
+      id: row.id,
+      templateId: row.template_id,
+      name: String(row.name || '이름 없는 점검표').trim(),
+      filename: String(row.filename || '').trim(),
+      sections: Array.isArray(row.sections) ? row.sections : [],
+      items: Array.isArray(row.items) ? row.items : [],
+      maturityScale: row.maturity_scale || null,
+      revisionNo: row.revision_no ?? null,
+      revisionDate: row.revision_date || '',
+      updatedBy: row.updated_by || '',
+      updatedAt: String(row.updated_at || '').trim(),
+      createdAt: String(row.created_at || '').trim()
+    };
+  }
+
+  async function loadTemplateRevisions(client, templateId){
+    const rows = await client.selectAll('template_revisions', `template_id=eq.${encodeURIComponent(templateId)}&order=created_at.desc`);
+    return (Array.isArray(rows) ? rows : []).map(normalizeTemplateRevision);
+  }
+
+  return { loadSupabaseTemplates, registerSupabaseTemplate, updateSupabaseTemplate, loadTemplateRevisions };
 });
