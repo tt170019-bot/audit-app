@@ -30,8 +30,8 @@ function reviewRevisionEditor(){
   const w = reviewWizard;
   return `<div class="review-scale-box">
     <div class="review-label-row">
-      <input type="number" step="1" value="${esc(w.revisionNo)}" placeholder="개정번호 (예: 3)" oninput="reviewSetRevisionNo(this.value)">
-      <input type="date" value="${esc(w.revisionDate)}" oninput="reviewSetRevisionDate(this.value)">
+      <input type="number" step="1" required value="${esc(w.revisionNo)}" placeholder="개정번호 (예: 3)" oninput="reviewSetRevisionNo(this.value)">
+      <input type="date" required value="${esc(w.revisionDate)}" oninput="reviewSetRevisionDate(this.value)">
     </div>
   </div>`;
 }
@@ -78,7 +78,7 @@ function renderReviewWizard(){
       <div class="review-step ${!step1?'active':''}">2. 항목 검토</div>
     </div>
     ${step1 ? `
-      <div class="review-sub">개정번호와 개정일자를 입력하세요 (선택 사항).</div>
+      <div class="review-sub">개정번호와 개정일자를 입력하세요.</div>
       ${reviewRevisionEditor()}
       <div class="review-sub">이 템플릿의 모든 성숙도 항목이 공유할 척도를 정의하세요. 라벨은 자유롭게 추가/삭제/순서변경할 수 있습니다.</div>
       ${reviewScaleEditor()}
@@ -115,6 +115,10 @@ function reviewToggleItem(idx){
 }
 function reviewGotoStep(n){
   if(n === 2){
+    if(reviewWizard.revisionNo === '' || reviewWizard.revisionNo == null || !reviewWizard.revisionDate){
+      showToast('개정번호와 개정일자를 입력하세요');
+      return;
+    }
     const check = AuditRules.validateMaturityScale({name:reviewWizard.scaleName, labels:reviewWizard.labels});
     if(!check.valid){ showToast(check.error); return; }
   }
