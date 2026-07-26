@@ -106,7 +106,6 @@ Type 2로 판별되는 경우:
 | G | Established Criteria | Type 2 성숙도 기준 |
 | H | Mature Criteria | Type 2 성숙도 기준 |
 | I | Leading Criteria | Type 2 성숙도 기준 |
-| J | Result Type | OK/NG/NA/OBS |
 
 Type 1 점검표는 F~I 컬럼이 비어 있어도 됩니다.
 Type 2 점검표는 F~I 컬럼을 입력하면 각 성숙도 점수 옆에 요구조건으로 표시됩니다.

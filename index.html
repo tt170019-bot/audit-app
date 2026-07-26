@@ -322,7 +322,6 @@ function normalizeChecklistItem(item){
     establishedCriteria: String(item.establishedCriteria ?? item.established ?? item['Established Criteria'] ?? item['Established'] ?? item['성숙도 Established'] ?? '').trim(),
     matureCriteria: String(item.matureCriteria ?? item.mature ?? item['Mature Criteria'] ?? item['Mature'] ?? item['성숙도 Mature'] ?? '').trim(),
     leadingCriteria: String(item.leadingCriteria ?? item.leading ?? item['Leading Criteria'] ?? item['Leading'] ?? item['성숙도 Leading'] ?? '').trim(),
-    type: String(item.type ?? item.answerType ?? item['점검유형'] ?? 'YES/NO/OBS/N/A').trim() || 'YES/NO/OBS/N/A',
     result: normalizeResultValue(item.result) || null,
     maturity: item.maturity ?? '',
     // wayfinder #8 — item-level maturityOn/maturityGuidance are authored per
@@ -827,8 +826,7 @@ async function renderTemplates(c){
       'F: Conformity Criteria (Type 2 성숙도 기준)',
       'G: Established Criteria (Type 2 성숙도 기준)',
       'H: Mature Criteria (Type 2 성숙도 기준)',
-      'I: Leading Criteria (Type 2 성숙도 기준)',
-      'J: 점검유형 (YES/NO/OBS/N/A)'
+      'I: Leading Criteria (Type 2 성숙도 기준)'
     ].map(t=>`
     <div class="card-row"><div class="label template-format-label">${t}</div></div>`).join('')}
   </div>` : `
@@ -1027,7 +1025,7 @@ function handleFileSelect(file){
       // Skip header row
       const items=[], sections=new Set();
       for(let i=1;i<rows.length;i++){
-        const [section,ref,question,refStd,externalRef,conformityCriteria,establishedCriteria,matureCriteria,leadingCriteria,type] = rows[i];
+        const [section,ref,question,refStd,externalRef,conformityCriteria,establishedCriteria,matureCriteria,leadingCriteria] = rows[i];
         if(!question) continue;
         sections.add(section||'일반');
         items.push(normalizeChecklistItem({
@@ -1039,8 +1037,7 @@ function handleFileSelect(file){
           conformityCriteria,
           establishedCriteria,
           matureCriteria,
-          leadingCriteria,
-          type: type || 'YES/NO/OBS/N/A'
+          leadingCriteria
         }));
       }
       if(items.length===0){ showToast('항목을 찾을 수 없습니다. 형식을 확인하세요'); return; }
