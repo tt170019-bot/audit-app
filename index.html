@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <script src="xlsx.full.min.js"></script>
+<script src="core.js"></script>
 <script src="audit-rules.js"></script>
 <script src="audit-store.js"></script>
 <script src="checklist-source.js"></script>
@@ -20,6 +21,8 @@
 <script src="supabase-auth.js"></script>
 <script src="registrants.js"></script>
 <script src="report-export.js"></script>
+<script src="backup.js"></script>
+<script src="photo.js"></script>
 <script src="registrant-ui.js"></script>
 <script src="review-wizard.js"></script>
 <link rel="stylesheet" href="styles.css">
@@ -201,54 +204,6 @@
 <script>
 'use strict';
 // ═══════════════════════════════════════════════
-//  DB (IndexedDB via simple wrapper)
-// ═══════════════════════════════════════════════
-const DB_NAME = 'AuditApp', DB_VER = 2;
-const UI_CLASS = Object.freeze({
-  HIDDEN: 'hidden',
-  OPEN: 'open',
-  ACTIVE: 'active',
-  ONLINE: 'is-online',
-  OFFLINE: 'is-offline'
-});
-let db;
-
-function byId(id){
-  return document.getElementById(id);
-}
-
-function setHidden(elOrId, hidden = true){
-  const el = typeof elOrId === 'string' ? byId(elOrId) : elOrId;
-  if(!el) return;
-  el.classList.toggle(UI_CLASS.HIDDEN, Boolean(hidden));
-}
-
-function setVisible(elOrId, visible = true){
-  setHidden(elOrId, !visible);
-}
-
-function openDB(){
-  return AuditStore.open(DB_NAME, DB_VER).then(database => { db = database; return database; });
-}
-
-function dbAll(store){
-  return AuditStore.all(db, store);
-}
-function dbGet(store,id){
-  return AuditStore.get(db, store, id);
-}
-function dbPut(store,obj){
-  return AuditStore.put(db, store, obj);
-}
-function dbDelete(store,id){
-  return AuditStore.delete(db, store, id);
-}
-
-function dbClear(store){
-  return AuditStore.clear(db, store);
-}
-
-// ═══════════════════════════════════════════════
 //  State
 // ═══════════════════════════════════════════════
 let currentTab = 'home';
@@ -256,13 +211,6 @@ let currentAudit = null;
 let checklistFilter = 'all';
 let currentPhotoTarget = null; // {auditId, itemIndex}
 let pendingPhotos = [];
-
-// Debug logging is disabled by default in production.
-// Add ?debug=1 to the URL when console diagnostics are needed.
-const DEBUG_MODE = new URLSearchParams(location.search).get('debug') === '1';
-function appLog(...args){ if(DEBUG_MODE) console.log(...args); }
-function appWarn(...args){ if(DEBUG_MODE) console.warn(...args); }
-function appError(...args){ if(DEBUG_MODE) console.error(...args); }
 
 const AUDIT_STATUS = Object.freeze({
   PROGRESS: 'progress',
@@ -1057,129 +1005,6 @@ function handleFileSelect(file){
 }
 
 
-const BACKUP_FORMAT = 'audit-app-backup';
-const BACKUP_VERSION = 1;
-
-async function exportLocalBackup(){
-  const [audits, templates] = await Promise.all([dbAll('audits'), dbAll('templates')]);
-  const backup = {
-    format: BACKUP_FORMAT,
-    version: BACKUP_VERSION,
-    exportedAt: new Date().toISOString(),
-    audits,
-    templates
-  };
-  const blob = new Blob([JSON.stringify(backup)], {type:'application/json;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `audit-app-backup-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast(`백업 완료: 심사 ${audits.length}건, 점검표 ${templates.length}건`);
-}
-
-function selectLocalBackup(){
-  document.getElementById('file-backup')?.click();
-}
-
-function isValidBackup(backup){
-  return backup && backup.format === BACKUP_FORMAT && backup.version === BACKUP_VERSION &&
-    Array.isArray(backup.audits) && Array.isArray(backup.templates) &&
-    backup.audits.every(audit => audit && typeof audit === 'object' && Array.isArray(audit.items)) &&
-    backup.templates.every(template => template && typeof template === 'object' && Array.isArray(template.items));
-}
-
-function restoreLocalBackup(backup){
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(['audits', 'templates'], 'readwrite');
-    const audits = tx.objectStore('audits');
-    const templates = tx.objectStore('templates');
-    audits.clear();
-    templates.clear();
-    backup.templates.forEach(template => templates.put(template));
-    backup.audits.forEach(audit => audits.put(audit));
-    tx.oncomplete = () => resolve();
-    tx.onabort = tx.onerror = () => reject(tx.error || new Error('저장소에 백업 데이터를 기록할 수 없습니다.'));
-  });
-}
-
-function handleLocalBackupFile(file){
-  if(!file) return;
-  const input = document.getElementById('file-backup');
-  if(input) input.value = '';
-  const reader = new FileReader();
-  reader.onload = async e => {
-    try{
-      const backup = JSON.parse(String(e.target.result || ''));
-      if(!isValidBackup(backup)) throw new Error('지원하지 않는 백업 파일입니다.');
-      const first = confirm(`백업 파일에는 심사 ${backup.audits.length}건, 점검표 ${backup.templates.length}건이 있습니다. 현재 기기 데이터를 모두 교체하시겠습니까?`);
-      if(!first) return;
-      const second = confirm('현재 기기의 심사 기록, 사진, 점검표가 모두 삭제되고 백업 파일로 교체됩니다. 계속하시겠습니까?');
-      if(!second) return;
-      clearPendingNoteWrites();
-      await Promise.all([...auditWriteQueues.values()]);
-      await restoreLocalBackup(backup);
-      currentAudit = null;
-      pendingPhotos = [];
-      showToast('백업 데이터를 복원했습니다');
-      switchTab('home');
-    } catch(err){
-      appError('백업 복원 실패:', err);
-      showToast(err.message || '백업 파일을 복원할 수 없습니다');
-    }
-  };
-  reader.readAsText(file, 'utf-8');
-}
-
-
-async function resetAuditData(){
-  if(!getRegistrantSession()?.user){ showToast('로그인 후 초기화할 수 있습니다'); return; }
-  const ok = confirm('이 기기에 저장된 모든 심사 기록과 사진을 삭제합니다. 점검표는 유지됩니다. 계속하시겠습니까?');
-  if(!ok) return;
-  await dbClear('audits');
-  currentAudit = null;
-  showToast('심사 기록이 삭제되었습니다');
-  switchTab('home');
-}
-
-async function resetTemplateData(){
-  if(!getRegistrantSession()?.user){ showToast('로그인 후 초기화할 수 있습니다'); return; }
-  const ok = confirm('이 기기에 저장된 모든 점검표를 삭제합니다. 기존 심사 기록은 유지됩니다. 계속하시겠습니까?');
-  if(!ok) return;
-  await dbClear('templates');
-  showToast('점검표가 삭제되었습니다');
-  if(await updateOnlineTag()){
-    try{
-      await autoLoadChecklists();
-      showToast('공식 점검표를 다시 동기화했습니다');
-    } catch(err){
-      appWarn('점검표 재동기화 실패:', err);
-      showToast('점검표 삭제 완료. 재동기화는 나중에 실행하세요');
-    }
-  }
-  switchTab('templates');
-}
-
-async function resetAllLocalData(){
-  if(!getRegistrantSession()?.user){ showToast('로그인 후 초기화할 수 있습니다'); return; }
-  const first = confirm('이 기기의 모든 심사 기록, 사진, 점검표를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?');
-  if(!first) return;
-  const second = confirm('정말 전체 로컬 데이터를 삭제하시겠습니까?');
-  if(!second) return;
-  await Promise.all([dbClear('audits'), dbClear('templates')]);
-  currentAudit = null;
-  pendingPhotos = [];
-  showToast('전체 로컬 데이터가 삭제되었습니다');
-  if(await updateOnlineTag()){
-    try{
-      await autoLoadChecklists();
-    } catch(err){
-      appWarn('전체 초기화 후 점검표 재동기화 실패:', err);
-    }
-  }
-  switchTab('home');
-}
 
 async function deleteTemplate(id, e){
   e.stopPropagation();
@@ -1199,107 +1024,10 @@ async function deleteTemplate(id, e){
   switchTab('templates');
 }
 
-// ═══════════════════════════════════════════════
-//  Photo
-// ═══════════════════════════════════════════════
-function openPhotoModal(auditId, itemIdx){
-  currentPhotoTarget = {auditId, itemIdx};
-  pendingPhotos = [...(currentAudit?.items[itemIdx]?.photos||[])];
-  renderPhotoPreview();
-  openModal('modal-photo');
-}
-
-function renderPhotoPreview(){
-  const area = document.getElementById('photo-preview-area');
-  if(!area) return;
-  area.innerHTML = pendingPhotos.map((p,i)=>`
-    <div class="photo-frame">
-      <img class="photo-thumb" src="${p}" alt="사진">
-      <button type="button" onclick="pendingPhotos.splice(${i},1);renderPhotoPreview()" class="photo-remove" aria-label="첨부 사진 ${i + 1} 삭제">✕</button>
-    </div>`).join('');
-}
-
-function takePhoto(){
-  document.getElementById('file-camera').click();
-  document.getElementById('file-camera').onchange = e=>{
-    handleImageFile(e.target.files[0]);
-    e.target.value='';
-  };
-}
-function pickPhoto(){
-  document.getElementById('file-gallery').click();
-  document.getElementById('file-gallery').onchange = e=>{
-    handleImageFile(e.target.files[0]);
-    e.target.value='';
-  };
-}
-function handleImageFile(file){
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload=e=>{
-    // Resize to max 800px for storage
-    const img = new Image();
-    img.onload=()=>{
-      const MAX=800;
-      let w=img.width, h=img.height;
-      if(w>MAX||h>MAX){ const r=MAX/Math.max(w,h); w=Math.round(w*r); h=Math.round(h*r); }
-      const canvas=document.createElement('canvas');
-      canvas.width=w; canvas.height=h;
-      canvas.getContext('2d').drawImage(img,0,0,w,h);
-      pendingPhotos.push(canvas.toDataURL('image/jpeg',0.75));
-      renderPhotoPreview();
-    };
-    img.src=e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-async function savePhoto(){
-  if(!currentPhotoTarget) return;
-  const {auditId, itemIdx} = currentPhotoTarget;
-  const audit = await dbGet('audits', auditId);
-  if(!audit) return;
-  if(audit.status === AUDIT_STATUS.DONE){ showToast('완료된 심사는 다시 열어야 수정할 수 있습니다'); return; }
-  audit.items[itemIdx].photos = [...pendingPhotos];
-  currentAudit = audit;
-  await dbPut('audits', audit);
-  // Refresh photos in UI
-  const area = document.getElementById('photos-'+itemIdx);
-  if(area){
-    area.innerHTML = pendingPhotos.map(p=>`<img class="photo-thumb photo-thumb-clickable" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')+
-      `<div class="photo-add" onclick="openPhotoModal(${auditId},${itemIdx})">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
-        <span>추가</span>
-      </div>`;
-  }
-  closeModal('modal-photo');
-  showToast(`사진 ${pendingPhotos.length}장 저장됨`);
-}
-
-function viewPhoto(src){
-  const d=document.createElement('div');
-  d.className = 'viewer';
-  d.innerHTML=`<img src="${src}" alt="첨부 사진 확대"><button type="button" class="viewer-close" onclick="this.parentNode.remove()" aria-label="닫기">✕</button>`;
-  document.body.appendChild(d);
-}
-
-
 
 // ═══════════════════════════════════════════════
-//  Modal helpers
+//  Modal wiring (openModal/closeModal live in core.js)
 // ═══════════════════════════════════════════════
-function openModal(id){
-  const modal = byId(id);
-  if(!modal) return;
-  modal.classList.add(UI_CLASS.OPEN);
-  document.body.style.overflow='hidden';
-}
-function closeModal(id){
-  const modal = byId(id);
-  if(!modal) return;
-  modal.classList.remove(UI_CLASS.OPEN);
-  document.body.style.overflow='';
-}
 // Close modal on backdrop tap
 document.querySelectorAll('.modal-backdrop').forEach(m=>{
   m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); });
@@ -1315,23 +1043,7 @@ window.addEventListener('popstate', () => {
   if(currentAudit) backFromChecklist();
 });
 
-// ═══════════════════════════════════════════════
-//  Toast
-// ═══════════════════════════════════════════════
-let _toastTimer;
-function showToast(msg){
-  const t = byId('toast');
-  if(!t) return;
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
-}
-
-// ═══════════════════════════════════════════════
-//  Utils
-// ═══════════════════════════════════════════════
-function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+// showToast/esc now live in core.js
 
 // Local Pretendard note: keep ./fonts/PretendardVariable.woff2 in the deployment
 // and include it in sw.js precache/static asset list when offline font rendering is required.
