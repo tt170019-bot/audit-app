@@ -1,15 +1,22 @@
 const assert = require('assert/strict');
 const fs = require('fs');
 
-// index.html was split (report-export.js / registrant-ui.js / review-wizard.js
-// carved out to keep the main file from growing without bound) — concatenate
-// them all so the existing regex assertions below don't care which physical
-// file a given piece of UI wiring now lives in.
+// index.html was split (report-export.js / registrant-ui.js / review-wizard.js /
+// audit-detail.js / core.js / backup.js / photo.js carved out to keep the main
+// file from growing without bound) — concatenate them all so the regex
+// assertions below don't care which physical file a given piece of UI wiring
+// now lives in. Keep this list in sync whenever index.html is split further —
+// a regex assertion "passing" after a rename/move it never re-matched a
+// runtime behavior change, it just stopped seeing the code at all.
 const source = [
   '../index.html',
   '../report-export.js',
   '../registrant-ui.js',
   '../review-wizard.js',
+  '../audit-detail.js',
+  '../core.js',
+  '../backup.js',
+  '../photo.js',
 ].map(p => fs.readFileSync(require.resolve(p), 'utf8')).join('\n');
 
 assert.match(
@@ -209,17 +216,23 @@ assert.match(
   '확인 시점에도 다시 한번 로그인 여부를 확인해야 합니다',
 );
 
-// 개정번호/개정일자 — 수기 입력, 저장 페이로드에 포함
+// 개정번호/개정일자 — 수기 입력(필수), 저장 페이로드에 포함
 assert.match(
   source,
-  /<input type="number" step="1" value="\$\{esc\(w\.revisionNo\)\}"/,
-  '개정번호는 정수 입력칸이어야 합니다',
+  /<input type="number" step="1" required value="\$\{esc\(w\.revisionNo\)\}"/,
+  '개정번호는 필수 정수 입력칸이어야 합니다',
 );
 
 assert.match(
   source,
-  /<input type="date" value="\$\{esc\(w\.revisionDate\)\}"/,
-  '개정일자는 날짜 입력칸이어야 합니다',
+  /<input type="date" required value="\$\{esc\(w\.revisionDate\)\}"/,
+  '개정일자는 필수 날짜 입력칸이어야 합니다',
+);
+
+assert.match(
+  source,
+  /if\(reviewWizard\.revisionNo === '' \|\| reviewWizard\.revisionNo == null \|\| !reviewWizard\.revisionDate\)\{/,
+  '개정번호/개정일자를 비운 채로는 항목 검토 단계로 넘어갈 수 없어야 합니다',
 );
 
 assert.match(
@@ -242,8 +255,14 @@ assert.match(
 
 assert.match(
   source,
-  /\$\{registrantSession\?\.user \? `\s*<div class="section-header">점검표 등록<\/div>/,
-  '업로드 영역은 관리자 모드가 아니라 로그인한 Registrant 여부로 표시되어야 합니다',
+  /registrantSession\?\.user \? `\s*<div class="align-end-row"><button type="button" class="btn btn-teal" onclick="openNewChecklistModal\(\)">\+ 점검표 등록<\/button><\/div>` : ''/,
+  '점검표 등록 버튼은 관리자 모드가 아니라 로그인한 Registrant 여부로 표시되어야 합니다',
+);
+
+assert.match(
+  source,
+  /function openNewChecklistModal\(\)\{/,
+  '점검표 등록 버튼은 모달(명칭\\/개정번호\\/개정일자\\/Excel 업로드)을 열어야 합니다',
 );
 
 assert.match(
@@ -269,6 +288,31 @@ assert.match(
   source,
   /async function openTemplateHistory\(localId\)\{[\s\S]*?ChecklistSource\.loadTemplateRevisions\(client, tpl\.supabaseId\)/,
   '이력 조회는 ChecklistSource.loadTemplateRevisions를 사용해야 합니다',
+);
+
+// 점검표 삭제 권한 — Registrant 로그인 기준 (구 ?admin=1 토글 완전 제거, 2026-07-26)
+assert.match(
+  source,
+  /registrantSession\?\.user \? `<button type="button" class="btn btn-danger btn-sm" onclick="deleteTemplate\(\$\{t\.id\},event\)">삭제<\/button>` : ''/,
+  '삭제 버튼은 관리자 모드가 아니라 로그인한 Registrant 여부로 표시되어야 합니다',
+);
+
+assert.match(
+  source,
+  /async function deleteTemplate\(id, e\)\{[\s\S]*?if\(!session\?\.user\)\{ showToast\('로그인 후 삭제할 수 있습니다'\); return; \}/,
+  '삭제 실행 시점에도 다시 한번 Registrant 로그인 여부를 확인해야 합니다',
+);
+
+assert.match(
+  source,
+  /await ChecklistSource\.deleteSupabaseTemplate\(SupabaseClient\.getClient\(\), session\.accessToken, tpl\.supabaseId\)/,
+  '삭제는 로컬 캐시만이 아니라 Supabase의 실제 행을 지워야 합니다',
+);
+
+assert.doesNotMatch(
+  source,
+  /isAdminMode|setAdminMode|ADMIN_MODE_STORAGE_KEY|\?admin=1/,
+  '암호 없는 ?admin=1 관리자 토글은 완전히 제거되어야 합니다',
 );
 
 assert.match(
