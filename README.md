@@ -1,5 +1,7 @@
 # Audit App - Checklist Type Split & Maturity Assessment
 
+[![Test](https://github.com/tt170019-bot/audit-app/actions/workflows/test.yml/badge.svg)](https://github.com/tt170019-bot/audit-app/actions/workflows/test.yml)
+
 ## 1. 적용 목적
 
 이번 버전은 점검표 유형에 따라 점검 실시 화면을 분리합니다.
