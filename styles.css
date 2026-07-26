@@ -227,9 +227,9 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .modal-actions { position: sticky; bottom: 0; display: flex; gap: var(--space-150); padding: var(--space-200) var(--space-250) calc(var(--space-200) + env(safe-area-inset-bottom, 0)); border-top: var(--ui-border-width) solid var(--ads-border); background: var(--ads-surface-overlay); }
 
 /* Upload */
-.upload-zone { border: var(--ui-border-width-strong) dashed var(--ads-border-bold); border-radius: var(--radius-large); padding: var(--space-500) var(--space-250); text-align: center; cursor: pointer; transition: border-color 200ms ease, background-color 200ms ease; margin: var(--space-0) var(--mobile-page-padding); background: var(--ads-surface); }
+.upload-zone { border: var(--ui-border-width-strong) dashed var(--ads-border-bold); border-radius: var(--radius-large); padding: var(--space-250) var(--space-250); text-align: center; cursor: pointer; transition: border-color 200ms ease, background-color 200ms ease; margin: var(--space-0) var(--mobile-page-padding); background: var(--ads-surface); }
 .upload-zone:hover, .upload-zone.drag { border-color: var(--ads-border-focused); background: var(--ads-information-bg); }
-.upload-zone svg { width: var(--space-500); height: var(--space-500); color: var(--ads-text-subtlest); margin-bottom: var(--space-150); }
+.upload-zone svg { width: var(--space-300); height: var(--space-300); color: var(--ads-text-subtlest); margin-bottom: var(--space-100); }
 .upload-zone h3 { font-size: var(--font-section-title-size); line-height: var(--font-section-title-line); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-075); }
 .upload-zone p { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtlest); }
 
