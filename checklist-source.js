@@ -16,6 +16,7 @@
       sections: Array.isArray(row.sections) && row.sections.length ? row.sections : [...new Set(row.items.map(i => i?.section || '일반'))],
       items: row.items,
       maturityScale: row.maturity_scale || null,
+      maturityScales: Array.isArray(row.maturity_scales) ? row.maturity_scales : null,
       revisionNo: row.revision_no ?? null,
       revisionDate: row.revision_date || '',
       division: row.division || '',
@@ -34,13 +35,16 @@
   // change (created_by only on insert, updated_by on both) and hand the saved
   // row straight back through normalizeSupabaseTemplate so callers get the
   // exact same shape as the read path (loadSupabaseTemplates).
-  function toSupabaseRow({name, filename, sections, items, maturityScale, revisionNo, revisionDate, division}){
+  function toSupabaseRow({name, filename, sections, items, maturityScales, revisionNo, revisionDate, division}){
     return {
       name: String(name || '이름 없는 점검표').trim(),
       filename: filename || null,
       sections: Array.isArray(sections) ? sections : [],
       items: Array.isArray(items) ? items : [],
-      maturity_scale: maturityScale || null,
+      // Always an array (possibly empty) once written through this path —
+      // that presence is what tells deriveMaturityScales to stop falling
+      // back to a stale legacy maturity_scale column.
+      maturity_scales: Array.isArray(maturityScales) ? maturityScales : [],
       revision_no: revisionNo === '' || revisionNo == null ? null : parseInt(revisionNo, 10),
       revision_date: revisionDate || null,
       division: division || null
@@ -77,6 +81,7 @@
       sections: Array.isArray(row.sections) ? row.sections : [],
       items: Array.isArray(row.items) ? row.items : [],
       maturityScale: row.maturity_scale || null,
+      maturityScales: Array.isArray(row.maturity_scales) ? row.maturity_scales : null,
       revisionNo: row.revision_no ?? null,
       revisionDate: row.revision_date || '',
       division: row.division || '',

@@ -9,55 +9,91 @@ assert.equal(rules.normalizeResultValue('ng'), 'NO');
 assert.equal(rules.normalizeResultValue('na'), 'N/A');
 assert.equal(rules.canCompleteAudit({items:[{result:'YES'}, {result:'OBS'}]}), true);
 assert.equal(rules.canCompleteAudit({items:[{result:'YES'}, {result:''}]}), false);
-assert.equal(rules.getMaturityConsideration({}, 'Leading').title, '예방과 개선 활동으로 절차를 고도화하는 수준');
 
-// wayfinder #7 — item-level maturity flag + template-level custom scale
+assert.deepEqual(rules.DIVISIONS, ['안전', '보안', '정비', '운항', '객실', '화물', '여객지원', '종합통제']);
+
+// ═══ deriveMaturityScales(template) — multi-scale model, 2026-07-26 ═══
 assert.deepEqual(
-  rules.deriveMaturityScale({checklistUiType:'maturity'}),
-  {name:'성숙도 등급', labels:['Conformity','Established','Mature','Leading']},
-  '기존 성숙도 체크리스트는 레거시 4단계 척도로 어댑팅되어야 합니다',
+  rules.deriveMaturityScales({maturityScales:[{id:'sA', name:'안전척도', labels:['미흡','우수']}]}),
+  [{id:'sA', name:'안전척도', labels:['미흡','우수']}],
+  '새 다중 척도 배열이 있으면 그대로 사용해야 합니다',
 );
-assert.equal(
-  rules.deriveMaturityScale({checklistUiType:'standard'}), null,
+assert.deepEqual(
+  rules.deriveMaturityScales({maturityScales:[]}),
+  [],
+  '작성자가 척도를 전부 지운 빈 배열은 레거시 필드로 되돌아가지 않고 존재 자체를 신뢰해야 합니다',
+);
+assert.deepEqual(
+  rules.deriveMaturityScales({maturityScales:[], maturityScale:{name:'구척도', labels:['A','B']}}),
+  [],
+  '새 배열이 존재하면(비어 있어도) 레거시 단일 척도보다 우선해야 합니다',
+);
+assert.deepEqual(
+  rules.deriveMaturityScales({maturityScale:{name:'등급', labels:['A','B']}}),
+  [{id: rules.LEGACY_SCALE_ID, name:'등급', labels:['A','B']}],
+  '레거시 단일 척도는 legacy id로 어댑팅되어야 합니다',
+);
+assert.deepEqual(
+  rules.deriveMaturityScales({checklistUiType:'maturity'}),
+  [{id: rules.LEGACY_SCALE_ID, name:'성숙도 등급', labels:['Conformity','Established','Mature','Leading']}],
+  '레거시 성숙도 체크리스트는 legacy 4단계 척도로 어댑팅되어야 합니다',
+);
+assert.deepEqual(
+  rules.deriveMaturityScales({checklistUiType:'standard'}),
+  [],
   '일반 체크리스트는 척도가 없어야 합니다',
 );
 assert.deepEqual(
-  rules.deriveMaturityScale({filename:'현장탑승심사표.xlsx'}),
-  {name:'성숙도 등급', labels:['Conformity','Established','Mature','Leading']},
+  rules.deriveMaturityScales({filename:'현장탑승심사표.xlsx'}),
+  [{id: rules.LEGACY_SCALE_ID, name:'성숙도 등급', labels:['Conformity','Established','Mature','Leading']}],
   'checklistUiType가 없으면 getChecklistUiType으로 재추론해야 합니다',
 );
 
-assert.equal(
-  rules.getMaturityGuidanceForScale({conformityCriteria:'커스텀 기준 텍스트'}, ['Conformity','Established','Mature','Leading'], 0).title,
-  '커스텀 기준 텍스트',
-  '4단계 척도는 위치 기준으로 레거시 criteria 컬럼을 재사용해야 합니다',
+// ═══ deriveItemMaturityAssignment(item) ═══
+assert.deepEqual(
+  rules.deriveItemMaturityAssignment({maturityScaleIds:['sA','sB'], maturityGuidance:{sA:['가']}}),
+  {scaleIds:['sA','sB'], guidance:{sA:['가']}},
+  '새 형태는 scaleIds/guidance를 그대로 전달해야 합니다',
 );
-assert.equal(
-  rules.getMaturityGuidanceForScale({}, ['Conformity','Established','Mature','Leading'], 0).title,
-  '',
-  '4단계 척도라도 criteria 텍스트가 없으면 안내문 없이 비어 있어야 합니다 (커스텀 척도엔 기본 안내문 없음)',
+assert.deepEqual(
+  rules.deriveItemMaturityAssignment({maturityOn:true, conformityCriteria:'C', establishedCriteria:'E', matureCriteria:'M', leadingCriteria:'L'}),
+  {scaleIds:[rules.LEGACY_SCALE_ID], guidance:{[rules.LEGACY_SCALE_ID]:['C','E','M','L']}},
+  '레거시 maturityOn+criteria 컬럼은 legacy scale 하나로 어댑팅되어야 합니다',
 );
-assert.equal(
-  rules.getMaturityGuidanceForScale({conformityCriteria:'있어도 무시됨'}, ['1','2','3'], 0).title,
-  '',
-  '4단계가 아닌 척도는 레거시 criteria 컬럼을 재사용하지 않아야 합니다',
-);
-assert.equal(
-  rules.getMaturityGuidanceForScale({maturityGuidance:['직접 입력한 안내문']}, ['1','2','3'], 0).title,
-  '직접 입력한 안내문',
-  '4단계가 아닌 척도는 item.maturityGuidance에서 직접 입력된 안내문을 읽어야 합니다',
+assert.deepEqual(
+  rules.deriveItemMaturityAssignment({}), {scaleIds:[], guidance:{}},
+  '아무 성숙도 정보도 없으면 빈 배정이어야 합니다',
 );
 
-// wayfinder #10 — 등록 검토 마법사가 쓰는 순수 함수
+// ═══ getMaturityGuidance(item, scaleId, levelIndex, levelLabel) ═══
 assert.equal(
-  rules.suggestMaturityOn({conformityCriteria:'기준 있음'}), true,
-  'criteria 컬럼에 텍스트가 있으면 기본 제안은 ON이어야 합니다',
+  rules.getMaturityGuidance({maturityScaleIds:['sA'], maturityGuidance:{sA:['직접 입력한 안내문']}}, 'sA', 0, '미흡').title,
+  '직접 입력한 안내문',
+  '항목별로 직접 입력한 안내문이 있으면 그것을 써야 합니다',
 );
 assert.equal(
-  rules.suggestMaturityOn({establishedCriteria:'', matureCriteria:'', leadingCriteria:''}), false,
-  'criteria 컬럼이 전부 비어 있으면 기본 제안은 OFF여야 합니다',
+  rules.getMaturityGuidance({maturityOn:true}, rules.LEGACY_SCALE_ID, 3, 'Leading').title,
+  '예방과 개선 활동으로 절차를 고도화하는 수준',
+  'legacy 척도는 안내문이 비어 있으면 기본 안내문으로 폴백해야 합니다',
 );
-assert.equal(rules.suggestMaturityOn({}), false);
+assert.equal(
+  rules.getMaturityGuidance({maturityScaleIds:['sA']}, 'sA', 0, '미흡').title,
+  '',
+  '커스텀 척도는 안내문이 비어 있어도 기본 안내문으로 폴백하지 않아야 합니다',
+);
+
+// ═══ deriveMaturityResults(item) ═══
+assert.deepEqual(
+  rules.deriveMaturityResults({maturityResults:{sA:'미흡', sB:'3단계'}}),
+  {sA:'미흡', sB:'3단계'},
+  '새 형태는 maturityResults를 그대로 전달해야 합니다',
+);
+assert.deepEqual(
+  rules.deriveMaturityResults({maturity:'Leading'}),
+  {[rules.LEGACY_SCALE_ID]:'Leading'},
+  '레거시 단일 maturity 문자열은 legacy id로 어댑팅되어야 합니다',
+);
+assert.deepEqual(rules.deriveMaturityResults({}), {});
 
 assert.equal(rules.validateMaturityScale({name:'등급', labels:['A']}).valid, true);
 assert.equal(

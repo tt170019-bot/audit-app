@@ -66,15 +66,15 @@
   - Un-Satisfaction
   - N/A
 - Maturity Assessment
-  - Conformity + 요구조건 / 판단기준
-  - Established + 요구조건 / 판단기준
-  - Mature + 요구조건 / 판단기준
-  - Leading + 요구조건 / 판단기준
+  - 항목마다 0개, 1개, 또는 여러 개의 성숙도 척도가 독립적인 패널로 표시됩니다
+  - 척도별 단계 수/라벨/단계별 안내문구는 점검표마다, 항목마다 자유롭게 다를 수 있습니다
+  - (레거시 점검표는 Conformity/Established/Mature/Leading 4단계 척도 하나로 자동 변환되어 그대로 동작합니다)
 - Comment(s)
 - Evidence / 사진
 
 Result와 Maturity는 별도 평가축입니다.
 Maturity를 선택해도 Result가 자동으로 Satisfaction 처리되지 않습니다.
+한 항목에 척도가 여러 개 배정된 경우, 각 척도의 선택은 서로 독립적입니다.
 
 ---
 
@@ -101,17 +101,15 @@ Type 2로 판별되는 경우:
 |---|---|---|
 | A | Section | 섹션명 |
 | B | No. | 항목번호 |
-| C | Check Requirement | 점검 질문 / 요구사항 |
+| C | Check Requirement | 점검 질문 / 요구사항 (필수) |
 | D | Internal Ref. | 내부 참조 |
 | E | External Ref. | 외부 참조 |
-| F | Conformity Criteria | Type 2 성숙도 기준 |
-| G | Established Criteria | Type 2 성숙도 기준 |
-| H | Mature Criteria | Type 2 성숙도 기준 |
-| I | Leading Criteria | Type 2 성숙도 기준 |
 
-Type 1 점검표는 F~I 컬럼이 비어 있어도 됩니다.
-Type 2 점검표는 F~I 컬럼을 입력하면 각 성숙도 점수 옆에 요구조건으로 표시됩니다.
-F~I가 비어 있으면 앱의 기본 성숙도 설명이 표시됩니다.
+성숙도 척도(이름, 단계 수, 단계별 안내문구)는 엑셀 컬럼이 아니라, 업로드 직후 뜨는
+검토 마법사 화면에서 직접 만들고 항목마다 배정합니다. 한 점검표에 척도를 여러 개
+만들 수 있고, 항목 하나에 척도를 0개, 1개, 여러 개 자유롭게 배정할 수 있습니다
+(척도별로 독립된 성숙도 평가 패널이 뜹니다). 자세한 내용은 등록 화면의 안내를
+참고하세요.
 
 ---
 

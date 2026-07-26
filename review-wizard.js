@@ -5,14 +5,23 @@
 // ═══════════════════════════════════════════════
 let reviewWizard = null;
 
-function openReviewWizard({mode, templateId, name, filename, sections, items, scaleName, labels, revisionNo, revisionDate, division}){
+function genScaleId(){
+  return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function openReviewWizard({mode, templateId, name, filename, sections, items, scales, revisionNo, revisionDate, division}){
   reviewWizard = {
     mode, templateId,
     name, filename,
     sections: sections || [],
-    items: items.map((it, i) => ({...it, _idx:i, maturityOn: it.maturityOn ?? AuditRules.suggestMaturityOn(it), _suggested: AuditRules.suggestMaturityOn(it)})),
-    scaleName: scaleName || '성숙도 등급',
-    labels: labels && labels.length ? [...labels] : ['Conformity','Established','Mature','Leading'],
+    items: items.map((it, i) => {
+      const assignment = AuditRules.deriveItemMaturityAssignment(it);
+      return {...it, _idx:i, _scaleIds: [...assignment.scaleIds], _guidance: JSON.parse(JSON.stringify(assignment.guidance))};
+    }),
+    // Scale library for this template — 0, 1, or many scales, each with its
+    // own name + freely-sized label list. Items pick any subset (see
+    // _scaleIds above), each with its own per-item guidance text.
+    scales: (scales && scales.length ? scales : []).map(s => ({id: s.id || genScaleId(), name: s.name || '', labels: Array.isArray(s.labels) ? [...s.labels] : []})),
     revisionNo: revisionNo ?? '',
     revisionDate: revisionDate || '',
     division: division || '',
@@ -43,31 +52,51 @@ function reviewRevisionEditor(){
   </div>`;
 }
 
-function reviewScaleEditor(){
-  const w = reviewWizard;
+function reviewScaleEditor(scale, si){
   return `<div class="review-scale-box">
-    <input class="review-scale-name" value="${esc(w.scaleName)}" placeholder="척도 이름 (예: 성숙도 등급)" oninput="reviewSetScaleName(this.value)">
-    ${w.labels.map((l,i)=>`<div class="review-label-row">
-      <input value="${esc(l)}" oninput="reviewSetLabel(${i},this.value)">
-      <button type="button" class="review-icon-btn" title="위로" ${i===0?'disabled':''} onclick="reviewMoveLabel(${i},-1)">↑</button>
-      <button type="button" class="review-icon-btn" title="아래로" ${i===w.labels.length-1?'disabled':''} onclick="reviewMoveLabel(${i},1)">↓</button>
-      <button type="button" class="review-icon-btn" title="삭제" onclick="reviewRemoveLabel(${i})">✕</button>
+    <div class="review-label-row">
+      <input class="review-scale-name" value="${esc(scale.name)}" placeholder="척도 이름 (예: 안전 척도)" oninput="reviewSetScaleName(${si},this.value)">
+      <button type="button" class="review-icon-btn" title="이 척도 삭제" onclick="reviewRemoveScale(${si})">✕</button>
+    </div>
+    ${scale.labels.map((l,i)=>`<div class="review-label-row">
+      <input value="${esc(l)}" oninput="reviewSetLabel(${si},${i},this.value)">
+      <button type="button" class="review-icon-btn" title="위로" ${i===0?'disabled':''} onclick="reviewMoveLabel(${si},${i},-1)">↑</button>
+      <button type="button" class="review-icon-btn" title="아래로" ${i===scale.labels.length-1?'disabled':''} onclick="reviewMoveLabel(${si},${i},1)">↓</button>
+      <button type="button" class="review-icon-btn" title="삭제" onclick="reviewRemoveLabel(${si},${i})">✕</button>
     </div>`).join('')}
-    <button type="button" class="review-add-label" onclick="reviewAddLabel()">+ 라벨 추가</button>
+    <button type="button" class="review-add-label" onclick="reviewAddLabel(${si})">+ 라벨 추가</button>
     <div class="review-preview">
-      ${w.labels.map(l=>`<div class="maturity-card"><div class="maturity-card-head"><span class="maturity-radio" aria-hidden="true"></span><div class="maturity-card-title">${esc(l)}</div></div></div>`).join('')}
+      ${scale.labels.map(l=>`<div class="maturity-card"><div class="maturity-card-head"><span class="maturity-radio" aria-hidden="true"></span><div class="maturity-card-title">${esc(l)}</div></div></div>`).join('')}
     </div>
   </div>`;
 }
 
-function reviewItemRow(item){
-  return `<div class="review-item-row">
-    <div class="review-item-main">
-      <div class="review-item-tag">${esc(item.section)} · ${esc(item.ref || '')}</div>
-      <div class="review-item-q">${esc(item.question)}</div>
-      ${item._suggested ? `<div class="review-item-hint">criteria 텍스트 있음 → 기본 제안 ON</div>` : ''}
+function reviewItemRow(item, scales){
+  const scaleIds = item._scaleIds;
+  return `<div class="review-item-row-block">
+    <div class="review-item-row">
+      <div class="review-item-main">
+        <div class="review-item-tag">${esc(item.section)} · ${esc(item.ref || '')}</div>
+        <div class="review-item-q">${esc(item.question)}</div>
+      </div>
     </div>
-    <button type="button" class="review-toggle ${item.maturityOn?'on':''}" role="switch" aria-checked="${item.maturityOn}" onclick="reviewToggleItem(${item._idx})"></button>
+    ${scales.length ? `<div class="review-item-scale-picker">
+      ${scales.map(s => `<label class="review-scale-check">
+        <input type="checkbox" ${scaleIds.includes(s.id) ? 'checked' : ''} onchange="reviewToggleItemScale(${item._idx},'${s.id}')"> ${esc(s.name || '(이름 없음)')}
+      </label>`).join('')}
+    </div>` : ''}
+    ${scaleIds.map(sid => {
+      const scale = scales.find(s => s.id === sid);
+      if(!scale) return '';
+      const guidance = item._guidance[sid] || [];
+      return `<div class="review-item-guidance">
+        <div class="review-item-guidance-title">${esc(scale.name || '(이름 없음)')} 안내문구</div>
+        ${scale.labels.map((label,li)=>`<div class="review-label-row">
+          <span class="review-guidance-level">${esc(label)}</span>
+          <input value="${esc(guidance[li] || '')}" placeholder="안내문구 (비우면 기본 문구)" oninput="reviewSetItemGuidance(${item._idx},'${sid}',${li},this.value)">
+        </div>`).join('')}
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
@@ -75,7 +104,10 @@ function renderReviewWizard(){
   const w = reviewWizard;
   if(!w) return;
   const step1 = w.step === 1;
-  const onCount = w.items.filter(i=>i.maturityOn).length;
+  const onCount = w.items.filter(i => i._scaleIds.length > 0).length;
+  const scaleSummary = w.scales.length
+    ? w.scales.map(s => `${esc(s.name || '(이름 없음)')}(${s.labels.length}단계)`).join(', ')
+    : '없음 (성숙도 평가 미사용)';
 
   document.getElementById('modal-review-title').textContent = w.mode === 'edit' ? `점검표 수정 — ${w.name}` : '점검표 등록 검토';
 
@@ -87,11 +119,12 @@ function renderReviewWizard(){
     ${step1 ? `
       <div class="review-sub">개정번호와 개정일자를 입력하세요.</div>
       ${reviewRevisionEditor()}
-      <div class="review-sub">이 템플릿의 모든 성숙도 항목이 공유할 척도를 정의하세요. 라벨은 자유롭게 추가/삭제/순서변경할 수 있습니다.</div>
-      ${reviewScaleEditor()}
+      <div class="review-sub">이 점검표에서 쓸 성숙도 척도를 0개, 1개, 또는 여러 개 만드세요. 척도마다 이름과 단계 수를 자유롭게 정할 수 있고, 다음 단계에서 항목마다 어떤 척도를 쓸지 고릅니다.</div>
+      ${w.scales.map((s,i)=>reviewScaleEditor(s,i)).join('')}
+      <button type="button" class="review-add-label" onclick="reviewAddScale()">+ 척도 추가</button>
     ` : `
-      <div class="review-sub">척도: <b>${esc(w.scaleName)}</b> (${w.labels.length}단계) — <a href="#" onclick="event.preventDefault();reviewGotoStep(1)">수정</a></div>
-      <div>${w.items.map(reviewItemRow).join('')}</div>
+      <div class="review-sub">척도: <b>${scaleSummary}</b> — <a href="#" onclick="event.preventDefault();reviewGotoStep(1)">수정</a></div>
+      <div>${w.items.map(item => reviewItemRow(item, w.scales)).join('')}</div>
     `}
   `;
 
@@ -99,27 +132,52 @@ function renderReviewWizard(){
     ? `<button type="button" class="btn btn-ghost flex-1" onclick="closeReviewWizard()">취소</button>
        <button type="button" class="btn btn-teal flex-2" onclick="reviewGotoStep(2)">다음</button>`
     : `<button type="button" class="btn btn-ghost flex-1" onclick="reviewGotoStep(1)">이전</button>
-       <button type="button" class="btn btn-teal flex-2" onclick="confirmReviewWizard()">확인 (${onCount}/${w.items.length}개 성숙도 ON)</button>`;
+       <button type="button" class="btn btn-teal flex-2" onclick="confirmReviewWizard()">확인 (${onCount}/${w.items.length}개 성숙도 배정됨)</button>`;
 }
 
 function reviewSetRevisionNo(v){ reviewWizard.revisionNo = v; }
 function reviewSetRevisionDate(v){ reviewWizard.revisionDate = v; }
 function reviewSetDivision(v){ reviewWizard.division = v; }
-function reviewSetScaleName(v){ reviewWizard.scaleName = v; }
-function reviewSetLabel(i,v){ reviewWizard.labels[i] = v; }
-function reviewAddLabel(){ reviewWizard.labels.push('새 라벨'); renderReviewWizard(); }
-function reviewRemoveLabel(i){ reviewWizard.labels.splice(i,1); renderReviewWizard(); }
-function reviewMoveLabel(i,dir){
-  const labels = reviewWizard.labels;
+function reviewSetScaleName(si,v){ reviewWizard.scales[si].name = v; }
+function reviewSetLabel(si,i,v){ reviewWizard.scales[si].labels[i] = v; }
+function reviewAddLabel(si){ reviewWizard.scales[si].labels.push('새 라벨'); renderReviewWizard(); }
+function reviewRemoveLabel(si,i){ reviewWizard.scales[si].labels.splice(i,1); renderReviewWizard(); }
+function reviewMoveLabel(si,i,dir){
+  const labels = reviewWizard.scales[si].labels;
   const j = i + dir;
   if(j < 0 || j >= labels.length) return;
   [labels[i], labels[j]] = [labels[j], labels[i]];
   renderReviewWizard();
 }
-function reviewToggleItem(idx){
-  const item = reviewWizard.items.find(i=>i._idx===idx);
-  item.maturityOn = !item.maturityOn;
+function reviewAddScale(){
+  reviewWizard.scales.push({id: genScaleId(), name: '', labels: ['새 라벨']});
   renderReviewWizard();
+}
+function reviewRemoveScale(si){
+  const removedId = reviewWizard.scales[si].id;
+  reviewWizard.scales.splice(si, 1);
+  // Un-assign the removed scale from every item so nothing references a
+  // dangling scale id.
+  reviewWizard.items.forEach(item => {
+    item._scaleIds = item._scaleIds.filter(id => id !== removedId);
+    delete item._guidance[removedId];
+  });
+  renderReviewWizard();
+}
+function reviewToggleItemScale(idx, scaleId){
+  const item = reviewWizard.items.find(i => i._idx === idx);
+  if(item._scaleIds.includes(scaleId)){
+    item._scaleIds = item._scaleIds.filter(id => id !== scaleId);
+  } else {
+    item._scaleIds.push(scaleId);
+    if(!item._guidance[scaleId]) item._guidance[scaleId] = [];
+  }
+  renderReviewWizard();
+}
+function reviewSetItemGuidance(idx, scaleId, levelIndex, v){
+  const item = reviewWizard.items.find(i => i._idx === idx);
+  if(!item._guidance[scaleId]) item._guidance[scaleId] = [];
+  item._guidance[scaleId][levelIndex] = v;
 }
 function reviewGotoStep(n){
   if(n === 2){
@@ -131,8 +189,10 @@ function reviewGotoStep(n){
       showToast('소속부문을 선택하세요');
       return;
     }
-    const check = AuditRules.validateMaturityScale({name:reviewWizard.scaleName, labels:reviewWizard.labels});
-    if(!check.valid){ showToast(check.error); return; }
+    for(const scale of reviewWizard.scales){
+      const check = AuditRules.validateMaturityScale(scale);
+      if(!check.valid){ showToast(check.error); return; }
+    }
   }
   reviewWizard.step = n;
   renderReviewWizard();
@@ -143,15 +203,21 @@ async function confirmReviewWizard(){
   const session = getRegistrantSession();
   if(!session?.user){ showToast('로그인이 필요합니다'); return; }
 
-  const check = AuditRules.validateMaturityScale({name:w.scaleName, labels:w.labels});
-  if(!check.valid){ showToast(check.error); return; }
+  for(const scale of w.scales){
+    const check = AuditRules.validateMaturityScale(scale);
+    if(!check.valid){ showToast(check.error); return; }
+  }
 
   const payload = {
     name: w.name,
     filename: w.filename,
     sections: w.sections,
-    items: w.items.map(({_idx, _suggested, ...item}) => item),
-    maturityScale: {name: w.scaleName, labels: w.labels},
+    items: w.items.map(({_idx, _scaleIds, _guidance, ...item}) => ({
+      ...item,
+      maturityScaleIds: _scaleIds,
+      maturityGuidance: _guidance
+    })),
+    maturityScales: w.scales,
     revisionNo: w.revisionNo,
     revisionDate: w.revisionDate,
     division: w.division
@@ -191,8 +257,7 @@ async function openReviewWizardForEdit(localId){
     filename: tpl.filename,
     sections: tpl.sections,
     items: tpl.items,
-    scaleName: tpl.maturityScale?.name || '성숙도 등급',
-    labels: tpl.maturityScale?.labels || [...AuditRules.MATURITY_LEVELS],
+    scales: AuditRules.deriveMaturityScales(tpl),
     revisionNo: tpl.revisionNo,
     revisionDate: tpl.revisionDate,
     division: tpl.division
@@ -268,7 +333,7 @@ function renderTemplateHistory(){
 
   const rev = h.revisions[h.viewingIndex];
   document.getElementById('history-body').innerHTML = `
-    <div class="review-sub">${esc(templateRevisionLabel(rev))} 시점의 내용 · 척도: <b>${esc(rev.maturityScale?.name || '없음')}</b></div>
+    <div class="review-sub">${esc(templateRevisionLabel(rev))} 시점의 내용 · 척도: <b>${esc(AuditRules.deriveMaturityScales(rev).map(s=>s.name).join(', ') || '없음')}</b></div>
     <div>${rev.items.map(item => `<div class="review-item-row">
       <div class="review-item-main">
         <div class="review-item-tag">${esc(item.section)} · ${esc(item.ref || '')}</div>
@@ -299,8 +364,7 @@ function restoreTemplateRevision(idx){
     filename: rev.filename,
     sections: rev.sections,
     items: rev.items,
-    scaleName: rev.maturityScale?.name || '성숙도 등급',
-    labels: rev.maturityScale?.labels || [...AuditRules.MATURITY_LEVELS],
+    scales: AuditRules.deriveMaturityScales(rev),
     revisionNo: rev.revisionNo,
     revisionDate: rev.revisionDate,
     division: rev.division

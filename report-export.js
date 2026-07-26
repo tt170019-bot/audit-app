@@ -301,10 +301,16 @@ function renderFieldAuditItem(item, index){
           <td class="maturity-head">Maturity<br>Level</td>
           <td class="consider-head">요구조건 / 판단기준</td>
         </tr>
-        ${maturityLevels.map(level=>{
-          const c = getMaturityConsideration(item, level);
+        ${maturityLevels.map((level, levelIndex)=>{
+          // Report export only knows the legacy single-scale shape (see the
+          // 2026-07-26 grilling session — multi-scale export is deferred,
+          // tracked in TODOS.md). Reads the legacy scale id specifically so
+          // this keeps working for both old string-shaped items and new
+          // items that only ever used the legacy scale.
+          const c = AuditRules.getMaturityGuidance(item, AuditRules.LEGACY_SCALE_ID, levelIndex, level);
+          const selectedLevel = AuditRules.deriveMaturityResults(item)[AuditRules.LEGACY_SCALE_ID];
           return `<tr>
-            <td class="maturity-label"><span class="checkbox${item.maturity === level ? ' selected' : ''}">${level}</span></td>
+            <td class="maturity-label"><span class="checkbox${selectedLevel === level ? ' selected' : ''}">${level}</span></td>
             <td class="consider-text"><div class="consider-title">${esc(c.title)}</div>${esc(c.body)}</td>
           </tr>`;
         }).join('')}

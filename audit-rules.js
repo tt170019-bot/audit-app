@@ -5,13 +5,11 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function(){
   const MATURITY_LEVELS = Object.freeze(['Conformity', 'Established', 'Mature', 'Leading']);
   const DIVISIONS = Object.freeze(['안전', '보안', '정비', '운항', '객실', '화물', '여객지원', '종합통제']);
-  const MATURITY_FIELDS = Object.freeze({
-    Conformity: 'conformityCriteria',
-    Established: 'establishedCriteria',
-    Mature: 'matureCriteria',
-    Leading: 'leadingCriteria'
-  });
-  const MATURITY_FIELD_ORDER = Object.freeze(Object.values(MATURITY_FIELDS));
+  // Every template/item/audit-item created before the multi-scale model
+  // (2026-07-26) is adapted at read time under this synthetic scale id,
+  // instead of a destructive data migration. See deriveMaturityScales /
+  // deriveItemMaturityAssignment / deriveMaturityResults below.
+  const LEGACY_SCALE_ID = 'legacy';
   const DEFAULT_MATURITY = Object.freeze({
     Conformity: { title: '기본 절차를 인지하고 실행하는 수준', body: '예) 위험 징후 즉시 인지 · 표준 절차 실행 · 필요한 장비 또는 자료 확인' },
     Established: { title: '상황에 맞게 절차와 보고를 수행하는 수준', body: '예) 담당자 간 정보 공유 · 책임자 보고 · 관련 기록과 안내 수행' },
@@ -46,41 +44,78 @@
     return value || '';
   }
 
-  function getMaturityConsideration(item, level){
-    const text = String(item?.[MATURITY_FIELDS[level]] || '').trim();
-    return text ? { title: text, body: '' } : (DEFAULT_MATURITY[level] || { title: '', body: '' });
-  }
-
   function canCompleteAudit(audit){
     return Array.isArray(audit?.items) && audit.items.every(item => Boolean(normalizeResultValue(item.result)));
   }
 
-  // wayfinder #7 — item-level maturity flag + template-level custom scale.
-  // Legacy templates/audits only ever carry a whole-checklist checklistUiType;
-  // this adapts them to the new shape without a data migration.
-  function deriveMaturityScale(source){
-    const uiType = source?.checklistUiType || getChecklistUiType(source);
-    return uiType === 'maturity' ? { name: '성숙도 등급', labels: [...MATURITY_LEVELS] } : null;
-  }
+  // ═══════════════════════════════════════════════
+  //  Multi-scale maturity model (2026-07-26)
+  //  A template owns a *library* of scales (each its own name + N levels).
+  //  Each item picks any subset of that library (0, 1, or many), and each
+  //  item authors its own guidance text per scale per level — guidance is
+  //  never shared at the scale level, it's a per-item, per-scale array.
+  // ═══════════════════════════════════════════════
 
-  // Guidance for an arbitrary, template-defined scale. Only the legacy 4
-  // criteria columns are reused, and only positionally when the scale has
-  // exactly 4 levels — no canned default text for scales this app didn't
-  // author (that's what DEFAULT_MATURITY/getMaturityConsideration is for,
-  // and it stays reserved for the exact legacy 4-level scale via that API).
-  function getMaturityGuidanceForScale(item, labels, index){
-    if(Array.isArray(labels) && labels.length === 4){
-      const text = String(item?.[MATURITY_FIELD_ORDER[index]] || '').trim();
-      if(text) return { title: text, body: '' };
+  // Template-level: always returns an array, adapting whatever shape the
+  // stored template happens to have (new maturityScales array, an old
+  // singular maturityScale object, or nothing but a legacy checklistUiType
+  // flag) into the same array-of-scales shape.
+  function deriveMaturityScales(template){
+    // Presence, not length, is the signal: once a template is saved through
+    // the multi-scale wizard even once, maturityScales is always an array
+    // (possibly empty, if the author removed every scale) and must win over
+    // a stale legacy maturityScale left over from before that save.
+    if(Array.isArray(template?.maturityScales)){
+      return template.maturityScales;
     }
-    const custom = String(item?.maturityGuidance?.[index] || '').trim();
-    return custom ? { title: custom, body: '' } : { title: '', body: '' };
+    if(template?.maturityScale?.labels?.length){
+      return [{ id: LEGACY_SCALE_ID, name: template.maturityScale.name || '성숙도 등급', labels: template.maturityScale.labels }];
+    }
+    const uiType = template?.checklistUiType || getChecklistUiType(template);
+    if(uiType === 'maturity'){
+      return [{ id: LEGACY_SCALE_ID, name: '성숙도 등급', labels: [...MATURITY_LEVELS] }];
+    }
+    return [];
   }
 
-  // wayfinder #10 — 등록 검토 마법사: criteria 컬럼 존재 여부로 항목별
-  // maturityOn 기본값을 제안한다 (항상 수동으로 override 가능).
-  function suggestMaturityOn(item){
-    return Boolean(item?.conformityCriteria || item?.establishedCriteria || item?.matureCriteria || item?.leadingCriteria);
+  // Item-level: which scale ids this item is assigned to, and its per-scale
+  // per-level guidance text. Adapts the old maturityOn boolean + flat
+  // criteria fields (or old flat maturityGuidance array, for a template that
+  // had already defined a single custom scale) into the new shape.
+  function deriveItemMaturityAssignment(item){
+    if(Array.isArray(item?.maturityScaleIds)){
+      const guidance = (item?.maturityGuidance && typeof item.maturityGuidance === 'object' && !Array.isArray(item.maturityGuidance))
+        ? item.maturityGuidance
+        : {};
+      return { scaleIds: item.maturityScaleIds, guidance };
+    }
+    const on = item?.maturityOn ?? Boolean(item?.conformityCriteria || item?.establishedCriteria || item?.matureCriteria || item?.leadingCriteria);
+    if(!on) return { scaleIds: [], guidance: {} };
+    const legacyGuidance = Array.isArray(item?.maturityGuidance)
+      ? item.maturityGuidance
+      : [item?.conformityCriteria, item?.establishedCriteria, item?.matureCriteria, item?.leadingCriteria];
+    return { scaleIds: [LEGACY_SCALE_ID], guidance: { [LEGACY_SCALE_ID]: legacyGuidance } };
+  }
+
+  // Guidance text for one (item, scale, level). Only the synthetic legacy
+  // scale id falls back to canned DEFAULT_MATURITY copy when the author left
+  // that level blank — a real author-defined scale has no canned fallback,
+  // blank just means blank.
+  function getMaturityGuidance(item, scaleId, levelIndex, levelLabel){
+    const { guidance } = deriveItemMaturityAssignment(item);
+    const text = String(guidance?.[scaleId]?.[levelIndex] || '').trim();
+    if(text) return { title: text, body: '' };
+    if(scaleId === LEGACY_SCALE_ID && DEFAULT_MATURITY[levelLabel]) return DEFAULT_MATURITY[levelLabel];
+    return { title: '', body: '' };
+  }
+
+  // Audit-item-level: selected level per scale id. Adapts the old single
+  // `maturity` string (always meant the one-and-only legacy scale) into the
+  // new shape.
+  function deriveMaturityResults(item){
+    if(item?.maturityResults && typeof item.maturityResults === 'object') return item.maturityResults;
+    if(item?.maturity) return { [LEGACY_SCALE_ID]: item.maturity };
+    return {};
   }
 
   function validateMaturityScale(scale){
@@ -91,5 +126,10 @@
     return { valid: true, error: '' };
   }
 
-  return { MATURITY_LEVELS, DIVISIONS, inferReportTemplateType, getChecklistUiType, normalizeResultValue, getMaturityConsideration, canCompleteAudit, deriveMaturityScale, getMaturityGuidanceForScale, suggestMaturityOn, validateMaturityScale };
+  return {
+    MATURITY_LEVELS, DIVISIONS, LEGACY_SCALE_ID,
+    inferReportTemplateType, getChecklistUiType, normalizeResultValue, canCompleteAudit,
+    deriveMaturityScales, deriveItemMaturityAssignment, getMaturityGuidance, deriveMaturityResults,
+    validateMaturityScale
+  };
 });

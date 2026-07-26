@@ -166,11 +166,8 @@
         <div class="card-row"><div class="label template-format-label">C: 점검 질문 / Check Requirement (필수)</div></div>
         <div class="card-row"><div class="label template-format-label">D: 내부 참조 / Internal Ref.</div></div>
         <div class="card-row"><div class="label template-format-label">E: 외부 참조 / External Ref.</div></div>
-        <div class="card-row"><div class="label template-format-label">F: Conformity Criteria (Type 2 성숙도 기준, 비워도 됨)</div></div>
-        <div class="card-row"><div class="label template-format-label">G: Established Criteria (Type 2 성숙도 기준, 비워도 됨)</div></div>
-        <div class="card-row"><div class="label template-format-label">H: Mature Criteria (Type 2 성숙도 기준, 비워도 됨)</div></div>
-        <div class="card-row"><div class="label template-format-label">I: Leading Criteria (Type 2 성숙도 기준, 비워도 됨)</div></div>
       </div>
+      <div class="admin-panel-desc field-gap">성숙도 척도와 항목별 평가 여부는 엑셀이 아니라, 업로드 다음 검토 화면에서 직접 만들고 배정합니다.</div>
       <div class="align-end-row"><button type="button" class="btn btn-ghost btn-sm" onclick="downloadChecklistTemplate()">양식 다운로드</button></div>
     </div>
     <div class="modal-actions">
@@ -307,17 +304,24 @@ function normalizeChecklistItem(item){
     question,
     refStd: String(item.refStd ?? item.standard ?? item.reference ?? item.regulation ?? item['참조규정'] ?? '').trim(),
     externalRef: String(item.externalRef ?? item.external ?? item.externalReference ?? item['외부참조'] ?? item['External Ref.'] ?? '').trim(),
-    conformityCriteria: String(item.conformityCriteria ?? item.conformity ?? item['Conformity Criteria'] ?? item['Conformity'] ?? item['성숙도 Conformity'] ?? '').trim(),
-    establishedCriteria: String(item.establishedCriteria ?? item.established ?? item['Established Criteria'] ?? item['Established'] ?? item['성숙도 Established'] ?? '').trim(),
-    matureCriteria: String(item.matureCriteria ?? item.mature ?? item['Mature Criteria'] ?? item['Mature'] ?? item['성숙도 Mature'] ?? '').trim(),
-    leadingCriteria: String(item.leadingCriteria ?? item.leading ?? item['Leading Criteria'] ?? item['Leading'] ?? item['성숙도 Leading'] ?? '').trim(),
     result: normalizeResultValue(item.result) || null,
-    maturity: item.maturity ?? '',
-    // wayfinder #8 — item-level maturityOn/maturityGuidance are authored per
-    // item (e.g. a Supabase-registered template), unlike the other fields
-    // above which are always inferred/defaulted from a raw spreadsheet row.
+    // Multi-scale maturity model (2026-07-26) — which of the template's
+    // scales this item is assigned to, and this item's own per-scale
+    // per-level guidance text. Legacy fields (maturityOn/maturity/flat
+    // criteria columns/array-shaped maturityGuidance) are passed through
+    // as-is so AuditRules.deriveItemMaturityAssignment can adapt old stored
+    // items on read — do NOT normalize them away here, that would silently
+    // drop old data on the next re-render.
+    maturityScaleIds: Array.isArray(item.maturityScaleIds) ? item.maturityScaleIds : undefined,
+    maturityGuidance: (item.maturityGuidance && typeof item.maturityGuidance === 'object' && !Array.isArray(item.maturityGuidance))
+      ? item.maturityGuidance
+      : (Array.isArray(item.maturityGuidance) ? item.maturityGuidance : undefined),
+    maturity: item.maturity,
     maturityOn: item.maturityOn,
-    maturityGuidance: Array.isArray(item.maturityGuidance) ? item.maturityGuidance : undefined,
+    conformityCriteria: item.conformityCriteria,
+    establishedCriteria: item.establishedCriteria,
+    matureCriteria: item.matureCriteria,
+    leadingCriteria: item.leadingCriteria,
     note: String(item.note ?? item.memo ?? item.comment ?? item['비고'] ?? ''),
     photos: Array.isArray(item.photos) ? item.photos : []
   };
@@ -967,7 +971,7 @@ async function createAudit(){
   if(!tpl){ showToast('점검표를 불러올 수 없습니다'); return; }
   if(!tpl.items.length){ showToast('점검표 항목 형식이 맞지 않습니다. 다시 업로드하세요'); return; }
 
-  const maturityScale = tpl.maturityScale || deriveMaturityScale(tpl);
+  const maturityScales = AuditRules.deriveMaturityScales(tpl);
   const audit = {
     title, date, auditor, dept,
     templateId: tplId,
@@ -975,10 +979,13 @@ async function createAudit(){
     templateVersion: getTemplateVersionLabel(tpl),
     checklistUiType: tpl.checklistUiType || getChecklistUiType(tpl),
     reportTemplate: tpl.reportTemplate || inferReportTemplateType(tpl),
-    maturityScale,
+    maturityScales,
     status: AUDIT_STATUS.PROGRESS,
     createdAt: new Date().toISOString(),
-    items: tpl.items.map(i=>({...i, result:null, note:'', photos:[], maturityOn: i.maturityOn ?? Boolean(maturityScale)}))
+    items: tpl.items.map(i=>{
+      const assignment = AuditRules.deriveItemMaturityAssignment(i);
+      return {...i, result:null, note:'', photos:[], maturityScaleIds: assignment.scaleIds, maturityGuidance: assignment.guidance, maturityResults: {}};
+    })
   };
   const id = await dbPut('audits', audit);
   closeModal('modal-newaudit');
@@ -997,8 +1004,8 @@ function openNewChecklistModal(){
 
 function downloadChecklistTemplate(){
   const rows = [
-    ['섹션명', '항목번호', '점검 질문', '내부 참조', '외부 참조', 'Conformity Criteria', 'Established Criteria', 'Mature Criteria', 'Leading Criteria'],
-    ['1. 운항 일반', 'FLT-001', '비상절차가 문서화되어 있는가?', '운항규정 3.2', 'ICAO Annex 6', '문서 존재 여부만 확인', '절차가 정기적으로 갱신됨', '전 직원이 절차를 숙지하고 있음', '개선 활동으로 절차가 지속 고도화됨'],
+    ['섹션명', '항목번호', '점검 질문', '내부 참조', '외부 참조'],
+    ['1. 운항 일반', 'FLT-001', '비상절차가 문서화되어 있는가?', '운항규정 3.2', 'ICAO Annex 6'],
   ];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -1032,7 +1039,7 @@ function handleFileSelect(file){
       // Skip header row
       const items=[], sections=new Set();
       for(let i=1;i<rows.length;i++){
-        const [section,ref,question,refStd,externalRef,conformityCriteria,establishedCriteria,matureCriteria,leadingCriteria] = rows[i];
+        const [section,ref,question,refStd,externalRef] = rows[i];
         if(!question) continue;
         sections.add(section||'일반');
         items.push(normalizeChecklistItem({
@@ -1040,11 +1047,7 @@ function handleFileSelect(file){
           ref,
           question,
           refStd,
-          externalRef,
-          conformityCriteria,
-          establishedCriteria,
-          matureCriteria,
-          leadingCriteria
+          externalRef
         }));
       }
       if(items.length===0){ showToast('항목을 찾을 수 없습니다. 형식을 확인하세요'); return; }
@@ -1061,8 +1064,7 @@ function handleFileSelect(file){
         filename: file.name,
         sections: [...sections],
         items,
-        scaleName: '성숙도 등급',
-        labels: [...AuditRules.MATURITY_LEVELS],
+        scales: [],
         revisionNo,
         revisionDate,
         division

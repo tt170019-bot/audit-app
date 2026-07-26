@@ -82,14 +82,26 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /function renderChecklistItem\(audit, item\)\{[\s\S]*?isItemMaturityOn\(audit, item\) \? renderMaturityPanel\(audit, item\) : ''/,
-  '점검항목은 항목 단위 성숙도 플래그가 켜져 있을 때만 Maturity Assessment 패널을 렌더링해야 합니다',
+  /function renderChecklistItem\(audit, item\)\{[\s\S]*?renderMaturityPanels\(audit, item\)/,
+  '점검항목은 renderMaturityPanels를 호출해야 합니다 (항목에 배정된 척도가 0개면 빈 문자열을 반환)',
 );
 
 assert.match(
   source,
-  /function renderMaturityPanel\(audit, item\)\{[\s\S]*?scale\.labels\.map\(\(level, levelIndex\)=>\{/,
-  'Maturity Assessment 패널은 하드코딩된 4단계 대신 템플릿의 가변 척도를 순회해야 합니다',
+  /function renderMaturityPanels\(audit, item\)\{[\s\S]*?if\(!assignedScales\.length\) return '';/,
+  'Maturity Assessment 패널은 항목에 척도가 하나도 배정되지 않으면 렌더링하지 않아야 합니다',
+);
+
+assert.match(
+  source,
+  /function renderMaturityPanels\(audit, item\)\{[\s\S]*?scale\.labels\.map\(\(level, levelIndex\)=>\{/,
+  'Maturity Assessment 패널은 하드코딩된 4단계 대신 항목에 배정된 각 척도의 가변 라벨을 순회해야 합니다',
+);
+
+assert.match(
+  source,
+  /assignedScales\.map\(scale => \{/,
+  '항목에 여러 척도가 배정되면 척도마다 독립된 패널을 렌더링해야 합니다',
 );
 
 assert.match(
@@ -132,20 +144,20 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const maturityScale = tpl\.maturityScale \|\| deriveMaturityScale\(tpl\);/,
-  '심사 생성 시 템플릿에 저장된 커스텀 척도를 레거시 추론보다 우선해야 합니다',
+  /const maturityScales = AuditRules\.deriveMaturityScales\(tpl\);/,
+  '심사 생성 시 템플릿의 척도 라이브러리를 (레거시 어댑팅 포함) 유도해서 audit에 저장해야 합니다',
 );
 
 assert.match(
   source,
-  /maturityOn: i\.maturityOn \?\? Boolean\(maturityScale\)/,
-  '심사 생성 시 항목별 maturityOn 플래그가 템플릿에 있으면 그대로 사용해야 합니다',
+  /const assignment = AuditRules\.deriveItemMaturityAssignment\(i\);[\s\S]{0,120}maturityScaleIds: assignment\.scaleIds, maturityGuidance: assignment\.guidance, maturityResults: \{\}/,
+  '심사 생성 시 항목별로 배정된 척도 id 목록과 안내문을 그대로 복사하고, 결과는 빈 객체로 시작해야 합니다',
 );
 
 assert.match(
   source,
-  /maturityOn: item\.maturityOn,/,
-  '점검표 항목 정규화는 항목별 maturityOn 플래그를 보존해야 합니다',
+  /maturityScaleIds: Array\.isArray\(item\.maturityScaleIds\) \? item\.maturityScaleIds : undefined,/,
+  '점검표 항목 정규화는 항목별 척도 배정 배열을 보존해야 합니다',
 );
 
 // wayfinder #9 — Registrant 인증 기반

@@ -114,23 +114,8 @@ function br(value){
   return esc(value || '').split(String.fromCharCode(10)).join('<br>');
 }
 
-function getMaturityConsideration(item, level){
-  return AuditRules.getMaturityConsideration(item, level);
-}
-
-function deriveMaturityScale(source){
-  return AuditRules.deriveMaturityScale(source);
-}
-
-// Audits/items stored before wayfinder #7 never had maturityScale/maturityOn
-// persisted — fall back to deriving them from the legacy whole-checklist flag
-// rather than migrating old IndexedDB records.
-function getAuditMaturityScale(audit){
-  return audit.maturityScale || deriveMaturityScale(audit);
-}
-
-function isItemMaturityOn(audit, item){
-  return item.maturityOn ?? Boolean(getAuditMaturityScale(audit));
+function getAuditMaturityScales(audit){
+  return AuditRules.deriveMaturityScales(audit);
 }
 
 function normalizeResultValue(value){
@@ -200,35 +185,37 @@ function renderResultPanel(audit, item){
   </div>`;
 }
 
-function renderMaturityPanel(audit, item){
+// An item can be assigned to 0, 1, or many of the template's maturity
+// scales (see the 2026-07-26 grilling session) — this renders one
+// independent panel per assigned scale, each with its own level selection.
+function renderMaturityPanels(audit, item){
   const idx = item._idx;
-  const maturity = item.maturity || '';
-  const scale = getAuditMaturityScale(audit) || { name: '성숙도 등급', labels: AuditRules.MATURITY_LEVELS };
-  // The legacy 4-level scale keeps using getMaturityConsideration exactly as
-  // before (name-keyed, falls back to DEFAULT_MATURITY canned copy) so
-  // existing checklists render identically. Any other scale (custom length,
-  // or a 4-length scale with different label text) uses the generalized,
-  // position-based lookup with no canned fallback.
-  const isLegacyScale = scale.labels.length === AuditRules.MATURITY_LEVELS.length
-    && scale.labels.every((label, i) => label === AuditRules.MATURITY_LEVELS[i]);
+  const allScales = getAuditMaturityScales(audit);
+  const assignment = AuditRules.deriveItemMaturityAssignment(item);
+  const results = AuditRules.deriveMaturityResults(item);
+  const assignedScales = assignment.scaleIds.map(id => allScales.find(s => s.id === id)).filter(Boolean);
+  if(!assignedScales.length) return '';
 
-  return `<div class="maturity-panel">
-    <div class="maturity-panel-title">Maturity Assessment</div>
-    <div class="maturity-level-list" role="radiogroup" aria-label="Maturity Assessment">
-      ${scale.labels.map((level, levelIndex)=>{
-        const c = isLegacyScale ? getMaturityConsideration(item, level) : AuditRules.getMaturityGuidanceForScale(item, scale.labels, levelIndex);
-        const selected = maturity === level;
-        return `<div class="maturity-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected ? 'true' : 'false'}" aria-disabled="${audit.status===AUDIT_STATUS.DONE ? 'true' : 'false'}" tabindex="${audit.status===AUDIT_STATUS.DONE ? '-1' : '0'}" ${audit.status===AUDIT_STATUS.DONE ? '' : `onclick="setMaturityResult(${audit.id},${idx},'${level}', event)" onkeydown="if(event.key==='Enter'||event.key===' '){setMaturityResult(${audit.id},${idx},'${level}', event)}"`}>
-          <div class="maturity-card-head">
-            <span class="maturity-radio" aria-hidden="true"></span>
-            <div class="maturity-card-title">${esc(level)}</div>
-            ${c.title ? `<div class="maturity-card-summary">${esc(c.title)}</div>` : ''}
-          </div>
-          ${c.title ? `<details class="maturity-details"><summary>기준 자세히</summary><div>${esc(c.title)}${c.body ? `<br>${esc(c.body)}` : ''}</div></details>` : ''}
-        </div>`;
-      }).join('')}
-    </div>
-  </div>`;
+  return assignedScales.map(scale => {
+    const selectedLevel = results[scale.id] || '';
+    return `<div class="maturity-panel">
+      <div class="maturity-panel-title">Maturity Assessment${scale.name ? ` — ${esc(scale.name)}` : ''}</div>
+      <div class="maturity-level-list" role="radiogroup" aria-label="Maturity Assessment ${esc(scale.name)}">
+        ${scale.labels.map((level, levelIndex)=>{
+          const c = AuditRules.getMaturityGuidance(item, scale.id, levelIndex, level);
+          const selected = selectedLevel === level;
+          return `<div class="maturity-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected ? 'true' : 'false'}" aria-disabled="${audit.status===AUDIT_STATUS.DONE ? 'true' : 'false'}" tabindex="${audit.status===AUDIT_STATUS.DONE ? '-1' : '0'}" ${audit.status===AUDIT_STATUS.DONE ? '' : `onclick="setMaturityResult(${audit.id},${idx},'${scale.id}','${level}', event)" onkeydown="if(event.key==='Enter'||event.key===' '){setMaturityResult(${audit.id},${idx},'${scale.id}','${level}', event)}"`}>
+            <div class="maturity-card-head">
+              <span class="maturity-radio" aria-hidden="true"></span>
+              <div class="maturity-card-title">${esc(level)}</div>
+              ${c.title ? `<div class="maturity-card-summary">${esc(c.title)}</div>` : ''}
+            </div>
+            ${c.title ? `<details class="maturity-details"><summary>기준 자세히</summary><div>${esc(c.title)}${c.body ? `<br>${esc(c.body)}` : ''}</div></details>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderCommentPanel(audit, item){
@@ -263,7 +250,7 @@ function renderChecklistItem(audit, item){
     ${renderRequirementTable(audit, item)}
     <div class="check-body" id="cb-${idx}">
       ${renderResultPanel(audit, item)}
-      ${isItemMaturityOn(audit, item) ? renderMaturityPanel(audit, item) : ''}
+      ${renderMaturityPanels(audit, item)}
       ${renderCommentPanel(audit, item)}
       ${renderEvidencePanel(audit, item)}
     </div>
@@ -574,7 +561,7 @@ function stopInputScrollJump(event){
   }
 }
 
-async function setMaturityResult(auditId, idx, maturity, event){
+async function setMaturityResult(auditId, idx, scaleId, maturity, event){
   stopInputScrollJump(event);
   return enqueueAuditWrite(auditId, async () => {
     const audit = await dbGet('audits', auditId);
@@ -587,7 +574,9 @@ async function setMaturityResult(auditId, idx, maturity, event){
     const previousScrollTop = content ? content.scrollTop : 0;
     const anchorTopBefore = anchorCard ? anchorCard.getBoundingClientRect().top : null;
 
-    audit.items[idx].maturity = maturity;
+    const results = { ...AuditRules.deriveMaturityResults(audit.items[idx]) };
+    results[scaleId] = maturity;
+    audit.items[idx].maturityResults = results;
     currentAudit = audit;
     await dbPut('audits', audit);
 
