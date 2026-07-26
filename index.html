@@ -686,11 +686,19 @@ async function renderAudits(c){
 // ═══════════════════════════════════════════════
 //  Templates tab
 // ═══════════════════════════════════════════════
+let templatesDivisionFilter = '';
+
+function filterTemplatesByDivision(value){
+  templatesDivisionFilter = value;
+  renderTab('templates');
+}
+
 async function renderTemplates(c){
   const registrantSession = getRegistrantSession();
-  const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
-  const activeCount = templates.filter(t => t.active !== false).length;
-  const autoCount = templates.filter(t => t.source === 'supabase' && t.active !== false).length;
+  const allTemplates = sortTemplatesForDisplay(await getNormalizedTemplates());
+  const templates = templatesDivisionFilter ? allTemplates.filter(t => t.division === templatesDivisionFilter) : allTemplates;
+  const activeCount = allTemplates.filter(t => t.active !== false).length;
+  const autoCount = allTemplates.filter(t => t.source === 'supabase' && t.active !== false).length;
   const syncStatusLabel = !navigator.onLine
     ? '오프라인 저장본 사용 중'
     : supabaseSyncState.reachable === false
@@ -704,21 +712,31 @@ async function renderTemplates(c){
   <div class="align-end-row"><button type="button" class="btn btn-teal" onclick="openNewChecklistModal()">+ 점검표 등록</button></div>` : ''}
 
   <div class="section-header">저장된 점검표 (${templates.length})</div>
-  ${templates.length===0?`<div class="template-empty-message">저장된 점검표가 없습니다. 온라인 상태에서 동기화를 실행하세요.</div>`:
-  `<div class="template-list-grid">${templates.map(t=>`
-  <div class="card template-format-card ${t.active === false ? 'template-card-inactive' : ''}">
-    <div class="card-row">
-      <div class="flex-1">
-        <div class="label">${esc(t.name)}</div>
-        <div class="sub">${t.division ? `${esc(t.division)} · ` : ''}${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))} · ${esc(getTemplateSourceLabel(t))} · UI ${t.checklistUiType === 'maturity' ? '성숙도' : '일반'} · Word ${esc(getReportTemplateLabel(t.reportTemplate || inferReportTemplateType(t)))}${t.active === false ? ' · 비활성' : ''}</div>
-      </div>
-      <div class="template-actions">
-        ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openReviewWizardForEdit(${t.id})">수정</button>` : ''}
-        ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openTemplateHistory(${t.id})">이력</button>` : ''}
-        ${registrantSession?.user ? `<button type="button" class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
-      </div>
-    </div>
-  </div>`).join('')}</div>`}
+  <select class="field-gap" onchange="filterTemplatesByDivision(this.value)">
+    <option value="" ${templatesDivisionFilter === '' ? 'selected' : ''}>전체 부문</option>
+    ${AuditRules.DIVISIONS.map(d => `<option value="${esc(d)}" ${templatesDivisionFilter === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}
+  </select>
+  ${allTemplates.length===0 ? `<div class="template-empty-message">저장된 점검표가 없습니다. 온라인 상태에서 동기화를 실행하세요.</div>`
+    : templates.length===0 ? `<div class="template-empty-message">이 부문에 등록된 점검표가 없습니다.</div>`
+    : `<div class="table-scroll">
+    <table class="data-table">
+      <thead><tr><th>명칭</th><th>부문</th><th>개정</th><th>상태</th><th>액션</th></tr></thead>
+      <tbody>
+        ${templates.map(t=>`
+        <tr class="${t.active === false ? 'template-card-inactive' : ''}">
+          <td>${esc(t.name)}</td>
+          <td>${esc(t.division || '—')}</td>
+          <td>${esc(getTemplateVersionLabel(t))}</td>
+          <td>${t.active === false ? '비활성' : '활성'}</td>
+          <td class="template-actions">
+            ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openReviewWizardForEdit(${t.id})">수정</button>` : ''}
+            ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openTemplateHistory(${t.id})">이력</button>` : ''}
+            ${registrantSession?.user ? `<button type="button" class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`}
 
   <details class="check-input-reference mt-150">
     <summary class="check-reference-toggle">설정</summary>

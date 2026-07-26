@@ -483,6 +483,12 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .template-empty-message { padding: var(--space-300) var(--mobile-page-padding); color: var(--ads-text-subtlest); font-size: var(--ads-body-size); line-height: var(--ads-body-line); text-align: center; }
 .template-card-inactive { opacity: 0.68; }
 .template-actions { display: flex; gap: var(--space-100); flex-wrap: wrap; }
+.table-scroll { margin: var(--space-0) var(--mobile-page-padding) var(--card-stack-gap); overflow-x: auto; border: var(--ui-border-width) solid var(--divider); border-radius: var(--radius-medium); }
+.data-table { width: 100%; min-width: 40rem; border-collapse: collapse; font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); }
+.data-table th, .data-table td { padding: var(--space-100) var(--space-150); text-align: left; white-space: nowrap; }
+.data-table th { background: var(--ads-surface-container); color: var(--ads-text-subtle); font-weight: var(--ads-weight-medium); border-bottom: var(--ui-border-width) solid var(--divider); }
+.data-table td { border-bottom: var(--ui-border-width) solid var(--divider); }
+.data-table tbody tr:last-child td { border-bottom: none; }
 
 /* wayfinder #10 — 등록 검토 마법사 (prototype/review-modal variant B에서 채택) */
 .review-steps { display: flex; gap: var(--space-100); margin-bottom: var(--space-200); }
