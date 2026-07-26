@@ -142,11 +142,12 @@
         <div class="card-row"><div class="label template-format-label">C: 점검 질문 / Check Requirement (필수)</div></div>
         <div class="card-row"><div class="label template-format-label">D: 내부 참조 / Internal Ref.</div></div>
         <div class="card-row"><div class="label template-format-label">E: 외부 참조 / External Ref.</div></div>
-        <div class="card-row"><div class="label template-format-label">F: Conformity Criteria (Type 2 성숙도 기준)</div></div>
-        <div class="card-row"><div class="label template-format-label">G: Established Criteria (Type 2 성숙도 기준)</div></div>
-        <div class="card-row"><div class="label template-format-label">H: Mature Criteria (Type 2 성숙도 기준)</div></div>
-        <div class="card-row"><div class="label template-format-label">I: Leading Criteria (Type 2 성숙도 기준)</div></div>
+        <div class="card-row"><div class="label template-format-label">F: Conformity Criteria (Type 2 성숙도 기준, 비워도 됨)</div></div>
+        <div class="card-row"><div class="label template-format-label">G: Established Criteria (Type 2 성숙도 기준, 비워도 됨)</div></div>
+        <div class="card-row"><div class="label template-format-label">H: Mature Criteria (Type 2 성숙도 기준, 비워도 됨)</div></div>
+        <div class="card-row"><div class="label template-format-label">I: Leading Criteria (Type 2 성숙도 기준, 비워도 됨)</div></div>
       </div>
+      <div class="align-end-row"><button type="button" class="btn btn-ghost btn-sm" onclick="downloadChecklistTemplate()">양식 다운로드</button></div>
     </div>
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost flex-1" onclick="closeModal('modal-new-checklist')">취소</button>
@@ -936,6 +937,17 @@ function openNewChecklistModal(){
   document.getElementById('nc-revision-no').value = '';
   document.getElementById('nc-revision-date').value = '';
   openModal('modal-new-checklist');
+}
+
+function downloadChecklistTemplate(){
+  const rows = [
+    ['섹션명', '항목번호', '점검 질문', '내부 참조', '외부 참조', 'Conformity Criteria', 'Established Criteria', 'Mature Criteria', 'Leading Criteria'],
+    ['1. 운항 일반', 'FLT-001', '비상절차가 문서화되어 있는가?', '운항규정 3.2', 'ICAO Annex 6', '문서 존재 여부만 확인', '절차가 정기적으로 갱신됨', '전 직원이 절차를 숙지하고 있음', '개선 활동으로 절차가 지속 고도화됨'],
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'CheckList');
+  XLSX.writeFile(wb, '점검표_양식.xlsx');
 }
 
 // ═══════════════════════════════════════════════
