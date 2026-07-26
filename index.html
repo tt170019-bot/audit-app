@@ -727,97 +727,8 @@ async function renderTemplates(c){
         : '온라인 확인 전';
 
   c.innerHTML=`
-  <div class="section-header">공식 점검표</div>
-  <div class="admin-panel">
-    <div class="admin-panel-title">공식 점검표 동기화</div>
-    <div class="admin-panel-desc">
-      앱은 Supabase에 등록된 점검표를 자동으로 동기화합니다.
-      로그인 없이 조회되며, 기존 심사 기록은 변경하지 않고 새 심사부터 최신 점검표가 적용됩니다.
-    </div>
-  </div>
-  <div class="card template-sync-card">
-    <div class="card-row">
-      <div class="flex-1">
-        <div class="label">동기화 상태</div>
-        <div class="sub">활성 ${activeCount}건 · 자동동기화 ${autoCount}건 · ${syncStatusLabel}</div>
-      </div>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="syncChecklistsNow()">동기화</button>
-    </div>
-  </div>
-
-  <div class="card template-sync-card">
-    <div class="card-row">
-      <div class="flex-1">
-        <div class="label">등록자 로그인</div>
-        <div class="sub">${registrantSession?.user?.email ? `${esc(registrantSession.user.email)}로 로그인됨` : '로그인하지 않음 · 감사 진행에는 영향 없음'}</div>
-      </div>
-      <div class="template-actions">
-        ${registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openRegistrantsModal()">등록자 관리</button>` : ''}
-        ${registrantSession?.user
-          ? `<button type="button" class="btn btn-ghost btn-sm" onclick="registrantSignOut()">로그아웃</button>`
-          : `<button type="button" class="btn btn-ghost btn-sm" onclick="openLoginModal()">로그인</button>`}
-      </div>
-    </div>
-  </div>
-
-  <div class="card template-sync-card" id="storage-status-card">
-    <div class="card-row">
-      <div class="flex-1">
-        <div class="label">기기 저장공간</div>
-        <div class="sub" id="storage-status">저장공간을 확인하는 중입니다.</div>
-      </div>
-    </div>
-  </div>
-  <div class="admin-panel">
-    <div class="admin-panel-title">데이터 보관 안내</div>
-    <div class="admin-panel-desc">심사 기록과 사진은 이 브라우저에만 저장됩니다. 브라우저 데이터 삭제, 시크릿 모드 사용, 기기 초기화 전에는 반드시 백업 파일을 보관하세요.</div>
-  </div>
-  <div class="card template-sync-card">
-    <div class="card-row">
-      <div class="flex-1">
-        <div class="label">백업 및 복원</div>
-        <div class="sub">심사 기록, 사진, 점검표를 JSON 파일로 보관하거나 이 기기에 복원합니다.</div>
-      </div>
-      <div class="template-actions">
-        <button type="button" class="btn btn-ghost btn-sm" onclick="exportLocalBackup()">백업</button>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="selectLocalBackup()">복원</button>
-      </div>
-    </div>
-  </div>
-
   ${registrantSession?.user ? `
-  <div class="section-header">저장 데이터 리셋</div>
-  <div class="card template-sync-card">
-    <div class="card-row">
-      <div class="flex-1">
-        <div class="label">심사 기록 초기화</div>
-        <div class="sub">기기에 저장된 심사 기록과 사진을 삭제합니다. 점검표는 유지됩니다.</div>
-      </div>
-      <button type="button" class="btn btn-danger btn-sm" onclick="resetAuditData()">기록 삭제</button>
-    </div>
-    <div class="card-row">
-      <div class="flex-1">
-        <div class="label">점검표 초기화</div>
-        <div class="sub">기기에 저장된 점검표를 삭제한 뒤, 온라인이면 공식 점검표를 다시 동기화합니다.</div>
-      </div>
-      <button type="button" class="btn btn-danger btn-sm" onclick="resetTemplateData()">점검표 삭제</button>
-    </div>
-    <div class="card-row">
-      <div class="flex-1">
-        <div class="label">전체 로컬 데이터 초기화</div>
-        <div class="sub">이 기기의 심사 기록, 사진, 수동 점검표, 동기화 점검표를 모두 삭제합니다.</div>
-      </div>
-      <button type="button" class="btn btn-danger btn-sm" onclick="resetAllLocalData()">전체 삭제</button>
-    </div>
-  </div>` : ''}
-
-  ${registrantSession?.user ? `
-  <div class="align-end-row"><button type="button" class="btn btn-teal" onclick="openNewChecklistModal()">+ 점검표 등록</button></div>` : `
-  <div class="section-header">운영 안내</div>
-  <div class="admin-panel">
-    <div class="admin-panel-title">심사원 화면</div>
-    <div class="admin-panel-desc">점검표는 등록자(Registrant)가 등록한 공식 자료를 사용합니다. 새 점검표를 등록하거나 기존 점검표를 수정하려면 위에서 로그인하세요.</div>
-  </div>`}
+  <div class="align-end-row"><button type="button" class="btn btn-teal" onclick="openNewChecklistModal()">+ 점검표 등록</button></div>` : ''}
 
   <div class="section-header">저장된 점검표 (${templates.length})</div>
   ${templates.length===0?`<div class="template-empty-message">저장된 점검표가 없습니다. 온라인 상태에서 동기화를 실행하세요.</div>`:
@@ -835,6 +746,97 @@ async function renderTemplates(c){
       </div>
     </div>
   </div>`).join('')}</div>`}
+
+  <details class="check-input-reference mt-150">
+    <summary class="check-reference-toggle">설정</summary>
+    <div class="admin-panel">
+      <div class="admin-panel-title">공식 점검표 동기화</div>
+      <div class="admin-panel-desc">
+        앱은 Supabase에 등록된 점검표를 자동으로 동기화합니다.
+        로그인 없이 조회되며, 기존 심사 기록은 변경하지 않고 새 심사부터 최신 점검표가 적용됩니다.
+      </div>
+    </div>
+    <div class="card template-sync-card">
+      <div class="card-row">
+        <div class="flex-1">
+          <div class="label">동기화 상태</div>
+          <div class="sub">활성 ${activeCount}건 · 자동동기화 ${autoCount}건 · ${syncStatusLabel}</div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="syncChecklistsNow()">동기화</button>
+      </div>
+    </div>
+
+    <div class="card template-sync-card">
+      <div class="card-row">
+        <div class="flex-1">
+          <div class="label">등록자 로그인</div>
+          <div class="sub">${registrantSession?.user?.email ? `${esc(registrantSession.user.email)}로 로그인됨` : '로그인하지 않음 · 감사 진행에는 영향 없음'}</div>
+        </div>
+        <div class="template-actions">
+          ${registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openRegistrantsModal()">등록자 관리</button>` : ''}
+          ${registrantSession?.user
+            ? `<button type="button" class="btn btn-ghost btn-sm" onclick="registrantSignOut()">로그아웃</button>`
+            : `<button type="button" class="btn btn-ghost btn-sm" onclick="openLoginModal()">로그인</button>`}
+        </div>
+      </div>
+    </div>
+    ${registrantSession?.user ? '' : `
+    <div class="admin-panel">
+      <div class="admin-panel-title">심사원 화면</div>
+      <div class="admin-panel-desc">점검표는 등록자(Registrant)가 등록한 공식 자료를 사용합니다. 새 점검표를 등록하거나 기존 점검표를 수정하려면 위에서 로그인하세요.</div>
+    </div>`}
+
+    <div class="card template-sync-card" id="storage-status-card">
+      <div class="card-row">
+        <div class="flex-1">
+          <div class="label">기기 저장공간</div>
+          <div class="sub" id="storage-status">저장공간을 확인하는 중입니다.</div>
+        </div>
+      </div>
+    </div>
+    <div class="admin-panel">
+      <div class="admin-panel-title">데이터 보관 안내</div>
+      <div class="admin-panel-desc">심사 기록과 사진은 이 브라우저에만 저장됩니다. 브라우저 데이터 삭제, 시크릿 모드 사용, 기기 초기화 전에는 반드시 백업 파일을 보관하세요.</div>
+    </div>
+    <div class="card template-sync-card">
+      <div class="card-row">
+        <div class="flex-1">
+          <div class="label">백업 및 복원</div>
+          <div class="sub">심사 기록, 사진, 점검표를 JSON 파일로 보관하거나 이 기기에 복원합니다.</div>
+        </div>
+        <div class="template-actions">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="exportLocalBackup()">백업</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="selectLocalBackup()">복원</button>
+        </div>
+      </div>
+    </div>
+
+    ${registrantSession?.user ? `
+    <div class="section-header">저장 데이터 리셋</div>
+    <div class="card template-sync-card">
+      <div class="card-row">
+        <div class="flex-1">
+          <div class="label">심사 기록 초기화</div>
+          <div class="sub">기기에 저장된 심사 기록과 사진을 삭제합니다. 점검표는 유지됩니다.</div>
+        </div>
+        <button type="button" class="btn btn-danger btn-sm" onclick="resetAuditData()">기록 삭제</button>
+      </div>
+      <div class="card-row">
+        <div class="flex-1">
+          <div class="label">점검표 초기화</div>
+          <div class="sub">기기에 저장된 점검표를 삭제한 뒤, 온라인이면 공식 점검표를 다시 동기화합니다.</div>
+        </div>
+        <button type="button" class="btn btn-danger btn-sm" onclick="resetTemplateData()">점검표 삭제</button>
+      </div>
+      <div class="card-row">
+        <div class="flex-1">
+          <div class="label">전체 로컬 데이터 초기화</div>
+          <div class="sub">이 기기의 심사 기록, 사진, 수동 점검표, 동기화 점검표를 모두 삭제합니다.</div>
+        </div>
+        <button type="button" class="btn btn-danger btn-sm" onclick="resetAllLocalData()">전체 삭제</button>
+      </div>
+    </div>` : ''}
+  </details>
   `;
 
   const fileInput = document.getElementById('file-excel');
