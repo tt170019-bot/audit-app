@@ -112,6 +112,45 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="modal-new-checklist">
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-new-checklist-title">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-new-checklist-title">점검표 등록</div>
+    <div class="modal-body">
+      <div class="check-label">점검표 명칭</div>
+      <input type="text" id="nc-name" placeholder="예: 2026년 운항 심사 점검표">
+      <div class="check-label field-gap">개정번호</div>
+      <input type="number" step="1" id="nc-revision-no" placeholder="예: 3">
+      <div class="check-label field-gap">개정일자</div>
+      <input type="date" id="nc-revision-date">
+      <div class="section-header mt-150">Excel 파일</div>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-excel').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <h3>Excel 점검표 업로드</h3>
+        <p>XLSX 파일을 탭하여 선택하거나<br>드래그 앤 드롭 하세요</p>
+      </div>
+      <div class="section-header mt-150">Excel 컬럼 형식</div>
+      <div class="card template-format-card">
+        <div class="card-row"><div class="label template-format-label">A: 섹션명 (예: 1. 운항 일반)</div></div>
+        <div class="card-row"><div class="label template-format-label">B: 항목번호 (예: FLT-001)</div></div>
+        <div class="card-row"><div class="label template-format-label">C: 점검 질문 / Check Requirement (필수)</div></div>
+        <div class="card-row"><div class="label template-format-label">D: 내부 참조 / Internal Ref.</div></div>
+        <div class="card-row"><div class="label template-format-label">E: 외부 참조 / External Ref.</div></div>
+        <div class="card-row"><div class="label template-format-label">F: Conformity Criteria (Type 2 성숙도 기준)</div></div>
+        <div class="card-row"><div class="label template-format-label">G: Established Criteria (Type 2 성숙도 기준)</div></div>
+        <div class="card-row"><div class="label template-format-label">H: Mature Criteria (Type 2 성숙도 기준)</div></div>
+        <div class="card-row"><div class="label template-format-label">I: Leading Criteria (Type 2 성숙도 기준)</div></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost flex-1" onclick="closeModal('modal-new-checklist')">취소</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modal-review">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-review-title">
     <div class="modal-handle"></div>
@@ -773,34 +812,7 @@ async function renderTemplates(c){
   </div>` : ''}
 
   ${registrantSession?.user ? `
-  <div class="section-header">점검표 등록</div>
-  <div class="admin-panel">
-    <div class="admin-panel-title">Registrant 점검표 등록</div>
-    <div class="admin-panel-desc">Excel을 업로드하면 성숙도 척도와 항목별 평가 여부를 검토한 뒤 Supabase에 등록합니다. 등록/수정한 사람과 시각이 함께 기록됩니다.</div>
-  </div>
-  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-excel').click()"
-    ondragover="event.preventDefault();this.classList.add('drag')"
-    ondragleave="this.classList.remove('drag')"
-    ondrop="handleDrop(event)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-    <h3>Excel 점검표 업로드</h3>
-    <p>XLSX 파일을 탭하여 선택하거나<br>드래그 앤 드롭 하세요</p>
-  </div>
-  <div class="section-header mt-150">Excel 컬럼 형식</div>
-  <div class="card template-format-card">
-    ${[
-      'A: 섹션명 (예: 1. 운항 일반)',
-      'B: 항목번호 (예: FLT-001)',
-      'C: 점검 질문 / Check Requirement (필수)',
-      'D: 내부 참조 / Internal Ref.',
-      'E: 외부 참조 / External Ref.',
-      'F: Conformity Criteria (Type 2 성숙도 기준)',
-      'G: Established Criteria (Type 2 성숙도 기준)',
-      'H: Mature Criteria (Type 2 성숙도 기준)',
-      'I: Leading Criteria (Type 2 성숙도 기준)'
-    ].map(t=>`
-    <div class="card-row"><div class="label template-format-label">${t}</div></div>`).join('')}
-  </div>` : `
+  <div class="align-end-row"><button type="button" class="btn btn-teal" onclick="openNewChecklistModal()">+ 점검표 등록</button></div>` : `
   <div class="section-header">운영 안내</div>
   <div class="admin-panel">
     <div class="admin-panel-title">심사원 화면</div>
@@ -969,6 +981,13 @@ async function createAudit(){
   openAudit(id);
 }
 
+function openNewChecklistModal(){
+  document.getElementById('nc-name').value = '';
+  document.getElementById('nc-revision-no').value = '';
+  document.getElementById('nc-revision-date').value = '';
+  openModal('modal-new-checklist');
+}
+
 // ═══════════════════════════════════════════════
 //  Excel Import
 // ═══════════════════════════════════════════════
@@ -1012,14 +1031,21 @@ function handleFileSelect(file){
       }
       if(items.length===0){ showToast('항목을 찾을 수 없습니다. 형식을 확인하세요'); return; }
 
+      const name = document.getElementById('nc-name')?.value.trim();
+      const revisionNo = document.getElementById('nc-revision-no')?.value || '';
+      const revisionDate = document.getElementById('nc-revision-date')?.value || '';
+      closeModal('modal-new-checklist');
+
       openReviewWizard({
         mode: 'new',
-        name: file.name.replace(/\.[^.]+$/,''),
+        name: name || file.name.replace(/\.[^.]+$/,''),
         filename: file.name,
         sections: [...sections],
         items,
         scaleName: '성숙도 등급',
-        labels: [...AuditRules.MATURITY_LEVELS]
+        labels: [...AuditRules.MATURITY_LEVELS],
+        revisionNo,
+        revisionDate
       });
     } catch(err){
       showToast('파일을 읽을 수 없습니다: '+err.message);
