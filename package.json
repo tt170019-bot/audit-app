@@ -1,0 +1,8 @@
+{
+  "name": "audit-app",
+  "private": true,
+  "description": "심사 점검표 — offline-first audit checklist PWA. No build step; this file exists only to document/run the test suite.",
+  "scripts": {
+    "test": "node tests/run.js"
+  }
+}
