@@ -476,8 +476,8 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .photo-thumb-clickable { cursor: pointer; }
 .hidden { display: none !important; }
 
-.admin-panel { margin: var(--space-0) var(--mobile-page-padding) var(--card-stack-gap); padding: var(--space-200); background: var(--ads-information-bg); border: var(--ui-border-width) solid var(--ads-information-bold); border-radius: var(--radius-large); }
-.admin-panel-title { font-size: var(--font-section-title-size); line-height: var(--font-section-title-line); font-weight: var(--ads-weight-semibold); color: var(--ads-information-text); margin-bottom: var(--space-050); }
+.admin-panel { margin: var(--space-0) var(--mobile-page-padding) var(--card-stack-gap); padding: var(--space-200); background: var(--ads-neutral-bg); border: var(--ui-border-width) solid var(--ads-neutral-bold); border-radius: var(--radius-large); }
+.admin-panel-title { font-size: var(--font-section-title-size); line-height: var(--font-section-title-line); font-weight: var(--ads-weight-semibold); color: var(--ads-neutral-text); margin-bottom: var(--space-050); }
 .admin-panel-desc { font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); color: var(--ads-text-subtle); }
 .template-sync-card { margin: var(--space-0) var(--mobile-page-padding) var(--card-stack-gap); }
 .template-empty-message { padding: var(--space-300) var(--mobile-page-padding); color: var(--ads-text-subtlest); font-size: var(--ads-body-size); line-height: var(--ads-body-line); text-align: center; }
