@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════
 let reviewWizard = null;
 
-function openReviewWizard({mode, templateId, name, filename, sections, items, scaleName, labels, revisionNo, revisionDate}){
+function openReviewWizard({mode, templateId, name, filename, sections, items, scaleName, labels, revisionNo, revisionDate, division}){
   reviewWizard = {
     mode, templateId,
     name, filename,
@@ -15,6 +15,7 @@ function openReviewWizard({mode, templateId, name, filename, sections, items, sc
     labels: labels && labels.length ? [...labels] : ['Conformity','Established','Mature','Leading'],
     revisionNo: revisionNo ?? '',
     revisionDate: revisionDate || '',
+    division: division || '',
     step: 1
   };
   renderReviewWizard();
@@ -33,6 +34,12 @@ function reviewRevisionEditor(){
       <input type="number" step="1" required value="${esc(w.revisionNo)}" placeholder="개정번호 (예: 3)" oninput="reviewSetRevisionNo(this.value)">
       <input type="date" required value="${esc(w.revisionDate)}" oninput="reviewSetRevisionDate(this.value)">
     </div>
+  </div>
+  <div class="review-scale-box">
+    <select required onchange="reviewSetDivision(this.value)">
+      <option value="" ${w.division === '' ? 'selected' : ''}>— 소속부문을 선택하세요 —</option>
+      ${AuditRules.DIVISIONS.map(d => `<option value="${esc(d)}" ${w.division === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}
+    </select>
   </div>`;
 }
 
@@ -97,6 +104,7 @@ function renderReviewWizard(){
 
 function reviewSetRevisionNo(v){ reviewWizard.revisionNo = v; }
 function reviewSetRevisionDate(v){ reviewWizard.revisionDate = v; }
+function reviewSetDivision(v){ reviewWizard.division = v; }
 function reviewSetScaleName(v){ reviewWizard.scaleName = v; }
 function reviewSetLabel(i,v){ reviewWizard.labels[i] = v; }
 function reviewAddLabel(){ reviewWizard.labels.push('새 라벨'); renderReviewWizard(); }
@@ -117,6 +125,10 @@ function reviewGotoStep(n){
   if(n === 2){
     if(reviewWizard.revisionNo === '' || reviewWizard.revisionNo == null || !reviewWizard.revisionDate){
       showToast('개정번호와 개정일자를 입력하세요');
+      return;
+    }
+    if(!reviewWizard.division){
+      showToast('소속부문을 선택하세요');
       return;
     }
     const check = AuditRules.validateMaturityScale({name:reviewWizard.scaleName, labels:reviewWizard.labels});
@@ -141,7 +153,8 @@ async function confirmReviewWizard(){
     items: w.items.map(({_idx, _suggested, ...item}) => item),
     maturityScale: {name: w.scaleName, labels: w.labels},
     revisionNo: w.revisionNo,
-    revisionDate: w.revisionDate
+    revisionDate: w.revisionDate,
+    division: w.division
   };
 
   try{
@@ -181,7 +194,8 @@ async function openReviewWizardForEdit(localId){
     scaleName: tpl.maturityScale?.name || '성숙도 등급',
     labels: tpl.maturityScale?.labels || [...AuditRules.MATURITY_LEVELS],
     revisionNo: tpl.revisionNo,
-    revisionDate: tpl.revisionDate
+    revisionDate: tpl.revisionDate,
+    division: tpl.division
   });
 }
 
@@ -288,7 +302,8 @@ function restoreTemplateRevision(idx){
     scaleName: rev.maturityScale?.name || '성숙도 등급',
     labels: rev.maturityScale?.labels || [...AuditRules.MATURITY_LEVELS],
     revisionNo: rev.revisionNo,
-    revisionDate: rev.revisionDate
+    revisionDate: rev.revisionDate,
+    division: rev.division
   });
   showToast('복원할 내용을 검토 후 저장하세요');
 }

@@ -69,6 +69,18 @@
     <div class="modal-body">
       <div class="check-label">심사 제목</div>
       <input type="text" id="na-title" placeholder="예: 2024년 상반기 운항 심사">
+      <div class="check-label field-gap">소속부문</div>
+      <select id="na-division-filter" onchange="filterNewAuditTemplates()">
+        <option value="">전체</option>
+        <option value="안전">안전</option>
+        <option value="보안">보안</option>
+        <option value="정비">정비</option>
+        <option value="운항">운항</option>
+        <option value="객실">객실</option>
+        <option value="화물">화물</option>
+        <option value="여객지원">여객지원</option>
+        <option value="종합통제">종합통제</option>
+      </select>
       <div class="check-label field-gap">점검표 선택</div>
       <select id="na-template">
         <option value="">— 점검표를 선택하세요 —</option>
@@ -126,6 +138,18 @@
       <input type="number" step="1" id="nc-revision-no" placeholder="예: 3">
       <div class="check-label field-gap">개정일자</div>
       <input type="date" id="nc-revision-date">
+      <div class="check-label field-gap">소속부문</div>
+      <select id="nc-division">
+        <option value="">— 소속부문을 선택하세요 —</option>
+        <option value="안전">안전</option>
+        <option value="보안">보안</option>
+        <option value="정비">정비</option>
+        <option value="운항">운항</option>
+        <option value="객실">객실</option>
+        <option value="화물">화물</option>
+        <option value="여객지원">여객지원</option>
+        <option value="종합통제">종합통제</option>
+      </select>
       <div class="section-header mt-150">Excel 파일</div>
       <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-excel').click()"
         ondragover="event.preventDefault();this.classList.add('drag')"
@@ -686,7 +710,7 @@ async function renderTemplates(c){
     <div class="card-row">
       <div class="flex-1">
         <div class="label">${esc(t.name)}</div>
-        <div class="sub">${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))} · ${esc(getTemplateSourceLabel(t))} · UI ${t.checklistUiType === 'maturity' ? '성숙도' : '일반'} · Word ${esc(getReportTemplateLabel(t.reportTemplate || inferReportTemplateType(t)))}${t.active === false ? ' · 비활성' : ''}</div>
+        <div class="sub">${t.division ? `${esc(t.division)} · ` : ''}${t.items?.length||0}개 항목 · ${t.sections?.length||0}개 섹션 · ${esc(getTemplateVersionLabel(t))} · ${esc(getTemplateSourceLabel(t))} · UI ${t.checklistUiType === 'maturity' ? '성숙도' : '일반'} · Word ${esc(getReportTemplateLabel(t.reportTemplate || inferReportTemplateType(t)))}${t.active === false ? ' · 비활성' : ''}</div>
       </div>
       <div class="template-actions">
         ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openReviewWizardForEdit(${t.id})">수정</button>` : ''}
@@ -886,11 +910,24 @@ async function renderExport(c){
 // ═══════════════════════════════════════════════
 //  New Audit Modal
 // ═══════════════════════════════════════════════
-async function openNewAuditModal(){
-  const templates = sortTemplatesForDisplay((await getNormalizedTemplates()).filter(t => t.active !== false));
+let newAuditTemplatesCache = [];
+
+function populateNewAuditTemplateSelect(){
+  const division = document.getElementById('na-division-filter').value;
+  const templates = division ? newAuditTemplatesCache.filter(t => t.division === division) : newAuditTemplatesCache;
   const sel = document.getElementById('na-template');
   sel.innerHTML='<option value="">— 점검표를 선택하세요 —</option>'+
     templates.map(t=>`<option value="${t.id}" ${t.items.length ? '' : 'disabled'}>${esc(t.name)} · ${esc(getTemplateVersionLabel(t))}${t.items.length ? '' : ' (항목 없음)'}</option>`).join('');
+}
+
+function filterNewAuditTemplates(){
+  populateNewAuditTemplateSelect();
+}
+
+async function openNewAuditModal(){
+  newAuditTemplatesCache = sortTemplatesForDisplay((await getNormalizedTemplates()).filter(t => t.active !== false));
+  document.getElementById('na-division-filter').value = '';
+  populateNewAuditTemplateSelect();
   document.getElementById('na-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('na-title').value='';
   document.getElementById('na-auditor').value='';
@@ -936,6 +973,7 @@ function openNewChecklistModal(){
   document.getElementById('nc-name').value = '';
   document.getElementById('nc-revision-no').value = '';
   document.getElementById('nc-revision-date').value = '';
+  document.getElementById('nc-division').value = '';
   openModal('modal-new-checklist');
 }
 
@@ -996,6 +1034,7 @@ function handleFileSelect(file){
       const name = document.getElementById('nc-name')?.value.trim();
       const revisionNo = document.getElementById('nc-revision-no')?.value || '';
       const revisionDate = document.getElementById('nc-revision-date')?.value || '';
+      const division = document.getElementById('nc-division')?.value || '';
       closeModal('modal-new-checklist');
 
       openReviewWizard({
@@ -1007,7 +1046,8 @@ function handleFileSelect(file){
         scaleName: '성숙도 등급',
         labels: [...AuditRules.MATURITY_LEVELS],
         revisionNo,
-        revisionDate
+        revisionDate,
+        division
       });
     } catch(err){
       showToast('파일을 읽을 수 없습니다: '+err.message);

@@ -4,6 +4,7 @@
   root.AuditRules = rules;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function(){
   const MATURITY_LEVELS = Object.freeze(['Conformity', 'Established', 'Mature', 'Leading']);
+  const DIVISIONS = Object.freeze(['안전', '보안', '정비', '운항', '객실', '화물', '여객지원', '종합통제']);
   const MATURITY_FIELDS = Object.freeze({
     Conformity: 'conformityCriteria',
     Established: 'establishedCriteria',
@@ -90,5 +91,5 @@
     return { valid: true, error: '' };
   }
 
-  return { MATURITY_LEVELS, inferReportTemplateType, getChecklistUiType, normalizeResultValue, getMaturityConsideration, canCompleteAudit, deriveMaturityScale, getMaturityGuidanceForScale, suggestMaturityOn, validateMaturityScale };
+  return { MATURITY_LEVELS, DIVISIONS, inferReportTemplateType, getChecklistUiType, normalizeResultValue, getMaturityConsideration, canCompleteAudit, deriveMaturityScale, getMaturityGuidanceForScale, suggestMaturityOn, validateMaturityScale };
 });
