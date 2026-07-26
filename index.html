@@ -251,32 +251,9 @@ function getChecklistUiType(source){
 }
 
 
-// 관리자 모드
-// - 일반 사용자는 Supabase에서 동기화된 공식 점검표로 심사만 수행한다.
-// - 관리자는 URL에 ?admin=1을 붙여 점검표 업로드/삭제 등 관리 기능을 표시한다.
-const ADMIN_MODE_STORAGE_KEY = 'auditAppAdminMode';
-
-function initAdminModeFromUrl(){
-  const params = new URLSearchParams(location.search);
-  if(params.get('admin') === '1') localStorage.setItem(ADMIN_MODE_STORAGE_KEY, '1');
-  if(params.get('admin') === '0') localStorage.removeItem(ADMIN_MODE_STORAGE_KEY);
-}
-
-function isAdminMode(){
-  return localStorage.getItem(ADMIN_MODE_STORAGE_KEY) === '1';
-}
-
-function setAdminMode(enabled){
-  if(enabled) localStorage.setItem(ADMIN_MODE_STORAGE_KEY, '1');
-  else localStorage.removeItem(ADMIN_MODE_STORAGE_KEY);
-  showToast(enabled ? '관리자 모드가 켜졌습니다' : '관리자 모드가 꺼졌습니다');
-  switchTab(currentTab);
-}
-
 // ═══════════════════════════════════════════════
 //  Init
 // ═══════════════════════════════════════════════
-initAdminModeFromUrl();
 initEmailLinkSignIn();
 
 openDB().then(()=>{
@@ -698,7 +675,6 @@ async function renderAudits(c){
 //  Templates tab
 // ═══════════════════════════════════════════════
 async function renderTemplates(c){
-  const admin = isAdminMode();
   const registrantSession = getRegistrantSession();
   const templates = sortTemplatesForDisplay(await getNormalizedTemplates());
   const activeCount = templates.filter(t => t.active !== false).length;
@@ -770,12 +746,7 @@ async function renderTemplates(c){
     </div>
   </div>
 
-  ${admin ? `
-  <div class="section-header">관리자 기능</div>
-  <div class="admin-panel">
-    <div class="admin-panel-title">관리자 모드</div>
-    <div class="admin-panel-desc">삭제 버튼이 표시됩니다. 이 모드는 편의 기능이며 접근제어 또는 보안 기능이 아닙니다.</div>
-  </div>
+  ${registrantSession?.user ? `
   <div class="section-header">저장 데이터 리셋</div>
   <div class="card template-sync-card">
     <div class="card-row">
@@ -848,11 +819,10 @@ async function renderTemplates(c){
       <div class="template-actions">
         ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openReviewWizardForEdit(${t.id})">수정</button>` : ''}
         ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openTemplateHistory(${t.id})">이력</button>` : ''}
-        ${admin ? `<button type="button" class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
+        ${registrantSession?.user ? `<button type="button" class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
       </div>
     </div>
   </div>`).join('')}</div>`}
-  ${admin ? `<div class="align-end-row"><button type="button" class="btn btn-ghost btn-sm" onclick="setAdminMode(false)">관리자 모드 끄기</button></div>` : `<div class="align-end-row"><button type="button" class="btn btn-ghost btn-sm" onclick="setAdminMode(true)">관리자 모드 켜기</button></div>`}
   `;
 
   const fileInput = document.getElementById('file-excel');
@@ -1136,7 +1106,7 @@ function handleLocalBackupFile(file){
 
 
 async function resetAuditData(){
-  if(!isAdminMode()){ showToast('관리자 모드에서만 초기화할 수 있습니다'); return; }
+  if(!getRegistrantSession()?.user){ showToast('로그인 후 초기화할 수 있습니다'); return; }
   const ok = confirm('이 기기에 저장된 모든 심사 기록과 사진을 삭제합니다. 점검표는 유지됩니다. 계속하시겠습니까?');
   if(!ok) return;
   await dbClear('audits');
@@ -1146,7 +1116,7 @@ async function resetAuditData(){
 }
 
 async function resetTemplateData(){
-  if(!isAdminMode()){ showToast('관리자 모드에서만 초기화할 수 있습니다'); return; }
+  if(!getRegistrantSession()?.user){ showToast('로그인 후 초기화할 수 있습니다'); return; }
   const ok = confirm('이 기기에 저장된 모든 점검표를 삭제합니다. 기존 심사 기록은 유지됩니다. 계속하시겠습니까?');
   if(!ok) return;
   await dbClear('templates');
@@ -1164,7 +1134,7 @@ async function resetTemplateData(){
 }
 
 async function resetAllLocalData(){
-  if(!isAdminMode()){ showToast('관리자 모드에서만 초기화할 수 있습니다'); return; }
+  if(!getRegistrantSession()?.user){ showToast('로그인 후 초기화할 수 있습니다'); return; }
   const first = confirm('이 기기의 모든 심사 기록, 사진, 점검표를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?');
   if(!first) return;
   const second = confirm('정말 전체 로컬 데이터를 삭제하시겠습니까?');
@@ -1185,10 +1155,19 @@ async function resetAllLocalData(){
 
 async function deleteTemplate(id, e){
   e.stopPropagation();
-  if(!isAdminMode()){ showToast('관리자 모드에서만 삭제할 수 있습니다'); return; }
-  if(!confirm('이 점검표를 삭제하시겠습니까?')) return;
-  await dbDelete('templates', id);
-  showToast('삭제되었습니다');
+  const session = getRegistrantSession();
+  if(!session?.user){ showToast('로그인 후 삭제할 수 있습니다'); return; }
+  if(!confirm('이 점검표를 삭제하시겠습니까? Supabase에서도 함께 삭제되며 되돌릴 수 없습니다.')) return;
+  const tpl = await dbGet('templates', id);
+  try{
+    if(tpl?.source === 'supabase' && tpl.supabaseId != null){
+      await ChecklistSource.deleteSupabaseTemplate(SupabaseClient.getClient(), session.accessToken, tpl.supabaseId);
+    }
+    await dbDelete('templates', id);
+    showToast('삭제되었습니다');
+  }catch(err){
+    showToast('삭제에 실패했습니다: ' + (err.message || ''));
+  }
   switchTab('templates');
 }
 

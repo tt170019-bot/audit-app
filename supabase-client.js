@@ -40,7 +40,11 @@
       return writeRequest('PATCH', `${table}?id=eq.${encodeURIComponent(id)}`, patch, accessToken);
     }
 
-    return { url, anonKey, selectAll, insert, update };
+    function remove(table, id, accessToken){
+      return writeRequest('DELETE', `${table}?id=eq.${encodeURIComponent(id)}`, undefined, accessToken);
+    }
+
+    return { url, anonKey, selectAll, insert, update, remove };
   }
 
   let client = null;

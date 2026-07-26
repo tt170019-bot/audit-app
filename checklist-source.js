@@ -57,6 +57,12 @@
     return normalizeSupabaseTemplate(saved);
   }
 
+  // Any logged-in Registrant may delete any template — same as edit, there is
+  // no per-owner ownership check, only "is this an authenticated Registrant".
+  async function deleteSupabaseTemplate(client, accessToken, id){
+    await client.remove('templates', id, accessToken);
+  }
+
   // Checklist Template Revisions — snapshots the DB trigger captured just
   // before each edit (see ADR-0002). Read-only: there is no write path here
   // because the only writer is the trigger itself.
@@ -82,5 +88,5 @@
     return (Array.isArray(rows) ? rows : []).map(normalizeTemplateRevision);
   }
 
-  return { loadSupabaseTemplates, registerSupabaseTemplate, updateSupabaseTemplate, loadTemplateRevisions };
+  return { loadSupabaseTemplates, registerSupabaseTemplate, updateSupabaseTemplate, deleteSupabaseTemplate, loadTemplateRevisions };
 });
