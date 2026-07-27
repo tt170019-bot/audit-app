@@ -22,10 +22,11 @@
   }
 
   function inferReportTemplateType(source){
-    const text = sourceText(source);
-    return text.includes('checklist-2') || text.includes('checklist 2') || text.includes('현장탑승심사표') || text.includes('안전성과지표') || text.includes('리튬')
-      ? 'report-type-2'
-      : 'report-type-1';
+    // A checklist that actually owns maturity scales (new multi-scale wizard,
+    // old single-scale shape, or legacy checklistUiType/name keyword match —
+    // deriveMaturityScales already covers all three) needs the type-2
+    // (Maturity Assessment table) report, regardless of what its name says.
+    return deriveMaturityScales(source).length > 0 ? 'report-type-2' : 'report-type-1';
   }
 
   function getChecklistUiType(source){
