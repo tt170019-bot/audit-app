@@ -132,14 +132,14 @@
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-new-checklist-title">점검표 등록</div>
     <div class="modal-body">
-      <div class="check-label">점검표 명칭</div>
-      <input type="text" id="nc-name" placeholder="예: 2026년 운항 심사 점검표">
-      <div class="check-label field-gap">개정번호</div>
-      <input type="number" step="1" id="nc-revision-no" placeholder="예: 3">
-      <div class="check-label field-gap">개정일자</div>
-      <input type="date" id="nc-revision-date">
-      <div class="check-label field-gap">소속부문</div>
-      <select id="nc-division">
+      <div class="check-label">점검표 명칭<span class="req-mark">*</span></div>
+      <input type="text" id="nc-name" required placeholder="예: 2026년 운항 심사 점검표">
+      <div class="check-label field-gap">개정번호<span class="req-mark">*</span></div>
+      <input type="number" step="1" id="nc-revision-no" required placeholder="예: 3">
+      <div class="check-label field-gap">개정일자<span class="req-mark">*</span></div>
+      <input type="date" id="nc-revision-date" required>
+      <div class="check-label field-gap">소속부문<span class="req-mark">*</span></div>
+      <select id="nc-division" required>
         <option value="">— 소속부문을 선택하세요 —</option>
         <option value="안전">안전</option>
         <option value="보안">보안</option>
@@ -150,7 +150,7 @@
         <option value="여객지원">여객지원</option>
         <option value="종합통제">종합통제</option>
       </select>
-      <div class="section-header mt-150">Excel 파일</div>
+      <div class="section-header mt-150">Excel 파일<span class="req-mark">*</span></div>
       <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-excel').click()"
         ondragover="event.preventDefault();this.classList.add('drag')"
         ondragleave="this.classList.remove('drag')"
@@ -159,6 +159,7 @@
         <h3>Excel 점검표 업로드</h3>
         <p>XLSX 파일을 탭하여 선택하거나<br>드래그 앤 드롭 하세요</p>
       </div>
+      <div class="admin-panel-desc field-gap" id="nc-file-name"></div>
       <div class="section-header mt-150">Excel 컬럼 형식</div>
       <div class="card template-format-card">
         <div class="card-row"><div class="label template-format-label">A: 섹션명 (예: 1. 운항 일반)</div></div>
@@ -172,6 +173,7 @@
     </div>
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost flex-1" onclick="closeModal('modal-new-checklist')">취소</button>
+      <button type="button" class="btn btn-teal flex-2" onclick="submitNewChecklist()">다음</button>
     </div>
   </div>
 </div>
@@ -716,10 +718,12 @@ async function renderTemplates(c){
   <div class="align-end-row"><button type="button" class="btn btn-teal" onclick="openNewChecklistModal()">+ 점검표 등록</button></div>` : ''}
 
   <div class="section-header">저장된 점검표 (${templates.length})</div>
-  <select class="field-gap" onchange="filterTemplatesByDivision(this.value)">
-    <option value="" ${templatesDivisionFilter === '' ? 'selected' : ''}>전체 부문</option>
-    ${AuditRules.DIVISIONS.map(d => `<option value="${esc(d)}" ${templatesDivisionFilter === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}
-  </select>
+  <div class="templates-filter-row">
+    <select onchange="filterTemplatesByDivision(this.value)">
+      <option value="" ${templatesDivisionFilter === '' ? 'selected' : ''}>전체 부문</option>
+      ${AuditRules.DIVISIONS.map(d => `<option value="${esc(d)}" ${templatesDivisionFilter === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}
+    </select>
+  </div>
   ${allTemplates.length===0 ? `<div class="template-empty-message">저장된 점검표가 없습니다. 온라인 상태에서 동기화를 실행하세요.</div>`
     : templates.length===0 ? `<div class="template-empty-message">이 부문에 등록된 점검표가 없습니다.</div>`
     : `<div class="table-scroll">
@@ -742,8 +746,8 @@ async function renderTemplates(c){
     </table>
   </div>`}
 
-  <details class="check-input-reference mt-150">
-    <summary class="check-reference-toggle">설정</summary>
+  <details class="templates-settings mt-150">
+    <summary class="templates-settings-toggle">설정</summary>
     <div class="admin-panel">
       <div class="admin-panel-title">공식 점검표 동기화</div>
       <div class="admin-panel-desc">
@@ -999,6 +1003,10 @@ function openNewChecklistModal(){
   document.getElementById('nc-revision-no').value = '';
   document.getElementById('nc-revision-date').value = '';
   document.getElementById('nc-division').value = '';
+  ncSelectedFile = null;
+  document.getElementById('nc-file-name').textContent = '';
+  const fileInput = document.getElementById('file-excel');
+  if(fileInput) fileInput.value = '';
   openModal('modal-new-checklist');
 }
 
@@ -1023,12 +1031,29 @@ function handleDrop(e){
   if(file) handleFileSelect(file);
 }
 
+let ncSelectedFile = null;
+
 function handleFileSelect(file){
   if(!file) return;
   if(!getRegistrantSession()?.user){ showToast('점검표를 등록하려면 먼저 로그인하세요'); return; }
   const ext = file.name.split('.').pop().toLowerCase();
   if(!['xlsx','xls'].includes(ext)){ showToast('Excel 파일(.xlsx)만 지원합니다'); return; }
+  ncSelectedFile = file;
+  document.getElementById('nc-file-name').textContent = `선택된 파일: ${file.name}`;
+}
 
+function submitNewChecklist(){
+  const name = document.getElementById('nc-name')?.value.trim();
+  const revisionNo = document.getElementById('nc-revision-no')?.value || '';
+  const revisionDate = document.getElementById('nc-revision-date')?.value || '';
+  const division = document.getElementById('nc-division')?.value || '';
+  if(!name){ showToast('점검표 명칭을 입력하세요'); return; }
+  if(!revisionNo){ showToast('개정번호를 입력하세요'); return; }
+  if(!revisionDate){ showToast('개정일자를 입력하세요'); return; }
+  if(!division){ showToast('소속부문을 선택하세요'); return; }
+  if(!ncSelectedFile){ showToast('Excel 파일을 선택하세요'); return; }
+
+  const file = ncSelectedFile;
   const reader = new FileReader();
   reader.onload = e=>{
     try{
@@ -1052,15 +1077,11 @@ function handleFileSelect(file){
       }
       if(items.length===0){ showToast('항목을 찾을 수 없습니다. 형식을 확인하세요'); return; }
 
-      const name = document.getElementById('nc-name')?.value.trim();
-      const revisionNo = document.getElementById('nc-revision-no')?.value || '';
-      const revisionDate = document.getElementById('nc-revision-date')?.value || '';
-      const division = document.getElementById('nc-division')?.value || '';
       closeModal('modal-new-checklist');
 
       openReviewWizard({
         mode: 'new',
-        name: name || file.name.replace(/\.[^.]+$/,''),
+        name,
         filename: file.name,
         sections: [...sections],
         items,

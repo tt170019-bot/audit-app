@@ -117,8 +117,10 @@ function renderReviewWizard(){
       <div class="review-step ${!step1?'active':''}">2. 항목 검토</div>
     </div>
     ${step1 ? `
+      ${w.mode === 'edit' ? `
       <div class="review-sub">개정번호와 개정일자를 입력하세요.</div>
       ${reviewRevisionEditor()}
+      ` : ''}
       <div class="review-sub">이 점검표에서 쓸 성숙도 척도를 0개, 1개, 또는 여러 개 만드세요. 척도마다 이름과 단계 수를 자유롭게 정할 수 있고, 다음 단계에서 항목마다 어떤 척도를 쓸지 고릅니다.</div>
       ${w.scales.map((s,i)=>reviewScaleEditor(s,i)).join('')}
       <button type="button" class="review-add-label" onclick="reviewAddScale()">+ 척도 추가</button>
@@ -181,13 +183,15 @@ function reviewSetItemGuidance(idx, scaleId, levelIndex, v){
 }
 function reviewGotoStep(n){
   if(n === 2){
-    if(reviewWizard.revisionNo === '' || reviewWizard.revisionNo == null || !reviewWizard.revisionDate){
-      showToast('개정번호와 개정일자를 입력하세요');
-      return;
-    }
-    if(!reviewWizard.division){
-      showToast('소속부문을 선택하세요');
-      return;
+    if(reviewWizard.mode === 'edit'){
+      if(reviewWizard.revisionNo === '' || reviewWizard.revisionNo == null || !reviewWizard.revisionDate){
+        showToast('개정번호와 개정일자를 입력하세요');
+        return;
+      }
+      if(!reviewWizard.division){
+        showToast('소속부문을 선택하세요');
+        return;
+      }
     }
     for(const scale of reviewWizard.scales){
       const check = AuditRules.validateMaturityScale(scale);
