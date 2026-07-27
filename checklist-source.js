@@ -20,6 +20,7 @@
       revisionNo: row.revision_no ?? null,
       revisionDate: row.revision_date || '',
       division: row.division || '',
+      templateNo: row.template_no || '',
       createdBy: row.created_by || '',
       updatedBy: row.updated_by || '',
       updatedAt
@@ -35,7 +36,7 @@
   // change (created_by only on insert, updated_by on both) and hand the saved
   // row straight back through normalizeSupabaseTemplate so callers get the
   // exact same shape as the read path (loadSupabaseTemplates).
-  function toSupabaseRow({name, filename, sections, items, maturityScales, revisionNo, revisionDate, division}){
+  function toSupabaseRow({name, filename, sections, items, maturityScales, revisionNo, revisionDate, division, templateNo}){
     return {
       name: String(name || '이름 없는 점검표').trim(),
       filename: filename || null,
@@ -47,7 +48,8 @@
       maturity_scales: Array.isArray(maturityScales) ? maturityScales : [],
       revision_no: revisionNo === '' || revisionNo == null ? null : parseInt(revisionNo, 10),
       revision_date: revisionDate || null,
-      division: division || null
+      division: division || null,
+      template_no: templateNo || null
     };
   }
 
@@ -85,6 +87,7 @@
       revisionNo: row.revision_no ?? null,
       revisionDate: row.revision_date || '',
       division: row.division || '',
+      templateNo: row.template_no || '',
       updatedBy: row.updated_by || '',
       updatedAt: String(row.updated_at || '').trim(),
       createdAt: String(row.created_at || '').trim()

@@ -9,9 +9,10 @@ function genScaleId(){
   return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-function openReviewWizard({mode, templateId, name, filename, sections, items, scales, revisionNo, revisionDate, division}){
+function openReviewWizard({mode, templateId, templateNo, name, filename, sections, items, scales, revisionNo, revisionDate, division}){
   reviewWizard = {
     mode, templateId,
+    templateNo: templateNo || '',
     name, filename,
     sections: sections || [],
     items: items.map((it, i) => {
@@ -213,6 +214,7 @@ async function confirmReviewWizard(){
   }
 
   const payload = {
+    templateNo: w.templateNo,
     name: w.name,
     filename: w.filename,
     sections: w.sections,
@@ -257,6 +259,7 @@ async function openReviewWizardForEdit(localId){
   openReviewWizard({
     mode: 'edit',
     templateId: tpl.supabaseId,
+    templateNo: tpl.templateNo,
     name: tpl.name,
     filename: tpl.filename,
     sections: tpl.sections,
@@ -364,6 +367,7 @@ function restoreTemplateRevision(idx){
   openReviewWizard({
     mode: 'edit',
     templateId,
+    templateNo: rev.templateNo,
     name: rev.name,
     filename: rev.filename,
     sections: rev.sections,

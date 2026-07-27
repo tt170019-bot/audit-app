@@ -132,7 +132,9 @@
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-new-checklist-title">점검표 등록</div>
     <div class="modal-body">
-      <div class="check-label">점검표 명칭<span class="req-mark">*</span></div>
+      <div class="check-label">점검표번호<span class="req-mark">*</span></div>
+      <input type="text" id="nc-template-no" required placeholder="예: FLT-CL-001">
+      <div class="check-label field-gap">점검표 명칭<span class="req-mark">*</span></div>
       <input type="text" id="nc-name" required placeholder="예: 2026년 운항 심사 점검표">
       <div class="check-label field-gap">개정번호<span class="req-mark">*</span></div>
       <input type="number" step="1" id="nc-revision-no" required placeholder="예: 3">
@@ -728,15 +730,18 @@ async function renderTemplates(c){
     : templates.length===0 ? `<div class="template-empty-message">이 부문에 등록된 점검표가 없습니다.</div>`
     : `<div class="table-scroll">
     <table class="data-table">
-      <thead><tr><th>명칭</th><th>부문</th><th>개정</th><th>상태</th><th>액션</th></tr></thead>
+      <thead><tr><th>점검표번호</th><th>점검표 명칭</th><th>부문</th><th>개정번호</th><th>개정일자</th><th>상태</th><th>액션</th></tr></thead>
       <tbody>
         ${templates.map(t=>`
         <tr class="${t.active === false ? 'template-card-inactive' : ''}">
+          <td>${esc(t.templateNo || '—')}</td>
           <td>${esc(t.name)}</td>
           <td>${esc(t.division || '—')}</td>
-          <td>${esc(getTemplateVersionLabel(t))}</td>
+          <td>${t.revisionNo != null ? esc(String(t.revisionNo)) : '—'}</td>
+          <td>${esc(t.revisionDate || '—')}</td>
           <td>${t.active === false ? '비활성' : '활성'}</td>
           <td class="template-actions">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="downloadTemplateExcel(${t.id})">다운로드</button>
             ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openReviewWizardForEdit(${t.id})">수정</button>` : ''}
             ${t.source === 'supabase' && registrantSession?.user ? `<button type="button" class="btn btn-ghost btn-sm" onclick="openTemplateHistory(${t.id})">이력</button>` : ''}
             ${registrantSession?.user ? `<button type="button" class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id},event)">삭제</button>` : ''}
@@ -999,6 +1004,7 @@ async function createAudit(){
 }
 
 function openNewChecklistModal(){
+  document.getElementById('nc-template-no').value = '';
   document.getElementById('nc-name').value = '';
   document.getElementById('nc-revision-no').value = '';
   document.getElementById('nc-revision-date').value = '';
@@ -1019,6 +1025,18 @@ function downloadChecklistTemplate(){
   const ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, 'CheckList');
   XLSX.writeFile(wb, '점검표_양식.xlsx');
+}
+
+async function downloadTemplateExcel(localId){
+  const tpl = await getNormalizedTemplate(localId);
+  if(!tpl){ showToast('점검표를 찾을 수 없습니다'); return; }
+  const rows = [['섹션명', '항목번호', '점검 질문', '내부 참조', '외부 참조']];
+  tpl.items.forEach(it => rows.push([it.section || '', it.ref || '', it.question || '', it.refStd || '', it.externalRef || '']));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'CheckList');
+  const safeName = (tpl.name || '점검표').replace(/[\\/:*?"<>|]/g, '_');
+  XLSX.writeFile(wb, `${safeName}.xlsx`);
 }
 
 // ═══════════════════════════════════════════════
@@ -1043,10 +1061,12 @@ function handleFileSelect(file){
 }
 
 function submitNewChecklist(){
+  const templateNo = document.getElementById('nc-template-no')?.value.trim();
   const name = document.getElementById('nc-name')?.value.trim();
   const revisionNo = document.getElementById('nc-revision-no')?.value || '';
   const revisionDate = document.getElementById('nc-revision-date')?.value || '';
   const division = document.getElementById('nc-division')?.value || '';
+  if(!templateNo){ showToast('점검표번호를 입력하세요'); return; }
   if(!name){ showToast('점검표 명칭을 입력하세요'); return; }
   if(!revisionNo){ showToast('개정번호를 입력하세요'); return; }
   if(!revisionDate){ showToast('개정일자를 입력하세요'); return; }
@@ -1081,6 +1101,7 @@ function submitNewChecklist(){
 
       openReviewWizard({
         mode: 'new',
+        templateNo,
         name,
         filename: file.name,
         sections: [...sections],
