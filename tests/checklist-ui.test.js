@@ -110,10 +110,32 @@ assert.match(
   '안내 텍스트가 없는 성숙도 레벨은 details(기준 자세히)를 렌더링하지 않아야 합니다',
 );
 
+// Word/PDF 내보내기 다중 척도 지원 (TODOS.md의 "Word/PDF export doesn't support
+// multi-scale maturity yet" 항목 해결) — 항목이 실제 배정된 척도만큼(0~N개) 각각
+// 독립된 Maturity 테이블을 반복 렌더링해야 하고, 더 이상 legacy 단일 척도로
+// 고정되면 안 됩니다.
+assert.doesNotMatch(
+  source,
+  /AuditRules\.LEGACY_SCALE_ID/,
+  'Word 보고서 렌더러가 legacy 단일 척도로 고정되면 안 됩니다 (다중 척도 지원)',
+);
+
 assert.match(
   source,
-  /function renderFieldAuditItem\(item, index\)\{[\s\S]*?const maturityLevels = AuditRules\.MATURITY_LEVELS;/,
-  'Word 보고서 출력용 렌더러는 이번 변경과 무관하게 그대로 유지되어야 합니다 (범위 밖)',
+  /function renderMaturityTable\(item, scale\)\{/,
+  '척도별로 독립된 Maturity 테이블을 만드는 헬퍼가 있어야 합니다',
+);
+
+assert.match(
+  source,
+  /function renderFieldAuditItem\(item, index, scales\)\{[\s\S]*?deriveItemMaturityAssignment\(item\)/,
+  'Word 보고서 항목 렌더러는 항목에 실제 배정된 척도 목록을 받아 사용해야 합니다',
+);
+
+assert.match(
+  source,
+  /function renderFieldAuditItems\(audit\)\{\s*const scales = AuditRules\.deriveMaturityScales\(audit\);/,
+  'Word 보고서는 audit의 척도 라이브러리를 유도해서 각 항목 렌더러에 넘겨야 합니다',
 );
 
 // wayfinder #8 — Supabase 익명 읽기

@@ -13,20 +13,14 @@ new server-side data model, new sync/conflict-resolution logic).
 **Depends on / blocked by:** Nothing currently blocks starting this; revisit if
 multi-device usage becomes a real reported pain point.
 
-## Word/PDF export doesn't support multi-scale maturity yet
-**What:** `report-export.js`'s Type-2 Word export still renders a single fixed
-Maturity table (via `AuditRules.getMaturityGuidance(item, AuditRules.LEGACY_SCALE_ID, ...)`
-and `deriveMaturityResults(item)[AuditRules.LEGACY_SCALE_ID]`). It only ever
-shows the legacy scale's guidance/result — items with a real multi-scale
-assignment (`maturityScaleIds.length > 1`, or a non-legacy scale id) export
-with the wrong/missing Maturity section.
-**Why:** The 2026-07-26 multi-scale maturity model (audit-rules.js,
-review-wizard.js, audit-detail.js) was explicitly scoped to the in-app
-audit-taking screen only — the user chose "심사 화면만 먼저, 내보내기는 따로"
-(export redesign deferred to a separate pass) rather than block that release
-on redesigning the export template.
-**Context:** `templates/report-type-2.html` has no JS logic (pure CSS), so no
-change needed there; the redesign is scoped to `report-export.js`'s table-building
-function only.
-**Depends on / blocked by:** Needs a design decision on how a Word/PDF table
-should represent 0–N independent scale panels per item before implementation.
+## TOPS Excel export doesn't include maturity results
+**What:** `exportTopsChecklistExcel` (fixed TOPS bulk-registration column
+layout: ITEM/ITEM_NO/.../S/U-S/N-A/N-O/OBS/Comments) has no columns for
+maturity scale results at all. `exportExcel`'s 점검결과 sheet and the
+Word/PDF Type-2 export both now render 0–N scale columns/tables per item
+(one column/table per scale the item is assigned to).
+**Why:** Explicitly excluded from the 2026-07-27 multi-scale export fix —
+user asked to do Excel + Word/PDF first, skip TOPS Excel.
+**Depends on / blocked by:** Needs a decision on whether to append scale
+columns after the fixed TOPS header row (same approach as `exportExcel`) or
+leave TOPS Excel result-only by design.

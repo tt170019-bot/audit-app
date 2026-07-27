@@ -45,13 +45,17 @@ async function exportExcel(id){
   wsSum['!cols']=[{wch:20},{wch:12},{wch:10}];
   XLSX.utils.book_append_sheet(wb, wsSum, '요약');
 
-  // Detail sheet
-  const detailData=[['섹션','항목번호','점검 항목','참조규정','결과','비고']];
+  // Detail sheet — one column per template maturity scale (0-N), between
+  // 결과 and 비고, so items with no scale assigned just show blank cells.
+  const scales = AuditRules.deriveMaturityScales(audit);
+  const detailData=[['섹션','항목번호','점검 항목','참조규정','결과', ...scales.map(s=>s.name || '성숙도'), '비고']];
   items.forEach(item=>{
-    detailData.push([item.section||'',item.ref||'',item.question||'',item.refStd||'',normalizeResultValue(item.result)||'',item.note||'']);
+    const maturityResults = AuditRules.deriveMaturityResults(item);
+    const scaleCells = scales.map(s => maturityResults[s.id] || '');
+    detailData.push([item.section||'',item.ref||'',item.question||'',item.refStd||'',normalizeResultValue(item.result)||'', ...scaleCells, item.note||'']);
   });
   const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
-  wsDetail['!cols']=[{wch:16},{wch:12},{wch:50},{wch:20},{wch:8},{wch:40}];
+  wsDetail['!cols']=[{wch:16},{wch:12},{wch:50},{wch:20},{wch:8}, ...scales.map(()=>({wch:14})), {wch:40}];
   XLSX.utils.book_append_sheet(wb, wsDetail, '점검결과');
 
   // NG sheet
@@ -244,14 +248,40 @@ function resultSelected(item, result){
   return normalizeResultValue(item.result) === result ? ' selected' : '';
 }
 
-function renderFieldAuditItem(item, index){
+function renderMaturityTable(item, scale){
+  const results = AuditRules.deriveMaturityResults(item);
+  const selectedLevel = results[scale.id] || '';
+  return `<table class="maturity-table">
+      <colgroup>
+        <col style="width:36mm"><col style="width:34mm"><col style="width:116mm">
+      </colgroup>
+      <tbody>
+        <tr>
+          <td rowspan="${scale.labels.length + 1}" class="satisfaction-cell">Maturity<br>Assessment${scale.name ? `<br>(${esc(scale.name)})` : ''}</td>
+          <td class="maturity-head">Maturity<br>Level</td>
+          <td class="consider-head">요구조건 / 판단기준</td>
+        </tr>
+        ${scale.labels.map((level, levelIndex)=>{
+          const c = AuditRules.getMaturityGuidance(item, scale.id, levelIndex, level);
+          return `<tr>
+            <td class="maturity-label"><span class="checkbox${selectedLevel === level ? ' selected' : ''}">${esc(level)}</span></td>
+            <td class="consider-text"><div class="consider-title">${esc(c.title)}</div>${esc(c.body)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderFieldAuditItem(item, index, scales){
   const sectionTitle = esc(item.section || '일반');
   const ref = esc(item.ref || String(index + 1));
   const question = br(item.question || '');
   const internalRef = br(item.refStd || '');
   const externalRef = br(item.externalRef || item.external || '');
   const note = br(item.note || '');
-  const maturityLevels = AuditRules.MATURITY_LEVELS;
+  const assignment = AuditRules.deriveItemMaturityAssignment(item);
+  const assignedScales = assignment.scaleIds.map(id => scales.find(s => s.id === id)).filter(Boolean);
+  const maturityTables = assignedScales.map(scale => renderMaturityTable(item, scale)).join('');
 
   // Type-2 Word compatibility rule:
   // Each checklist item is rendered as small fixed-width tables to keep Word/PDF layout stable.
@@ -291,31 +321,7 @@ function renderFieldAuditItem(item, index){
       </tbody>
     </table>
 
-    <table class="maturity-table">
-      <colgroup>
-        <col style="width:36mm"><col style="width:34mm"><col style="width:116mm">
-      </colgroup>
-      <tbody>
-        <tr>
-          <td rowspan="5" class="satisfaction-cell">Maturity<br>Assessment</td>
-          <td class="maturity-head">Maturity<br>Level</td>
-          <td class="consider-head">요구조건 / 판단기준</td>
-        </tr>
-        ${maturityLevels.map((level, levelIndex)=>{
-          // Report export only knows the legacy single-scale shape (see the
-          // 2026-07-26 grilling session — multi-scale export is deferred,
-          // tracked in TODOS.md). Reads the legacy scale id specifically so
-          // this keeps working for both old string-shaped items and new
-          // items that only ever used the legacy scale.
-          const c = AuditRules.getMaturityGuidance(item, AuditRules.LEGACY_SCALE_ID, levelIndex, level);
-          const selectedLevel = AuditRules.deriveMaturityResults(item)[AuditRules.LEGACY_SCALE_ID];
-          return `<tr>
-            <td class="maturity-label"><span class="checkbox${selectedLevel === level ? ' selected' : ''}">${level}</span></td>
-            <td class="consider-text"><div class="consider-title">${esc(c.title)}</div>${esc(c.body)}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
+    ${maturityTables}
 
     <table class="comment-table">
       <colgroup><col style="width:70mm"><col style="width:116mm"></colgroup>
@@ -324,7 +330,8 @@ function renderFieldAuditItem(item, index){
   </div>`;
 }
 function renderFieldAuditItems(audit){
-  return (audit.items || []).map((item,index)=>renderFieldAuditItem(item,index)).join('');
+  const scales = AuditRules.deriveMaturityScales(audit);
+  return (audit.items || []).map((item,index)=>renderFieldAuditItem(item,index,scales)).join('');
 }
 
 function fillReportTemplate(template, audit, type){
