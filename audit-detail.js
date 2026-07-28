@@ -187,16 +187,16 @@ function renderResultPanel(audit, item){
 function renderMaturityPanels(audit, item){
   const idx = item._idx;
   const allScales = AuditRules.deriveMaturityScales(audit);
-  const { assignedScales, selectedLevel, guidance } = MaturityResolution.resolveItemMaturity(item, allScales);
+  const { assignedScales, results } = MaturityResolution.resolveItemMaturity(item, allScales);
   if(!assignedScales.length) return '';
 
   return assignedScales.map(scale => {
-    const currentLevel = selectedLevel(scale.id);
+    const currentLevel = results[scale.id] || '';
     return `<div class="maturity-panel">
       <div class="maturity-panel-title">Maturity Assessment${scale.name ? ` — ${esc(scale.name)}` : ''}</div>
       <div class="maturity-level-list" role="radiogroup" aria-label="Maturity Assessment ${esc(scale.name)}">
         ${scale.labels.map((level, levelIndex)=>{
-          const c = guidance(scale.id, levelIndex, level);
+          const c = AuditRules.getMaturityGuidance(item, scale.id, levelIndex, level);
           const selected = currentLevel === level;
           return `<div class="maturity-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected ? 'true' : 'false'}" aria-disabled="${audit.status===AUDIT_STATUS.DONE ? 'true' : 'false'}" tabindex="${audit.status===AUDIT_STATUS.DONE ? '-1' : '0'}" ${audit.status===AUDIT_STATUS.DONE ? '' : `onclick="setMaturityResult(${audit.id},${idx},'${scale.id}','${level}', event)" onkeydown="if(event.key==='Enter'||event.key===' '){setMaturityResult(${audit.id},${idx},'${scale.id}','${level}', event)}"`}>
             <div class="maturity-card-head">
@@ -290,7 +290,6 @@ function renderPendingAnchorChip(audit){
 // variables lives here instead.
 const SectionChipTracker = {
   scrollHandler: null,
-  scrollFrame: null,
   currentIndex: -1,
   scrollContainer: null,
   attach(){
@@ -299,10 +298,11 @@ const SectionChipTracker = {
     this.detach();
     this.currentIndex = -1;
     this.scrollContainer = scroller;
+    let scrollFrame = null;
     this.scrollHandler = () => {
-      if(this.scrollFrame) return;
-      this.scrollFrame = requestAnimationFrame(() => {
-        this.scrollFrame = null;
+      if(scrollFrame) return;
+      scrollFrame = requestAnimationFrame(() => {
+        scrollFrame = null;
         updateCurrentSectionChip(true);
       });
     };
@@ -407,15 +407,10 @@ function jumpToPendingFromSheet(auditId){
 // Pure: which items pass the current filter, grouped by section — no DOM,
 // testable without rendering.
 function visibleSections(items, filter){
-  const visibleItems = items.filter(item => filter === 'all' || (filter === 'pending' ? !item.result : normalizeResultValue(item.result) === filter));
-  const sections = {};
-  visibleItems.forEach(item=>{
-    const idx = items.indexOf(item);
-    const sec = item.section||'일반';
-    if(!sections[sec]) sections[sec]=[];
-    sections[sec].push({...item, _idx:idx});
-  });
-  return Object.entries(sections);
+  const visibleItems = items
+    .map((item, idx) => ({...item, _idx: idx}))
+    .filter(item => filter === 'all' || (filter === 'pending' ? !item.result : normalizeResultValue(item.result) === filter));
+  return Object.entries(AuditRules.bucketBySection(visibleItems));
 }
 
 function renderChecklist(audit){

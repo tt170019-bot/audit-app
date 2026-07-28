@@ -45,6 +45,19 @@
     return value || '';
   }
 
+  // Groups items by section, defaulting an unlabeled item to '일반'. Shared
+  // by audit-detail.js (checklist view) and report-export.js (Word/Excel
+  // export) so the section-key rule lives in one place.
+  function bucketBySection(items){
+    const sections = {};
+    (items || []).forEach(item => {
+      const sec = item.section || '일반';
+      if(!sections[sec]) sections[sec] = [];
+      sections[sec].push(item);
+    });
+    return sections;
+  }
+
   function canCompleteAudit(audit){
     return Array.isArray(audit?.items) && audit.items.every(item => Boolean(normalizeResultValue(item.result)));
   }
@@ -129,7 +142,7 @@
 
   return {
     MATURITY_LEVELS, DIVISIONS, LEGACY_SCALE_ID,
-    inferReportTemplateType, getChecklistUiType, normalizeResultValue, canCompleteAudit,
+    inferReportTemplateType, getChecklistUiType, normalizeResultValue, canCompleteAudit, bucketBySection,
     deriveMaturityScales, deriveItemMaturityAssignment, getMaturityGuidance, deriveMaturityResults,
     validateMaturityScale
   };

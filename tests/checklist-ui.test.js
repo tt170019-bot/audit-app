@@ -122,7 +122,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /function renderMaturityTable\(item, scale\)\{/,
+  /function renderMaturityTable\(item, scale, results\)\{/,
   '척도별로 독립된 Maturity 테이블을 만드는 헬퍼가 있어야 합니다',
 );
 

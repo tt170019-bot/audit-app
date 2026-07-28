@@ -33,34 +33,38 @@
   }
 
   // The one seam between the wizard's payload shape (review-wizard.js
-  // confirmReviewWizard) and the Supabase row shape. A field renamed on
-  // either side without updating the other used to silently lose data
-  // instead of erroring — this is the adapter that shape has to pass
-  // through, so a rename now throws here instead of drifting silently.
-  const TEMPLATE_PAYLOAD_FIELDS = ['name', 'filename', 'sections', 'items', 'maturityScales', 'revisionNo', 'revisionDate', 'division', 'templateNo'];
+  // confirmReviewWizard) and the Supabase row shape. This map is the only
+  // place the field list exists — the unknown-key check and the row build
+  // both read from it, so there's no second list (a destructure, a values
+  // object) that can drift out of sync with the first.
+  const TEMPLATE_ROW_MAP = [
+    ['name', 'name', v => String(v || '이름 없는 점검표').trim()],
+    ['filename', 'filename', v => v || null],
+    ['sections', 'sections', v => Array.isArray(v) ? v : []],
+    ['items', 'items', v => Array.isArray(v) ? v : []],
+    // Always an array (possibly empty) once written through this path —
+    // that presence is what tells deriveMaturityScales to stop falling
+    // back to a stale legacy maturity_scale column.
+    ['maturityScales', 'maturity_scales', v => Array.isArray(v) ? v : []],
+    ['revisionNo', 'revision_no', v => v === '' || v == null ? null : parseInt(v, 10)],
+    ['revisionDate', 'revision_date', v => v || null],
+    ['division', 'division', v => v || null],
+    ['templateNo', 'template_no', v => v || null]
+  ];
 
   // wayfinder #11 — registration write path. Both functions stamp who made the
   // change (created_by only on insert, updated_by on both) and hand the saved
   // row straight back through normalizeSupabaseTemplate so callers get the
   // exact same shape as the read path (loadSupabaseTemplates).
   function toSupabaseRow(payload){
-    const unknown = Object.keys(payload || {}).filter(k => !TEMPLATE_PAYLOAD_FIELDS.includes(k));
-    if(unknown.length) throw new Error(`toSupabaseRow: unknown field(s) [${unknown.join(', ')}] — payload shape drifted from TEMPLATE_PAYLOAD_FIELDS`);
-    const {name, filename, sections, items, maturityScales, revisionNo, revisionDate, division, templateNo} = payload;
-    return {
-      name: String(name || '이름 없는 점검표').trim(),
-      filename: filename || null,
-      sections: Array.isArray(sections) ? sections : [],
-      items: Array.isArray(items) ? items : [],
-      // Always an array (possibly empty) once written through this path —
-      // that presence is what tells deriveMaturityScales to stop falling
-      // back to a stale legacy maturity_scale column.
-      maturity_scales: Array.isArray(maturityScales) ? maturityScales : [],
-      revision_no: revisionNo === '' || revisionNo == null ? null : parseInt(revisionNo, 10),
-      revision_date: revisionDate || null,
-      division: division || null,
-      template_no: templateNo || null
-    };
+    const known = new Set(TEMPLATE_ROW_MAP.map(([payloadKey]) => payloadKey));
+    const unknown = Object.keys(payload || {}).filter(k => !known.has(k));
+    if(unknown.length) throw new Error(`toSupabaseRow: unknown field(s) [${unknown.join(', ')}] — payload shape drifted from TEMPLATE_ROW_MAP`);
+    const row = {};
+    for(const [payloadKey, rowKey, toRowValue] of TEMPLATE_ROW_MAP){
+      row[rowKey] = toRowValue(payload[payloadKey]);
+    }
+    return row;
   }
 
   async function registerSupabaseTemplate(client, accessToken, userId, payload){

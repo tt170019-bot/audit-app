@@ -50,8 +50,8 @@ async function exportExcel(id){
   const scales = AuditRules.deriveMaturityScales(audit);
   const detailData=[['섹션','항목번호','점검 항목','참조규정','결과', ...scales.map(s=>s.name || '성숙도'), '비고']];
   items.forEach(item=>{
-    const { selectedLevel } = MaturityResolution.resolveItemMaturity(item, scales);
-    const scaleCells = scales.map(s => selectedLevel(s.id));
+    const { results } = MaturityResolution.resolveItemMaturity(item, scales);
+    const scaleCells = scales.map(s => results[s.id] || '');
     detailData.push([item.section||'',item.ref||'',item.question||'',item.refStd||'',normalizeResultValue(item.result)||'', ...scaleCells, item.note||'']);
   });
   const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
@@ -209,13 +209,7 @@ function renderSummaryRows(audit){
 }
 
 function groupAuditItemsBySection(audit){
-  const sections = {};
-  (audit.items || []).forEach(item=>{
-    const sec = item.section || '일반';
-    if(!sections[sec]) sections[sec] = [];
-    sections[sec].push(item);
-  });
-  return sections;
+  return AuditRules.bucketBySection(audit.items || []);
 }
 
 function renderType1Sections(audit){
@@ -256,9 +250,8 @@ function checkboxMark(selected){
   return `<span class="checkbox-mark">${selected ? '■' : '□'} </span>`;
 }
 
-function renderMaturityTable(item, scale){
-  const { selectedLevel, guidance } = MaturityResolution.resolveItemMaturity(item, [scale]);
-  const currentLevel = selectedLevel(scale.id);
+function renderMaturityTable(item, scale, results){
+  const currentLevel = results[scale.id] || '';
   return `<table class="maturity-table">
       <colgroup>
         <col style="width:36mm"><col style="width:34mm"><col style="width:116mm">
@@ -270,7 +263,7 @@ function renderMaturityTable(item, scale){
           <td class="consider-head">요구조건 / 판단기준</td>
         </tr>
         ${scale.labels.map((level, levelIndex)=>{
-          const c = guidance(scale.id, levelIndex, level);
+          const c = AuditRules.getMaturityGuidance(item, scale.id, levelIndex, level);
           return `<tr>
             <td class="maturity-label"><span class="checkbox${currentLevel === level ? ' selected' : ''}">${checkboxMark(currentLevel === level)}${esc(level)}</span></td>
             <td class="consider-text"><div class="consider-title">${esc(c.title)}</div>${esc(c.body)}</td>
@@ -287,8 +280,8 @@ function renderFieldAuditItem(item, index, scales){
   const internalRef = br(item.refStd || '');
   const externalRef = br(item.externalRef || item.external || '');
   const note = br(item.note || '');
-  const { assignedScales } = MaturityResolution.resolveItemMaturity(item, scales);
-  const maturityTables = assignedScales.map(scale => renderMaturityTable(item, scale)).join('');
+  const { assignedScales, results } = MaturityResolution.resolveItemMaturity(item, scales);
+  const maturityTables = assignedScales.map(scale => renderMaturityTable(item, scale, results)).join('');
 
   // Type-2 Word compatibility rule:
   // Each checklist item is rendered as small fixed-width tables to keep Word/PDF layout stable.
@@ -349,7 +342,7 @@ const COMMON_REPORT_FIELDS = {
   'audit.date': audit => esc(audit.date || ''),
   'audit.auditor': audit => esc(audit.auditor || ''),
   'audit.dept': audit => esc(audit.dept || ''),
-  'generated.datetime': () => new Date().toLocaleString('ko-KR')
+  'generated.datetime': (audit, now) => now.toLocaleString('ko-KR')
 };
 
 const REPORT_FIELDS = {
@@ -359,7 +352,7 @@ const REPORT_FIELDS = {
     'summary.rows': renderSummaryRows,
     'sections': renderType1Sections,
     'ng.section': renderType1NgSection,
-    'generated.date': () => new Date().toLocaleDateString('ko-KR')
+    'generated.date': (audit, now) => now.toLocaleDateString('ko-KR')
   },
   'report-type-2': {
     ...COMMON_REPORT_FIELDS,
@@ -369,8 +362,12 @@ const REPORT_FIELDS = {
 
 function fillReportTemplate(template, audit, type){
   const fields = REPORT_FIELDS[type] || REPORT_FIELDS['report-type-1'];
+  // Both 'generated.date' and 'generated.datetime' must read the same
+  // instant, or an export triggered right at a midnight rollover can show
+  // two different calendar dates on the same document.
+  const now = new Date();
   const values = {};
-  Object.entries(fields).forEach(([token, render]) => { values[token] = render(audit); });
+  Object.entries(fields).forEach(([token, render]) => { values[token] = render(audit, now); });
   return replaceTemplateTokens(template, values);
 }
 
