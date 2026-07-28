@@ -32,11 +32,21 @@
     return (Array.isArray(rows) ? rows : []).map(normalizeSupabaseTemplate).filter(Boolean);
   }
 
+  // The one seam between the wizard's payload shape (review-wizard.js
+  // confirmReviewWizard) and the Supabase row shape. A field renamed on
+  // either side without updating the other used to silently lose data
+  // instead of erroring — this is the adapter that shape has to pass
+  // through, so a rename now throws here instead of drifting silently.
+  const TEMPLATE_PAYLOAD_FIELDS = ['name', 'filename', 'sections', 'items', 'maturityScales', 'revisionNo', 'revisionDate', 'division', 'templateNo'];
+
   // wayfinder #11 — registration write path. Both functions stamp who made the
   // change (created_by only on insert, updated_by on both) and hand the saved
   // row straight back through normalizeSupabaseTemplate so callers get the
   // exact same shape as the read path (loadSupabaseTemplates).
-  function toSupabaseRow({name, filename, sections, items, maturityScales, revisionNo, revisionDate, division, templateNo}){
+  function toSupabaseRow(payload){
+    const unknown = Object.keys(payload || {}).filter(k => !TEMPLATE_PAYLOAD_FIELDS.includes(k));
+    if(unknown.length) throw new Error(`toSupabaseRow: unknown field(s) [${unknown.join(', ')}] — payload shape drifted from TEMPLATE_PAYLOAD_FIELDS`);
+    const {name, filename, sections, items, maturityScales, revisionNo, revisionDate, division, templateNo} = payload;
     return {
       name: String(name || '이름 없는 점검표').trim(),
       filename: filename || null,

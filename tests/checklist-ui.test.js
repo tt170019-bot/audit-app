@@ -128,7 +128,7 @@ assert.match(
 
 assert.match(
   source,
-  /function renderFieldAuditItem\(item, index, scales\)\{[\s\S]*?deriveItemMaturityAssignment\(item\)/,
+  /function renderFieldAuditItem\(item, index, scales\)\{[\s\S]*?MaturityResolution\.resolveItemMaturity\(item, scales\)/,
   'Word 보고서 항목 렌더러는 항목에 실제 배정된 척도 목록을 받아 사용해야 합니다',
 );
 

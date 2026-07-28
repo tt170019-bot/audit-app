@@ -50,8 +50,8 @@ async function exportExcel(id){
   const scales = AuditRules.deriveMaturityScales(audit);
   const detailData=[['섹션','항목번호','점검 항목','참조규정','결과', ...scales.map(s=>s.name || '성숙도'), '비고']];
   items.forEach(item=>{
-    const maturityResults = AuditRules.deriveMaturityResults(item);
-    const scaleCells = scales.map(s => maturityResults[s.id] || '');
+    const { selectedLevel } = MaturityResolution.resolveItemMaturity(item, scales);
+    const scaleCells = scales.map(s => selectedLevel(s.id));
     detailData.push([item.section||'',item.ref||'',item.question||'',item.refStd||'',normalizeResultValue(item.result)||'', ...scaleCells, item.note||'']);
   });
   const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
@@ -172,7 +172,7 @@ function replaceTemplateTokens(template, values){
 
 async function getAuditReportTemplateType(audit){
   // 1) First inspect the audit record itself.
-  const auditInferred = inferReportTemplateType(audit);
+  const auditInferred = AuditRules.inferReportTemplateType(audit);
   if(auditInferred === 'report-type-2') return 'report-type-2';
 
   // 2) Existing audits may have been created before templateName/reportTemplate was stored.
@@ -180,7 +180,7 @@ async function getAuditReportTemplateType(audit){
   if(audit?.templateId){
     try{
       const tpl = await getNormalizedTemplate(Number(audit.templateId));
-      const tplInferred = inferReportTemplateType(tpl);
+      const tplInferred = AuditRules.inferReportTemplateType(tpl);
       if(tplInferred === 'report-type-2') return 'report-type-2';
     } catch(e){
       appWarn('보고서 양식 판별용 점검표 조회 실패:', e);
@@ -257,8 +257,8 @@ function checkboxMark(selected){
 }
 
 function renderMaturityTable(item, scale){
-  const results = AuditRules.deriveMaturityResults(item);
-  const selectedLevel = results[scale.id] || '';
+  const { selectedLevel, guidance } = MaturityResolution.resolveItemMaturity(item, [scale]);
+  const currentLevel = selectedLevel(scale.id);
   return `<table class="maturity-table">
       <colgroup>
         <col style="width:36mm"><col style="width:34mm"><col style="width:116mm">
@@ -270,9 +270,9 @@ function renderMaturityTable(item, scale){
           <td class="consider-head">요구조건 / 판단기준</td>
         </tr>
         ${scale.labels.map((level, levelIndex)=>{
-          const c = AuditRules.getMaturityGuidance(item, scale.id, levelIndex, level);
+          const c = guidance(scale.id, levelIndex, level);
           return `<tr>
-            <td class="maturity-label"><span class="checkbox${selectedLevel === level ? ' selected' : ''}">${checkboxMark(selectedLevel === level)}${esc(level)}</span></td>
+            <td class="maturity-label"><span class="checkbox${currentLevel === level ? ' selected' : ''}">${checkboxMark(currentLevel === level)}${esc(level)}</span></td>
             <td class="consider-text"><div class="consider-title">${esc(c.title)}</div>${esc(c.body)}</td>
           </tr>`;
         }).join('')}
@@ -287,8 +287,7 @@ function renderFieldAuditItem(item, index, scales){
   const internalRef = br(item.refStd || '');
   const externalRef = br(item.externalRef || item.external || '');
   const note = br(item.note || '');
-  const assignment = AuditRules.deriveItemMaturityAssignment(item);
-  const assignedScales = assignment.scaleIds.map(id => scales.find(s => s.id === id)).filter(Boolean);
+  const { assignedScales } = MaturityResolution.resolveItemMaturity(item, scales);
   const maturityTables = assignedScales.map(scale => renderMaturityTable(item, scale)).join('');
 
   // Type-2 Word compatibility rule:
@@ -342,22 +341,36 @@ function renderFieldAuditItems(audit){
   return (audit.items || []).map((item,index)=>renderFieldAuditItem(item,index,scales)).join('');
 }
 
+// One registry entry per {{token}} used in REPORT_TEMPLATES — adding a
+// report field means adding one entry here, not a template edit plus a
+// separate values-object edit plus a separate renderer.
+const COMMON_REPORT_FIELDS = {
+  'audit.title': audit => esc(audit.title || ''),
+  'audit.date': audit => esc(audit.date || ''),
+  'audit.auditor': audit => esc(audit.auditor || ''),
+  'audit.dept': audit => esc(audit.dept || ''),
+  'generated.datetime': () => new Date().toLocaleString('ko-KR')
+};
+
+const REPORT_FIELDS = {
+  'report-type-1': {
+    ...COMMON_REPORT_FIELDS,
+    'summary.total': audit => getResultSummary(audit).total,
+    'summary.rows': renderSummaryRows,
+    'sections': renderType1Sections,
+    'ng.section': renderType1NgSection,
+    'generated.date': () => new Date().toLocaleDateString('ko-KR')
+  },
+  'report-type-2': {
+    ...COMMON_REPORT_FIELDS,
+    'fieldAuditItems': renderFieldAuditItems
+  }
+};
+
 function fillReportTemplate(template, audit, type){
-  const summary = getResultSummary(audit);
-  const now = new Date();
-  const values = {
-    'audit.title': esc(audit.title || ''),
-    'audit.date': esc(audit.date || ''),
-    'audit.auditor': esc(audit.auditor || ''),
-    'audit.dept': esc(audit.dept || ''),
-    'summary.total': summary.total,
-    'summary.rows': renderSummaryRows(audit),
-    'sections': renderType1Sections(audit),
-    'ng.section': renderType1NgSection(audit),
-    'fieldAuditItems': renderFieldAuditItems(audit),
-    'generated.date': now.toLocaleDateString('ko-KR'),
-    'generated.datetime': now.toLocaleString('ko-KR')
-  };
+  const fields = REPORT_FIELDS[type] || REPORT_FIELDS['report-type-1'];
+  const values = {};
+  Object.entries(fields).forEach(([token, render]) => { values[token] = render(audit); });
   return replaceTemplateTokens(template, values);
 }
 

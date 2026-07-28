@@ -14,6 +14,7 @@
 <script src="xlsx.full.min.js"></script>
 <script src="core.js"></script>
 <script src="audit-rules.js"></script>
+<script src="maturity-resolution.js"></script>
 <script src="audit-store.js"></script>
 <script src="checklist-source.js"></script>
 <script src="audit-detail.js"></script>
@@ -251,16 +252,8 @@ const RESULT_VALUE = Object.freeze({
 });
 
 
-function inferReportTemplateType(source){
-  return AuditRules.inferReportTemplateType(source);
-}
-
 function getReportTemplateLabel(type){
   return type === 'report-type-2' ? '2번 양식(현장탑승심사표)' : '1번 양식(기본 결과보고서)';
-}
-
-function getChecklistUiType(source){
-  return AuditRules.getChecklistUiType(source);
 }
 
 
@@ -355,8 +348,8 @@ function normalizeTemplate(template){
     updatedAt: String(t.updatedAt || '').trim(),
     fingerprint: String(t.fingerprint || '').trim(),
     templateKey: t.templateKey || (t.filename && t.version ? `${t.filename}@@${t.version}` : ''),
-    reportTemplate: inferReportTemplateType(t),
-    checklistUiType: t.checklistUiType || getChecklistUiType(t),
+    reportTemplate: AuditRules.inferReportTemplateType(t),
+    checklistUiType: t.checklistUiType || AuditRules.getChecklistUiType(t),
     sections: sectionSource.map(s => String(s || '일반').trim()).filter(Boolean),
     items
   };
@@ -465,7 +458,7 @@ async function autoLoadChecklists(){
 
     await dbPut('templates', {
       ...tpl,
-      reportTemplate: inferReportTemplateType(tpl),
+      reportTemplate: AuditRules.inferReportTemplateType(tpl),
       active: true,
       importedAt: new Date().toISOString()
     });
@@ -986,8 +979,8 @@ async function createAudit(){
     templateId: tplId,
     templateName: tpl.name || '',
     templateVersion: getTemplateVersionLabel(tpl),
-    checklistUiType: tpl.checklistUiType || getChecklistUiType(tpl),
-    reportTemplate: tpl.reportTemplate || inferReportTemplateType(tpl),
+    checklistUiType: tpl.checklistUiType || AuditRules.getChecklistUiType(tpl),
+    reportTemplate: tpl.reportTemplate || AuditRules.inferReportTemplateType(tpl),
     maturityScales,
     status: AUDIT_STATUS.PROGRESS,
     createdAt: new Date().toISOString(),

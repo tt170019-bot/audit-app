@@ -114,10 +114,6 @@ function br(value){
   return esc(value || '').split(String.fromCharCode(10)).join('<br>');
 }
 
-function getAuditMaturityScales(audit){
-  return AuditRules.deriveMaturityScales(audit);
-}
-
 function normalizeResultValue(value){
   return AuditRules.normalizeResultValue(value);
 }
@@ -190,20 +186,18 @@ function renderResultPanel(audit, item){
 // independent panel per assigned scale, each with its own level selection.
 function renderMaturityPanels(audit, item){
   const idx = item._idx;
-  const allScales = getAuditMaturityScales(audit);
-  const assignment = AuditRules.deriveItemMaturityAssignment(item);
-  const results = AuditRules.deriveMaturityResults(item);
-  const assignedScales = assignment.scaleIds.map(id => allScales.find(s => s.id === id)).filter(Boolean);
+  const allScales = AuditRules.deriveMaturityScales(audit);
+  const { assignedScales, selectedLevel, guidance } = MaturityResolution.resolveItemMaturity(item, allScales);
   if(!assignedScales.length) return '';
 
   return assignedScales.map(scale => {
-    const selectedLevel = results[scale.id] || '';
+    const currentLevel = selectedLevel(scale.id);
     return `<div class="maturity-panel">
       <div class="maturity-panel-title">Maturity Assessment${scale.name ? ` — ${esc(scale.name)}` : ''}</div>
       <div class="maturity-level-list" role="radiogroup" aria-label="Maturity Assessment ${esc(scale.name)}">
         ${scale.labels.map((level, levelIndex)=>{
-          const c = AuditRules.getMaturityGuidance(item, scale.id, levelIndex, level);
-          const selected = selectedLevel === level;
+          const c = guidance(scale.id, levelIndex, level);
+          const selected = currentLevel === level;
           return `<div class="maturity-card ${selected ? 'selected' : ''}" role="radio" aria-checked="${selected ? 'true' : 'false'}" aria-disabled="${audit.status===AUDIT_STATUS.DONE ? 'true' : 'false'}" tabindex="${audit.status===AUDIT_STATUS.DONE ? '-1' : '0'}" ${audit.status===AUDIT_STATUS.DONE ? '' : `onclick="setMaturityResult(${audit.id},${idx},'${scale.id}','${level}', event)" onkeydown="if(event.key==='Enter'||event.key===' '){setMaturityResult(${audit.id},${idx},'${scale.id}','${level}', event)}"`}>
             <div class="maturity-card-head">
               <span class="maturity-radio" aria-hidden="true"></span>
@@ -289,9 +283,40 @@ function renderPendingAnchorChip(audit){
   </button>`;
 }
 
-let sectionChipScrollHandler = null;
-let sectionChipScrollFrame = null;
-let currentSectionChipIndex = -1;
+// Owns the section-chip scroll-tracking lifecycle: the debounced scroll
+// listener, which scroller it's attached to, and the currently highlighted
+// section index. attach()/detach() are the only two entry points a caller
+// needs — the scroll/rAF bookkeeping that used to be four loose module
+// variables lives here instead.
+const SectionChipTracker = {
+  scrollHandler: null,
+  scrollFrame: null,
+  currentIndex: -1,
+  scrollContainer: null,
+  attach(){
+    const scroller = getChecklistScrollContainer();
+    if(!scroller) return;
+    this.detach();
+    this.currentIndex = -1;
+    this.scrollContainer = scroller;
+    this.scrollHandler = () => {
+      if(this.scrollFrame) return;
+      this.scrollFrame = requestAnimationFrame(() => {
+        this.scrollFrame = null;
+        updateCurrentSectionChip(true);
+      });
+    };
+    scroller.addEventListener('scroll', this.scrollHandler, {passive:true});
+    requestAnimationFrame(() => updateCurrentSectionChip(false));
+  },
+  detach(){
+    if(this.scrollHandler && this.scrollContainer){
+      this.scrollContainer.removeEventListener('scroll', this.scrollHandler);
+    }
+    this.scrollHandler = null;
+    this.scrollContainer = null;
+  }
+};
 
 function getCurrentChecklistSectionIndex(){
   const headers = [...document.querySelectorAll('.detail-section-start')];
@@ -329,8 +354,8 @@ function scrollChipIntoOwnContainer(chip){
 
 function setCurrentSectionChip(index, shouldAlignStart = true){
   if(index < 0) return;
-  const indexChanged = index !== currentSectionChipIndex;
-  currentSectionChipIndex = index;
+  const indexChanged = index !== SectionChipTracker.currentIndex;
+  SectionChipTracker.currentIndex = index;
 
   document.querySelectorAll('.detail-anchor-nav .anchor-chip, .detail-sidebar .anchor-chip').forEach(chip => {
     chip.classList.remove('is-current');
@@ -353,30 +378,6 @@ function updateCurrentSectionChip(shouldAlignStart = true){
   setCurrentSectionChip(getCurrentChecklistSectionIndex(), shouldAlignStart);
 }
 
-let sectionChipScrollContainer = null;
-
-function setupSectionChipTracking(){
-  const scroller = getChecklistScrollContainer();
-  if(!scroller) return;
-
-  if(sectionChipScrollHandler && sectionChipScrollContainer){
-    sectionChipScrollContainer.removeEventListener('scroll', sectionChipScrollHandler);
-  }
-
-  currentSectionChipIndex = -1;
-  sectionChipScrollContainer = scroller;
-  sectionChipScrollHandler = () => {
-    if(sectionChipScrollFrame) return;
-    sectionChipScrollFrame = requestAnimationFrame(() => {
-      sectionChipScrollFrame = null;
-      updateCurrentSectionChip(true);
-    });
-  };
-
-  scroller.addEventListener('scroll', sectionChipScrollHandler, {passive:true});
-  requestAnimationFrame(() => updateCurrentSectionChip(false));
-}
-
 function openSectionSheet(){
   const modal = byId('modal-sections');
   if(modal && !modal.dataset.backdropBound){
@@ -388,7 +389,7 @@ function openSectionSheet(){
 
   updateCurrentSectionChip(false);
   document.querySelectorAll('#modal-sections .section-sheet-item[data-section-index]').forEach(item => {
-    item.classList.toggle('is-current', Number(item.dataset.sectionIndex) === currentSectionChipIndex);
+    item.classList.toggle('is-current', Number(item.dataset.sectionIndex) === SectionChipTracker.currentIndex);
   });
   openModal('modal-sections');
 }
@@ -403,12 +404,10 @@ function jumpToPendingFromSheet(auditId){
   requestAnimationFrame(() => jumpToNext(auditId));
 }
 
-function renderChecklist(audit){
-  const c = document.getElementById('content');
-  const items = getAuditItems(audit);
-  const summary = getAuditSummary(audit);
-  const visibleItems = items.filter(item => checklistFilter === 'all' || (checklistFilter === 'pending' ? !item.result : normalizeResultValue(item.result) === checklistFilter));
-
+// Pure: which items pass the current filter, grouped by section — no DOM,
+// testable without rendering.
+function visibleSections(items, filter){
+  const visibleItems = items.filter(item => filter === 'all' || (filter === 'pending' ? !item.result : normalizeResultValue(item.result) === filter));
   const sections = {};
   visibleItems.forEach(item=>{
     const idx = items.indexOf(item);
@@ -416,7 +415,14 @@ function renderChecklist(audit){
     if(!sections[sec]) sections[sec]=[];
     sections[sec].push({...item, _idx:idx});
   });
-  const sectionEntries = Object.entries(sections);
+  return Object.entries(sections);
+}
+
+function renderChecklist(audit){
+  const c = document.getElementById('content');
+  const items = getAuditItems(audit);
+  const summary = getAuditSummary(audit);
+  const sectionEntries = visibleSections(items, checklistFilter);
 
   c.innerHTML=`
   <div class="detail-shell">
@@ -511,7 +517,7 @@ function renderChecklist(audit){
   </div>`;
   requestAnimationFrame(() => {
     syncDetailStickyOffset();
-    setupSectionChipTracking();
+    SectionChipTracker.attach();
   });
 }
 

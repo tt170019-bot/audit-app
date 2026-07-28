@@ -239,7 +239,7 @@ async function confirmReviewWizard(){
     const localMatch = existing.find(t => t.source === 'supabase' && t.supabaseId === saved.supabaseId);
     await dbPut('templates', {
       ...saved,
-      reportTemplate: inferReportTemplateType(saved),
+      reportTemplate: AuditRules.inferReportTemplateType(saved),
       active: true,
       importedAt: new Date().toISOString(),
       ...(localMatch ? {id: localMatch.id} : {})
