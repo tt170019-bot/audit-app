@@ -7,7 +7,7 @@
 }
 :root {
   /* GitHub/Linear 절제된 업무용 워크스페이스 하이어라키 토큰 */
-  --page-bg: #F8F9FA;
+  --page-bg: #F3EDF7;
   --content-bg: var(--page-bg);
   --header-bg: #FFFFFF;
   --sidebar-bg: #F2F4F6;
@@ -357,7 +357,7 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .check-body.hidden { display: block; }
 .result-panel, .comment-panel, .maturity-panel, .field-photo-panel { padding-top: var(--space-150); }
 .result-panel-title, .maturity-panel-title, .comment-panel-title, .check-label { color: var(--ads-text-subtle); font-size: var(--ads-body-small-size); line-height: var(--ads-body-small-line); font-weight: var(--ads-weight-semibold); margin-bottom: var(--space-075); }
-.field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); width: 100%; max-width: 324px; }
+.field-result-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-075); width: 100%; }
 .field-choice { position: relative; min-height: var(--ui-button-small-height); padding-block: var(--space-100); padding-inline: var(--ui-button-small-padding-inline); border: 0; border-radius: var(--radius-full); background: var(--ads-surface-container); color: var(--ads-text); font-size: var(--font-result-size); line-height: var(--font-result-line); font-weight: var(--ads-weight-medium); cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 100ms ease; }
 .field-choice:hover { background: var(--ads-surface-container-hovered); color: var(--ads-text); }
 .field-choice.selected-ok { background: var(--ads-success-bg); color: var(--ads-success-text); }
