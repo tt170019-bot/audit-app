@@ -13,6 +13,7 @@ const CACHE_FILES = [
   './maturity-resolution.js',
   './audit-store.js',
   './checklist-source.js',
+  './audit-core.js',
   './audit-detail.js',
   './supabase-client.js',
   './supabase-auth.js',

@@ -2,18 +2,19 @@ const assert = require('assert/strict');
 const fs = require('fs');
 
 // index.html was split (report-export.js / registrant-ui.js / review-wizard.js /
-// audit-detail.js / core.js / backup.js / photo.js carved out to keep the main
-// file from growing without bound) — concatenate them all so the regex
-// assertions below don't care which physical file a given piece of UI wiring
-// now lives in. Keep this list in sync whenever index.html is split further —
-// a regex assertion "passing" after a rename/move it never re-matched a
-// runtime behavior change, it just stopped seeing the code at all.
+// audit-detail.js / audit-core.js / core.js / backup.js / photo.js carved out
+// to keep the main file from growing without bound) — concatenate them all so
+// the regex assertions below don't care which physical file a given piece of
+// UI wiring now lives in. Keep this list in sync whenever index.html is split
+// further — a regex assertion "passing" after a rename/move it never
+// re-matched a runtime behavior change, it just stopped seeing the code at all.
 const source = [
   '../index.html',
   '../report-export.js',
   '../registrant-ui.js',
   '../review-wizard.js',
   '../audit-detail.js',
+  '../audit-core.js',
   '../core.js',
   '../backup.js',
   '../photo.js',
@@ -88,8 +89,20 @@ assert.match(
 
 assert.match(
   source,
-  /const answered = audit\?\.behaviorOutcomeAssessment \? total : items\.filter\(item => item\.result\)\.length;/,
+  /const answered = AuditRules\.judgmentModeFor\(audit\)\.answeredCount\(items\);/,
   'Behavior/Outcome 평가 심사는 판단하지 않으므로 전체 항목을 완료로 집계해야 합니다 (미완료 탭이 남으면 안 됩니다)',
+);
+
+assert.match(
+  source,
+  /function buildAuditFromTemplate\(tpl, \{ title, date, auditor, dept, templateId \}\)\{/,
+  'Audit 객체 조립은 DOM을 몰라도 되는 순수 함수여야 합니다 (createAudit은 폼을 읽어 이 함수를 호출하는 얇은 핸들러)',
+);
+
+assert.match(
+  source,
+  /async function createAudit\(\)\{[\s\S]*?buildAuditFromTemplate\(tpl, \{ title, date, auditor, dept, templateId: tplId \}\)/,
+  'createAudit은 buildAuditFromTemplate에 위임해야 합니다 (폼 읽기와 Audit 조립 로직이 다시 한 함수에 섞이면 안 됩니다)',
 );
 
 assert.match(

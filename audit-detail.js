@@ -279,10 +279,10 @@ function renderChecklistItem(audit, item){
     </div>
   </div>`;
 }
-function getSectionNavState(secItems, allAnswered = false){
+function getSectionNavState(secItems, mode = AuditRules.JUDGMENT_MODES.auditResult){
   // Navigation chips are not status badges.
   // Keep section chips visually neutral regardless of YES/NO/OBS/N/A results.
-  const completion = getSectionCompletion(secItems, allAnswered);
+  const completion = getSectionCompletion(secItems, mode);
   return { ...completion, className: 'is-neutral' };
 }
 
@@ -293,15 +293,15 @@ function getSectionChipLabel(sectionName){
   return String(sectionName || '').replace(/^\s*\d+\s*[.)]\s*/, '').trim() || String(sectionName || '일반');
 }
 
-function renderSectionAnchorChip(sectionName, secItems, sectionIndex, idPrefix = 'nav-sec-', allAnswered = false){
-  const state = getSectionNavState(secItems, allAnswered);
+function renderSectionAnchorChip(sectionName, secItems, sectionIndex, idPrefix = 'nav-sec-', mode = AuditRules.JUDGMENT_MODES.auditResult){
+  const state = getSectionNavState(secItems, mode);
   const label = getSectionChipLabel(sectionName);
   const chipId = `${idPrefix}${sectionIndex}`;
   // Behavior/Outcome Assessment sections have no per-item judgment, so
   // answered always equals total — show a plain item count instead of the
   // redundant "N/N".
-  const countLabel = allAnswered ? `${state.total}` : `${state.answered}/${state.total}`;
-  const countAria = allAnswered ? `총 ${state.total}개 항목` : `${state.answered}/${state.total} 항목 완료`;
+  const countLabel = mode.showsFraction ? `${state.answered}/${state.total}` : `${state.total}`;
+  const countAria = mode.showsFraction ? `${state.answered}/${state.total} 항목 완료` : `총 ${state.total}개 항목`;
   return `<button type="button" id="${chipId}" data-section-index="${sectionIndex}" class="anchor-chip ${state.className}" onclick="scrollToChecklistSection('sec-${sectionIndex}')" aria-label="${esc(sectionName)} 섹션으로 이동, ${countAria}">
     <span class="anchor-chip-label">${esc(label)}</span>
     <span class="anchor-chip-count">${countLabel}</span>
@@ -451,6 +451,7 @@ function renderChecklist(audit){
   const c = document.getElementById('content');
   const items = getAuditItems(audit);
   const summary = getAuditSummary(audit);
+  const mode = AuditRules.judgmentModeFor(audit);
   const sectionEntries = visibleSections(items, checklistFilter);
 
   c.innerHTML=`
@@ -468,17 +469,17 @@ function renderChecklist(audit){
       <div class="detail-progress">
         <div class="detail-progress-head">
           <span class="detail-progress-text">${summary.answered}/${summary.total} 완료 · ${summary.percent}%</span>
-          ${audit.behaviorOutcomeAssessment ? '' : `<div class="result-count-row detail-result-counts">
+          ${mode.showsFraction ? `<div class="result-count-row detail-result-counts">
             <span class="badge badge-ok">YES ${summary.yes}</span>
             <span class="badge badge-ng">NO ${summary.no}</span>
             <span class="badge badge-na">N/A ${summary.na}</span>
             <span class="badge badge-obs">OBS ${summary.obs}</span>
-          </div>`}
+          </div>` : ''}
         </div>
         <div class="prog-wrap detail-prog-wrap"><div class="prog-fill" style="width:${summary.percent}%"></div></div>
-        ${audit.behaviorOutcomeAssessment ? '' : `<div class="checklist-filter-row">
+        ${mode.showsFraction ? `<div class="checklist-filter-row">
           ${[['all','전체'],['pending','미완료'],['NO','NO'],['OBS','OBS']].map(([value,label])=>`<button type="button" class="anchor-chip ${checklistFilter===value ? 'is-current' : ''}" aria-pressed="${checklistFilter===value ? 'true' : 'false'}" onclick="setChecklistFilter('${value}')">${label}</button>`).join('')}
-        </div>`}
+        </div>` : ''}
       </div>
     </div>
 
@@ -486,8 +487,8 @@ function renderChecklist(audit){
     <div class="detail-body">
       <aside class="detail-sidebar" aria-label="점검 섹션 사이드바">
         <div class="detail-sidebar-label">SECTION</div>
-        ${sectionEntries.map(([sec, secItems], i)=>renderSectionAnchorChip(sec, secItems, i, 'nav-side-', audit.behaviorOutcomeAssessment)).join('')}
-        ${audit.behaviorOutcomeAssessment ? '' : renderPendingAnchorChip(audit)}
+        ${sectionEntries.map(([sec, secItems], i)=>renderSectionAnchorChip(sec, secItems, i, 'nav-side-', mode)).join('')}
+        ${mode.showsFraction ? renderPendingAnchorChip(audit) : ''}
       </aside>
 
       <div class="detail-content">
@@ -501,7 +502,7 @@ function renderChecklist(audit){
           ` : sectionEntries.map(([sec,secItems], sectionIndex)=>`
             <div class="section-header detail-section-start" id="sec-${sectionIndex}">
               <span class="detail-section-title">${esc(sec)}</span>
-              <span class="check-section-summary check-section-summary-inline">${audit.behaviorOutcomeAssessment ? getSectionCompletion(secItems).total : `${getSectionCompletion(secItems).answered}/${getSectionCompletion(secItems).total}`}</span>
+              <span class="check-section-summary check-section-summary-inline">${(() => { const c = getSectionCompletion(secItems, mode); return mode.showsFraction ? `${c.answered}/${c.total}` : `${c.total}`; })()}</span>
             </div>
             ${secItems.map(item=>renderChecklistItem(audit, item)).join('')}
           `).join('')}
@@ -527,14 +528,14 @@ function renderChecklist(audit){
         <div class="modal-handle"></div>
         <div class="modal-title" id="modal-sections-title">섹션 이동</div>
         <div class="modal-body">
-          ${audit.behaviorOutcomeAssessment ? '' : `<button type="button" class="section-sheet-item section-sheet-pending" onclick="jumpToPendingFromSheet(${audit.id})">
+          ${mode.showsFraction ? `<button type="button" class="section-sheet-item section-sheet-pending" onclick="jumpToPendingFromSheet(${audit.id})">
             <span class="section-sheet-label">미완료 항목으로 이동</span>
             <span class="section-sheet-count">${Math.max(summary.total-summary.answered,0)}</span>
-          </button>`}
+          </button>` : ''}
           <div class="section-sheet-list">
             ${sectionEntries.map(([sec, secItems], i)=>{
-              const completion = getSectionCompletion(secItems);
-              const count = audit.behaviorOutcomeAssessment ? `${completion.total}` : `${completion.answered}/${completion.total}`;
+              const completion = getSectionCompletion(secItems, mode);
+              const count = mode.showsFraction ? `${completion.answered}/${completion.total}` : `${completion.total}`;
               return `<button type="button" class="section-sheet-item" data-section-index="${i}" onclick="goToSectionFromSheet(${i})">
                 <span class="section-sheet-label">${esc(sec)}</span>
                 <span class="section-sheet-count">${count}</span>
@@ -645,10 +646,6 @@ async function setResult(auditId, idx, result, event){
   });
 }
 
-const noteSaveTimers = new Map();
-const pendingNoteValues = new Map();
-const boSaveTimers = new Map();
-const pendingBoValues = new Map();
 const auditWriteQueues = new Map();
 
 function enqueueAuditWrite(auditId, write){
@@ -670,119 +667,132 @@ function waitForAuditWrites(auditId){
   return auditWriteQueues.get(auditId) || Promise.resolve();
 }
 
-function clearPendingNoteWrites(){
-  for(const timer of noteSaveTimers.values()) clearTimeout(timer);
-  noteSaveTimers.clear();
-  pendingNoteValues.clear();
-  for(const timer of boSaveTimers.values()) clearTimeout(timer);
-  boSaveTimers.clear();
-  pendingBoValues.clear();
+// Debounced per-field audit write queue — one engine behind every field that
+// needs "type, wait 400ms, persist" (item.note, item.behaviorOutcome[code]).
+// The note and Behavior/Outcome save paths used to be two copies of the same
+// timer/pending-map/enqueueAuditWrite machinery differing only in what got
+// written — this is the collapsed interface (2026-07-31 architecture review).
+// `apply(item, rawValue, sub)` is the one thing each channel supplies.
+function createDebouncedFieldSave(apply){
+  const timers = new Map();
+  const pending = new Map();
+
+  function key(auditId, idx, sub){
+    return sub == null ? `${auditId}:${idx}` : `${auditId}:${idx}:${sub}`;
+  }
+
+  function getPending(auditId, idx, sub, fallback){
+    const k = key(auditId, idx, sub);
+    return pending.has(k) ? pending.get(k) : fallback;
+  }
+
+  // Folds every not-yet-persisted edit on this channel into an in-memory
+  // audit — needed before a full renderChecklist() triggered by some other
+  // field's change, so an unblurred edit here doesn't get visually reverted.
+  function applyPendingToAudit(audit){
+    if(!audit?.id || !Array.isArray(audit.items)) return audit;
+    for(const k of pending.keys()){
+      if(!k.startsWith(`${audit.id}:`)) continue;
+      const [, idxStr, sub] = k.split(':');
+      const item = audit.items[Number(idxStr)];
+      if(item) apply(item, pending.get(k), sub);
+    }
+    return audit;
+  }
+
+  function schedule(auditId, idx, sub, rawValue){
+    if(currentAudit?.id === auditId && currentAudit.status === AUDIT_STATUS.DONE){
+      showToast('완료된 심사는 다시 열어야 수정할 수 있습니다');
+      return;
+    }
+    const k = key(auditId, idx, sub);
+    pending.set(k, rawValue);
+    if(currentAudit?.id === auditId && currentAudit.items?.[idx]) apply(currentAudit.items[idx], rawValue, sub);
+
+    clearTimeout(timers.get(k));
+    timers.set(k, setTimeout(() => persist(auditId, idx, sub), 400));
+  }
+
+  async function persist(auditId, idx, sub){
+    const k = key(auditId, idx, sub);
+    const rawValue = pending.get(k);
+    if(rawValue === undefined) return;
+
+    timers.delete(k);
+    return enqueueAuditWrite(auditId, async () => {
+      const audit = await dbGet('audits', auditId);
+      if(!audit?.items?.[idx] || audit.status === AUDIT_STATUS.DONE) return;
+      apply(audit.items[idx], rawValue, sub);
+      await dbPut('audits', audit);
+      if(currentAudit?.id === auditId && currentAudit.items?.[idx]) apply(currentAudit.items[idx], rawValue, sub);
+      if(pending.get(k) === rawValue) pending.delete(k);
+    });
+  }
+
+  function flush(auditId, idx, sub){
+    const k = key(auditId, idx, sub);
+    clearTimeout(timers.get(k));
+    timers.delete(k);
+    return persist(auditId, idx, sub);
+  }
+
+  async function flushAllForAudit(auditId){
+    const keys = [...pending.keys()].filter(k => k.startsWith(`${auditId}:`));
+    for(const k of keys){
+      const [, idxStr, sub] = k.split(':');
+      await flush(auditId, Number(idxStr), sub);
+    }
+  }
+
+  function clear(){
+    for(const timer of timers.values()) clearTimeout(timer);
+    timers.clear();
+    pending.clear();
+  }
+
+  return { getPending, applyPendingToAudit, schedule, flush, flushAllForAudit, clear };
 }
 
-function getNoteSaveKey(auditId, idx){
-  return `${auditId}:${idx}`;
+const noteSaveChannel = createDebouncedFieldSave((item, value) => { item.note = value; });
+const boSaveChannel = createDebouncedFieldSave((item, rawValue, code) => {
+  const parsed = String(rawValue).trim() === '' ? null : parseInt(rawValue, 10);
+  const behaviorOutcome = { ...(item.behaviorOutcome || {}) };
+  if(parsed === null || Number.isNaN(parsed)) delete behaviorOutcome[code];
+  else behaviorOutcome[code] = parsed;
+  item.behaviorOutcome = behaviorOutcome;
+});
+
+function clearPendingNoteWrites(){
+  noteSaveChannel.clear();
+  boSaveChannel.clear();
 }
 
 function getPendingNoteValue(auditId, idx, fallback = ''){
-  const key = getNoteSaveKey(auditId, idx);
-  return pendingNoteValues.has(key) ? pendingNoteValues.get(key) : fallback;
+  return noteSaveChannel.getPending(auditId, idx, null, fallback);
 }
 
 function applyPendingNotesToAudit(audit){
-  if(!audit?.id || !Array.isArray(audit.items)) return audit;
-  audit.items.forEach((item, idx) => {
-    const key = getNoteSaveKey(audit.id, idx);
-    if(pendingNoteValues.has(key)) item.note = pendingNoteValues.get(key);
-  });
-  return audit;
+  return noteSaveChannel.applyPendingToAudit(audit);
 }
 
 function scheduleNoteSave(auditId, idx, note){
-  if(currentAudit?.id === auditId && currentAudit.status === AUDIT_STATUS.DONE){
-    showToast('완료된 심사는 다시 열어야 수정할 수 있습니다');
-    return;
-  }
-  const key = getNoteSaveKey(auditId, idx);
-  pendingNoteValues.set(key, note);
-
-  if(currentAudit?.id === auditId && currentAudit.items?.[idx]){
-    currentAudit.items[idx].note = note;
-  }
-
-  clearTimeout(noteSaveTimers.get(key));
-  noteSaveTimers.set(key, setTimeout(() => persistNoteValue(auditId, idx), 400));
-}
-
-async function persistNoteValue(auditId, idx){
-  const key = getNoteSaveKey(auditId, idx);
-  const note = pendingNoteValues.get(key);
-  if(note === undefined) return;
-
-  noteSaveTimers.delete(key);
-  return enqueueAuditWrite(auditId, async () => {
-    const audit = await dbGet('audits', auditId);
-    if(!audit?.items?.[idx] || audit.status === AUDIT_STATUS.DONE) return;
-    audit.items[idx].note = note;
-    await dbPut('audits', audit);
-    if(currentAudit?.id === auditId && currentAudit.items?.[idx]) currentAudit.items[idx].note = note;
-    if(pendingNoteValues.get(key) === note) pendingNoteValues.delete(key);
-  });
+  noteSaveChannel.schedule(auditId, idx, null, note);
 }
 
 function flushNoteSave(auditId, idx){
-  const key = getNoteSaveKey(auditId, idx);
-  clearTimeout(noteSaveTimers.get(key));
-  noteSaveTimers.delete(key);
-  return persistNoteValue(auditId, idx);
-}
-
-// Behavior/Outcome Assessment value save — same debounce-then-persist shape
-// as the note field above, keyed per (audit, item, code) instead of per item.
-function getBoSaveKey(auditId, idx, code){
-  return `${auditId}:${idx}:${code}`;
+  return noteSaveChannel.flush(auditId, idx, null);
 }
 
 function getPendingBoValue(auditId, idx, code, fallback = ''){
-  const key = getBoSaveKey(auditId, idx, code);
-  return pendingBoValues.has(key) ? pendingBoValues.get(key) : fallback;
+  return boSaveChannel.getPending(auditId, idx, code, fallback);
 }
 
 function scheduleBoSave(auditId, idx, code, rawValue){
-  if(currentAudit?.id === auditId && currentAudit.status === AUDIT_STATUS.DONE){
-    showToast('완료된 심사는 다시 열어야 수정할 수 있습니다');
-    return;
-  }
-  const key = getBoSaveKey(auditId, idx, code);
-  pendingBoValues.set(key, rawValue);
-  clearTimeout(boSaveTimers.get(key));
-  boSaveTimers.set(key, setTimeout(() => persistBoValue(auditId, idx, code), 400));
-}
-
-async function persistBoValue(auditId, idx, code){
-  const key = getBoSaveKey(auditId, idx, code);
-  const rawValue = pendingBoValues.get(key);
-  if(rawValue === undefined) return;
-
-  boSaveTimers.delete(key);
-  return enqueueAuditWrite(auditId, async () => {
-    const audit = await dbGet('audits', auditId);
-    if(!audit?.items?.[idx] || audit.status === AUDIT_STATUS.DONE) return;
-    const parsed = String(rawValue).trim() === '' ? null : parseInt(rawValue, 10);
-    const behaviorOutcome = { ...(audit.items[idx].behaviorOutcome || {}) };
-    if(parsed === null || Number.isNaN(parsed)) delete behaviorOutcome[code];
-    else behaviorOutcome[code] = parsed;
-    audit.items[idx].behaviorOutcome = behaviorOutcome;
-    await dbPut('audits', audit);
-    if(currentAudit?.id === auditId && currentAudit.items?.[idx]) currentAudit.items[idx].behaviorOutcome = behaviorOutcome;
-    if(pendingBoValues.get(key) === rawValue) pendingBoValues.delete(key);
-  });
+  boSaveChannel.schedule(auditId, idx, code, rawValue);
 }
 
 function flushBoSave(auditId, idx, code){
-  const key = getBoSaveKey(auditId, idx, code);
-  clearTimeout(boSaveTimers.get(key));
-  boSaveTimers.delete(key);
-  return persistBoValue(auditId, idx, code);
+  return boSaveChannel.flush(auditId, idx, code);
 }
 
 async function deleteAudit(id, event){
@@ -796,23 +806,16 @@ async function deleteAudit(id, event){
   switchTab('audits');
 }
 
-async function flushPendingNotesForAudit(auditId){
-  const indices = [...pendingNoteValues.keys()]
-    .filter(key => key.startsWith(`${auditId}:`))
-    .map(key => Number(key.slice(String(auditId).length + 1)));
-  for(const idx of indices) await flushNoteSave(auditId, idx);
+function flushPendingNotesForAudit(auditId){
+  return noteSaveChannel.flushAllForAudit(auditId);
 }
 
-async function flushPendingBoForAudit(auditId){
-  const keys = [...pendingBoValues.keys()].filter(key => key.startsWith(`${auditId}:`));
-  for(const key of keys){
-    const [, idx, code] = key.split(':');
-    await flushBoSave(auditId, Number(idx), code);
-  }
+function flushPendingBoForAudit(auditId){
+  return boSaveChannel.flushAllForAudit(auditId);
 }
 
 function jumpToNext(auditId){
-  if(currentAudit?.behaviorOutcomeAssessment){ showToast('모든 항목이 완료되었습니다 ✓'); return; }
+  if(!AuditRules.judgmentModeFor(currentAudit).showsFraction){ showToast('모든 항목이 완료되었습니다 ✓'); return; }
   const items = currentAudit?.items||[];
   const nextIdx = items.findIndex(i=>!i.result);
   if(nextIdx<0){ showToast('모든 항목이 완료되었습니다 ✓'); return; }

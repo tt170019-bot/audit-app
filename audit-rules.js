@@ -66,11 +66,32 @@
     return sections;
   }
 
+  // Judgment mode (see the 2026-07-31 architecture review) — the one place
+  // "does this item carry a per-item judgment" is decided. Audit Result
+  // items do (YES/NO/OBS/N-A); Behavior/Outcome items never do (CONTEXT.md).
+  // Every caller that used to branch on audit.behaviorOutcomeAssessment for
+  // completion/answered-counting reasons should ask the mode instead —
+  // rendering-dispatch branches (which panel, which export renderer) stay as
+  // plain ternaries at their one call site; they aren't duplicated logic.
+  const JUDGMENT_MODES = {
+    auditResult: {
+      isComplete(items){ return (items || []).every(item => Boolean(normalizeResultValue(item.result))); },
+      answeredCount(items){ return (items || []).filter(item => item.result).length; },
+      showsFraction: true
+    },
+    behaviorOutcome: {
+      isComplete(){ return true; },
+      answeredCount(items){ return (items || []).length; },
+      showsFraction: false
+    }
+  };
+
+  function judgmentModeFor(audit){
+    return audit?.behaviorOutcomeAssessment ? JUDGMENT_MODES.behaviorOutcome : JUDGMENT_MODES.auditResult;
+  }
+
   function canCompleteAudit(audit){
-    // Behavior/Outcome Assessment items carry no per-item judgment (see
-    // CONTEXT.md) — completion is never gated on them being filled in.
-    if(audit?.behaviorOutcomeAssessment) return true;
-    return Array.isArray(audit?.items) && audit.items.every(item => Boolean(normalizeResultValue(item.result)));
+    return judgmentModeFor(audit).isComplete(audit?.items);
   }
 
   // ═══════════════════════════════════════════════
@@ -152,8 +173,8 @@
   }
 
   return {
-    MATURITY_LEVELS, DIVISIONS, LEGACY_SCALE_ID, BEHAVIOR_CODES, OUTCOME_CODES,
-    inferReportTemplateType, getChecklistUiType, normalizeResultValue, canCompleteAudit, bucketBySection,
+    MATURITY_LEVELS, DIVISIONS, LEGACY_SCALE_ID, BEHAVIOR_CODES, OUTCOME_CODES, JUDGMENT_MODES,
+    inferReportTemplateType, getChecklistUiType, normalizeResultValue, canCompleteAudit, judgmentModeFor, bucketBySection,
     deriveMaturityScales, deriveItemMaturityAssignment, getMaturityGuidance, deriveMaturityResults,
     validateMaturityScale
   };

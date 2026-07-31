@@ -17,6 +17,7 @@
 <script src="maturity-resolution.js"></script>
 <script src="audit-store.js"></script>
 <script src="checklist-source.js"></script>
+<script src="audit-core.js"></script>
 <script src="audit-detail.js"></script>
 <script src="supabase-client.js"></script>
 <script src="supabase-auth.js"></script>
@@ -547,56 +548,6 @@ async function renderTab(tab){
 
 
 // ═══════════════════════════════════════════════
-//  Audit summary helpers
-//  - Centralizes repeated YES/NO/OBS/N/A and completion calculations.
-//  - Keeps one-file delivery while reducing render/export duplication.
-// ═══════════════════════════════════════════════
-function getAuditItems(audit){
-  return Array.isArray(audit?.items) ? audit.items : [];
-}
-
-function countAuditResult(items, resultValue){
-  return items.filter(item => normalizeResultValue(item.result) === resultValue).length;
-}
-
-function getAuditSummary(audit){
-  const items = getAuditItems(audit);
-  const total = items.length;
-  // Behavior/Outcome Assessment items carry no per-item judgment (see
-  // CONTEXT.md) — nothing is ever "pending" for them.
-  const answered = audit?.behaviorOutcomeAssessment ? total : items.filter(item => item.result).length;
-  const yes = countAuditResult(items, RESULT_VALUE.YES);
-  const no = countAuditResult(items, RESULT_VALUE.NO);
-  const obs = countAuditResult(items, RESULT_VALUE.OBS);
-  const na = countAuditResult(items, RESULT_VALUE.NA);
-  const percent = total ? Math.round(answered / total * 100) : 0;
-
-  return {
-    total,
-    answered,
-    percent,
-    ok: yes,
-    yes,
-    ng: no,
-    no,
-    obs,
-    na
-  };
-}
-
-function getSectionCompletion(items, allAnswered = false){
-  const safeItems = Array.isArray(items) ? items : [];
-  return {
-    total: safeItems.length,
-    answered: allAnswered ? safeItems.length : safeItems.filter(item => item.result).length
-  };
-}
-
-function getResultPercent(count, total){
-  return total ? `${Math.round(count / total * 100)}%` : '';
-}
-
-// ═══════════════════════════════════════════════
 //  Home tab
 // ═══════════════════════════════════════════════
 async function renderHome(c){
@@ -959,44 +910,6 @@ async function openNewAuditModal(){
   document.getElementById('na-auditor').value='';
   document.getElementById('na-dept').value='';
   openModal('modal-newaudit');
-}
-
-async function createAudit(){
-  const title = document.getElementById('na-title').value.trim();
-  const tplId = parseInt(document.getElementById('na-template').value);
-  const date  = document.getElementById('na-date').value;
-  const auditor = document.getElementById('na-auditor').value.trim();
-  const dept  = document.getElementById('na-dept').value.trim();
-
-  if(!title){ showToast('심사 제목을 입력하세요'); return; }
-  if(!tplId){ showToast('점검표를 선택하세요'); return; }
-
-  const tpl = await getNormalizedTemplate(tplId);
-  if(!tpl){ showToast('점검표를 불러올 수 없습니다'); return; }
-  if(!tpl.items.length){ showToast('점검표 항목 형식이 맞지 않습니다. 다시 업로드하세요'); return; }
-
-  const maturityScales = AuditRules.deriveMaturityScales(tpl);
-  const audit = {
-    title, date, auditor, dept,
-    templateId: tplId,
-    templateName: tpl.name || '',
-    templateVersion: getTemplateVersionLabel(tpl),
-    checklistUiType: tpl.checklistUiType || AuditRules.getChecklistUiType(tpl),
-    reportTemplate: tpl.reportTemplate || AuditRules.inferReportTemplateType(tpl),
-    maturityScales,
-    behaviorOutcomeAssessment: Boolean(tpl.behaviorOutcomeAssessment),
-    status: AUDIT_STATUS.PROGRESS,
-    createdAt: new Date().toISOString(),
-    items: tpl.items.map(i=>{
-      const assignment = AuditRules.deriveItemMaturityAssignment(i);
-      return {...i, result:null, note:'', photos:[], maturityScaleIds: assignment.scaleIds, maturityGuidance: assignment.guidance, maturityResults: {}, behaviorOutcome: {}};
-    })
-  };
-  const id = await dbPut('audits', audit);
-  closeModal('modal-newaudit');
-  audit.id = id;
-  showToast('심사가 시작되었습니다');
-  openAudit(id);
 }
 
 function openNewChecklistModal(){

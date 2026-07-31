@@ -23,6 +23,24 @@ assert.equal(
   'Behavior/Outcome 평가 점검표는 항목별 블록 레이아웃(type-2)을 써야 합니다',
 );
 
+// ═══ Judgment mode (2026-07-31 architecture review) — one seam behind
+// canCompleteAudit and every "answered" count, instead of a flag re-checked
+// at each call site ═══
+assert.equal(rules.judgmentModeFor({items:[]}), rules.JUDGMENT_MODES.auditResult, '기본은 Audit Result 모드여야 합니다');
+assert.equal(rules.judgmentModeFor({behaviorOutcomeAssessment:true}), rules.JUDGMENT_MODES.behaviorOutcome);
+assert.equal(rules.JUDGMENT_MODES.auditResult.showsFraction, true);
+assert.equal(rules.JUDGMENT_MODES.behaviorOutcome.showsFraction, false);
+assert.equal(
+  rules.JUDGMENT_MODES.auditResult.answeredCount([{result:'YES'}, {result:''}, {result:'NO'}]),
+  2,
+  'Audit Result 모드는 실제로 응답된 항목만 세야 합니다',
+);
+assert.equal(
+  rules.JUDGMENT_MODES.behaviorOutcome.answeredCount([{result:''}, {result:''}]),
+  2,
+  'Behavior/Outcome 모드는 판단하지 않으므로 전체를 완료로 세야 합니다',
+);
+
 assert.deepEqual(rules.DIVISIONS, ['안전', '보안', '정비', '운항', '객실', '화물', '여객지원', '종합통제']);
 
 // ═══ deriveMaturityScales(template) — multi-scale model, 2026-07-26 ═══
