@@ -583,7 +583,6 @@ async function setMaturityResult(auditId, idx, scaleId, maturity, event){
 
     renderChecklist(audit);
     preserveDetailScroll(previousScrollTop, idx, anchorTopBefore);
-    showToast('성숙도 수준이 저장되었습니다');
   });
 }
 
