@@ -48,6 +48,10 @@ _Avoid_: Use "Checklist Template" (Supabase-backed) instead.
 Supporting material attached to substantiate an audit result or maturity assessment.
 _Avoid_: Attachment, photo
 
+**TOPS Excel**:
+An Excel export (`exportTopsChecklistExcel`) matching the external TOPS system's bulk-registration import schema — exactly 12 fixed columns, Audit Result marks only. Not extensible with extra columns; the import rejects anything that doesn't match the schema exactly. See [ADR-0003](docs/adr/0003-tops-excel-stays-result-only.md).
+_Avoid_: Confusing with `exportExcel`'s general-purpose Excel export, which does carry Maturity Assessment columns.
+
 **Audit Report**:
 The generated record of a completed audit, including checklist responses, comments, and evidence.
 _Avoid_: Export file, output
