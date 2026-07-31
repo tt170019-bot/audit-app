@@ -5,6 +5,12 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function(){
   const MATURITY_LEVELS = Object.freeze(['Conformity', 'Established', 'Mature', 'Leading']);
   const DIVISIONS = Object.freeze(['안전', '보안', '정비', '운항', '객실', '화물', '여객지원', '종합통제']);
+  // Behavior/Outcome Assessment (see CONTEXT.md) — fixed codes for the one
+  // checklist template that uses this in place of Audit Result. Not
+  // Registrant-configurable: every item in that template shows these same
+  // two groups.
+  const BEHAVIOR_CODES = Object.freeze(['DA', 'DI', 'UD']);
+  const OUTCOME_CODES = Object.freeze(['UAS', 'AE', 'IC']);
   // Every template/item/audit-item created before the multi-scale model
   // (2026-07-26) is adapted at read time under this synthetic scale id,
   // instead of a destructive data migration. See deriveMaturityScales /
@@ -26,7 +32,9 @@
     // old single-scale shape, or legacy checklistUiType/name keyword match —
     // deriveMaturityScales already covers all three) needs the type-2
     // (Maturity Assessment table) report, regardless of what its name says.
-    return deriveMaturityScales(source).length > 0 ? 'report-type-2' : 'report-type-1';
+    // A Behavior/Outcome Assessment checklist also needs the type-2
+    // per-item block layout — it has no Maturity Scale of its own.
+    return (deriveMaturityScales(source).length > 0 || source?.behaviorOutcomeAssessment) ? 'report-type-2' : 'report-type-1';
   }
 
   function getChecklistUiType(source){
@@ -59,6 +67,9 @@
   }
 
   function canCompleteAudit(audit){
+    // Behavior/Outcome Assessment items carry no per-item judgment (see
+    // CONTEXT.md) — completion is never gated on them being filled in.
+    if(audit?.behaviorOutcomeAssessment) return true;
     return Array.isArray(audit?.items) && audit.items.every(item => Boolean(normalizeResultValue(item.result)));
   }
 
@@ -141,7 +152,7 @@
   }
 
   return {
-    MATURITY_LEVELS, DIVISIONS, LEGACY_SCALE_ID,
+    MATURITY_LEVELS, DIVISIONS, LEGACY_SCALE_ID, BEHAVIOR_CODES, OUTCOME_CODES,
     inferReportTemplateType, getChecklistUiType, normalizeResultValue, canCompleteAudit, bucketBySection,
     deriveMaturityScales, deriveItemMaturityAssignment, getMaturityGuidance, deriveMaturityResults,
     validateMaturityScale

@@ -982,11 +982,12 @@ async function createAudit(){
     checklistUiType: tpl.checklistUiType || AuditRules.getChecklistUiType(tpl),
     reportTemplate: tpl.reportTemplate || AuditRules.inferReportTemplateType(tpl),
     maturityScales,
+    behaviorOutcomeAssessment: Boolean(tpl.behaviorOutcomeAssessment),
     status: AUDIT_STATUS.PROGRESS,
     createdAt: new Date().toISOString(),
     items: tpl.items.map(i=>{
       const assignment = AuditRules.deriveItemMaturityAssignment(i);
-      return {...i, result:null, note:'', photos:[], maturityScaleIds: assignment.scaleIds, maturityGuidance: assignment.guidance, maturityResults: {}};
+      return {...i, result:null, note:'', photos:[], maturityScaleIds: assignment.scaleIds, maturityGuidance: assignment.guidance, maturityResults: {}, behaviorOutcome: {}};
     })
   };
   const id = await dbPut('audits', audit);

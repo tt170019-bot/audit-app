@@ -47,15 +47,20 @@ async function exportExcel(id){
 
   // Detail sheet — one column per template maturity scale (0-N), between
   // 결과 and 비고, so items with no scale assigned just show blank cells.
+  // Behavior/Outcome Assessment templates (see CONTEXT.md) add their fixed
+  // DA/DI/UD/UAS/AE/IC code columns the same way — empty array for every
+  // other template, so this is a no-op there.
   const scales = AuditRules.deriveMaturityScales(audit);
-  const detailData=[['섹션','항목번호','점검 항목','참조규정','결과', ...scales.map(s=>s.name || '성숙도'), '비고']];
+  const boCodes = audit.behaviorOutcomeAssessment ? [...AuditRules.BEHAVIOR_CODES, ...AuditRules.OUTCOME_CODES] : [];
+  const detailData=[['섹션','항목번호','점검 항목','참조규정','결과', ...scales.map(s=>s.name || '성숙도'), ...boCodes, '비고']];
   items.forEach(item=>{
     const { results } = MaturityResolution.resolveItemMaturity(item, scales);
     const scaleCells = scales.map(s => results[s.id] || '');
-    detailData.push([item.section||'',item.ref||'',item.question||'',item.refStd||'',normalizeResultValue(item.result)||'', ...scaleCells, item.note||'']);
+    const boCells = boCodes.map(code => item.behaviorOutcome && item.behaviorOutcome[code] != null ? item.behaviorOutcome[code] : '');
+    detailData.push([item.section||'',item.ref||'',item.question||'',item.refStd||'',normalizeResultValue(item.result)||'', ...scaleCells, ...boCells, item.note||'']);
   });
   const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
-  wsDetail['!cols']=[{wch:16},{wch:12},{wch:50},{wch:20},{wch:8}, ...scales.map(()=>({wch:14})), {wch:40}];
+  wsDetail['!cols']=[{wch:16},{wch:12},{wch:50},{wch:20},{wch:8}, ...scales.map(()=>({wch:14})), ...boCodes.map(()=>({wch:8})), {wch:40}];
   XLSX.utils.book_append_sheet(wb, wsDetail, '점검결과');
 
   // NG sheet
@@ -273,7 +278,20 @@ function renderMaturityTable(item, scale, results){
     </table>`;
 }
 
-function renderFieldAuditItem(item, index, scales){
+// Behavior/Outcome Assessment (see CONTEXT.md) — replaces the YES/NO/OBS/N-A
+// result-table with the two fixed code groups, each code showing its free
+// integer value (blank if never entered).
+function renderBehaviorOutcomeTable(item){
+  const cell = code => `<td class="result-row-label">${esc(code)}${item.behaviorOutcome && item.behaviorOutcome[code] != null ? `: ${esc(String(item.behaviorOutcome[code]))}` : ''}</td>`;
+  return `<table class="result-table">
+      <colgroup><col style="width:31mm"><col style="width:31mm"><col style="width:31mm"><col style="width:31.5mm"><col style="width:31.5mm"><col style="width:31.5mm"></colgroup>
+      <tbody>
+        <tr>${AuditRules.BEHAVIOR_CODES.map(cell).join('')}${AuditRules.OUTCOME_CODES.map(cell).join('')}</tr>
+      </tbody>
+    </table>`;
+}
+
+function renderFieldAuditItem(item, index, scales, behaviorOutcomeAssessment){
   const sectionTitle = esc(item.section || '일반');
   const ref = esc(item.ref || String(index + 1));
   const question = br(item.question || '');
@@ -309,7 +327,7 @@ function renderFieldAuditItem(item, index, scales){
       </tbody>
     </table>
 
-    <table class="result-table">
+    ${behaviorOutcomeAssessment ? renderBehaviorOutcomeTable(item) : `<table class="result-table">
       <colgroup><col style="width:46.5mm"><col style="width:46.5mm"><col style="width:46.5mm"><col style="width:46.5mm"></colgroup>
       <tbody>
         <tr>
@@ -319,7 +337,7 @@ function renderFieldAuditItem(item, index, scales){
           <td class="result-row-label"><span class="checkbox${resultSelected(item,'N/A')}">${checkboxMark(!!resultSelected(item,'N/A'))}N/A</span></td>
         </tr>
       </tbody>
-    </table>
+    </table>`}
 
     ${maturityTables}
 
@@ -331,7 +349,7 @@ function renderFieldAuditItem(item, index, scales){
 }
 function renderFieldAuditItems(audit){
   const scales = AuditRules.deriveMaturityScales(audit);
-  return (audit.items || []).map((item,index)=>renderFieldAuditItem(item,index,scales)).join('');
+  return (audit.items || []).map((item,index)=>renderFieldAuditItem(item,index,scales,audit.behaviorOutcomeAssessment)).join('');
 }
 
 // One registry entry per {{token}} used in REPORT_TEMPLATES — adding a

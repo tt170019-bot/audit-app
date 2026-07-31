@@ -18,6 +18,7 @@ async function main(){
           id: 'row-1',
           name: '현장 점검표',
           maturity_scales: [{ id: 'sA', name: '숙련도', labels: ['입문', '숙련'] }],
+          behavior_outcome_assessment: true,
           created_by: 'user-a',
           updated_by: 'user-b',
           updated_at: '2026-07-01T00:00:00.000Z',
@@ -40,6 +41,7 @@ async function main(){
   assert.equal(t.supabaseId, 'row-1');
   assert.equal(t.templateKey, 'supabase:row-1@@2026-07-01T00:00:00.000Z');
   assert.deepEqual(t.maturityScales, [{ id: 'sA', name: '숙련도', labels: ['입문', '숙련'] }]);
+  assert.equal(t.behaviorOutcomeAssessment, true, 'Behavior/Outcome 평가 플래그가 보존되어야 합니다');
   assert.equal(t.createdBy, 'user-a');
   assert.equal(t.updatedBy, 'user-b');
   assert.equal(t.items.length, 2);
@@ -64,12 +66,14 @@ async function main(){
       name: '새 점검표', filename: 'a.xlsx', sections: ['운항'],
       items: [{ section:'운항', question:'Q1', maturityScaleIds:['sA'] }],
       maturityScales: [{ id:'sA', name:'등급', labels:['A','B'] }],
+      behaviorOutcomeAssessment: true,
       revisionNo: '1', revisionDate: '2026-01-01'
     });
     assert.equal(insertedTable, 'templates');
     assert.equal(insertedToken, 'access-token-1');
     assert.equal(insertedRow.created_by, 'user-1');
     assert.equal(insertedRow.updated_by, 'user-1');
+    assert.equal(insertedRow.behavior_outcome_assessment, true, 'Behavior/Outcome 평가 플래그가 payload map을 통해 저장되어야 합니다');
     assert.equal(insertedRow.revision_no, 1, '개정번호는 정수로 저장되어야 합니다');
     assert.equal(insertedRow.revision_date, '2026-01-01');
     assert.equal(saved.name, '새 점검표');

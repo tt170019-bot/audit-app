@@ -181,6 +181,35 @@ function renderResultPanel(audit, item){
   </div>`;
 }
 
+// Behavior/Outcome Assessment (see CONTEXT.md) — fixed to one checklist
+// template, replaces the Result panel entirely for every item when the
+// audit's template has behaviorOutcomeAssessment on. Each code takes a free
+// integer, independently of the others (no single-pick like Audit Result).
+function renderBehaviorOutcomePanel(audit, item){
+  const idx = item._idx;
+  const disabled = audit.status===AUDIT_STATUS.DONE;
+  const groups = [
+    { title: 'Behavior', codes: AuditRules.BEHAVIOR_CODES },
+    { title: 'Outcome', codes: AuditRules.OUTCOME_CODES }
+  ];
+  return `<div class="result-panel">
+    <div class="result-panel-title">Behavior / Outcome</div>
+    ${groups.map(g => `<div class="bo-group">
+      <div class="bo-group-title">${esc(g.title)}</div>
+      <div class="bo-row">
+        ${g.codes.map(code => {
+          const stored = item.behaviorOutcome && item.behaviorOutcome[code] != null ? item.behaviorOutcome[code] : '';
+          const value = getPendingBoValue(audit.id, idx, code, stored);
+          return `<label class="bo-field">
+            <span>${esc(code)}</span>
+            <input type="number" step="1" inputmode="numeric" value="${esc(String(value ?? ''))}" ${disabled ? 'disabled' : ''} oninput="scheduleBoSave(${audit.id},${idx},'${code}',this.value)" onblur="flushBoSave(${audit.id},${idx},'${code}')">
+          </label>`;
+        }).join('')}
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
 // An item can be assigned to 0, 1, or many of the template's maturity
 // scales (see the 2026-07-26 grilling session) — this renders one
 // independent panel per assigned scale, each with its own level selection.
@@ -243,7 +272,7 @@ function renderChecklistItem(audit, item){
   return `<div class="field-check-card ${result?'answered':''}" id="ci-${idx}">
     ${renderRequirementTable(audit, item)}
     <div class="check-body" id="cb-${idx}">
-      ${renderResultPanel(audit, item)}
+      ${audit.behaviorOutcomeAssessment ? renderBehaviorOutcomePanel(audit, item) : renderResultPanel(audit, item)}
       ${renderMaturityPanels(audit, item)}
       ${renderCommentPanel(audit, item)}
       ${renderEvidencePanel(audit, item)}
@@ -612,6 +641,8 @@ async function setResult(auditId, idx, result, event){
 
 const noteSaveTimers = new Map();
 const pendingNoteValues = new Map();
+const boSaveTimers = new Map();
+const pendingBoValues = new Map();
 const auditWriteQueues = new Map();
 
 function enqueueAuditWrite(auditId, write){
@@ -637,6 +668,9 @@ function clearPendingNoteWrites(){
   for(const timer of noteSaveTimers.values()) clearTimeout(timer);
   noteSaveTimers.clear();
   pendingNoteValues.clear();
+  for(const timer of boSaveTimers.values()) clearTimeout(timer);
+  boSaveTimers.clear();
+  pendingBoValues.clear();
 }
 
 function getNoteSaveKey(auditId, idx){
@@ -696,6 +730,55 @@ function flushNoteSave(auditId, idx){
   return persistNoteValue(auditId, idx);
 }
 
+// Behavior/Outcome Assessment value save — same debounce-then-persist shape
+// as the note field above, keyed per (audit, item, code) instead of per item.
+function getBoSaveKey(auditId, idx, code){
+  return `${auditId}:${idx}:${code}`;
+}
+
+function getPendingBoValue(auditId, idx, code, fallback = ''){
+  const key = getBoSaveKey(auditId, idx, code);
+  return pendingBoValues.has(key) ? pendingBoValues.get(key) : fallback;
+}
+
+function scheduleBoSave(auditId, idx, code, rawValue){
+  if(currentAudit?.id === auditId && currentAudit.status === AUDIT_STATUS.DONE){
+    showToast('완료된 심사는 다시 열어야 수정할 수 있습니다');
+    return;
+  }
+  const key = getBoSaveKey(auditId, idx, code);
+  pendingBoValues.set(key, rawValue);
+  clearTimeout(boSaveTimers.get(key));
+  boSaveTimers.set(key, setTimeout(() => persistBoValue(auditId, idx, code), 400));
+}
+
+async function persistBoValue(auditId, idx, code){
+  const key = getBoSaveKey(auditId, idx, code);
+  const rawValue = pendingBoValues.get(key);
+  if(rawValue === undefined) return;
+
+  boSaveTimers.delete(key);
+  return enqueueAuditWrite(auditId, async () => {
+    const audit = await dbGet('audits', auditId);
+    if(!audit?.items?.[idx] || audit.status === AUDIT_STATUS.DONE) return;
+    const parsed = String(rawValue).trim() === '' ? null : parseInt(rawValue, 10);
+    const behaviorOutcome = { ...(audit.items[idx].behaviorOutcome || {}) };
+    if(parsed === null || Number.isNaN(parsed)) delete behaviorOutcome[code];
+    else behaviorOutcome[code] = parsed;
+    audit.items[idx].behaviorOutcome = behaviorOutcome;
+    await dbPut('audits', audit);
+    if(currentAudit?.id === auditId && currentAudit.items?.[idx]) currentAudit.items[idx].behaviorOutcome = behaviorOutcome;
+    if(pendingBoValues.get(key) === rawValue) pendingBoValues.delete(key);
+  });
+}
+
+function flushBoSave(auditId, idx, code){
+  const key = getBoSaveKey(auditId, idx, code);
+  clearTimeout(boSaveTimers.get(key));
+  boSaveTimers.delete(key);
+  return persistBoValue(auditId, idx, code);
+}
+
 async function deleteAudit(id, event){
   event?.stopPropagation();
   const audit = await dbGet('audits', id);
@@ -714,6 +797,14 @@ async function flushPendingNotesForAudit(auditId){
   for(const idx of indices) await flushNoteSave(auditId, idx);
 }
 
+async function flushPendingBoForAudit(auditId){
+  const keys = [...pendingBoValues.keys()].filter(key => key.startsWith(`${auditId}:`));
+  for(const key of keys){
+    const [, idx, code] = key.split(':');
+    await flushBoSave(auditId, Number(idx), code);
+  }
+}
+
 function jumpToNext(auditId){
   const items = currentAudit?.items||[];
   const nextIdx = items.findIndex(i=>!i.result);
@@ -723,6 +814,7 @@ function jumpToNext(auditId){
 
 async function finishAudit(id){
   await flushPendingNotesForAudit(id);
+  await flushPendingBoForAudit(id);
   await waitForAuditWrites(id);
   const audit = await dbGet('audits', id);
   if(!audit) return;

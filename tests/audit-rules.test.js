@@ -9,6 +9,19 @@ assert.equal(rules.normalizeResultValue('ng'), 'NO');
 assert.equal(rules.normalizeResultValue('na'), 'N/A');
 assert.equal(rules.canCompleteAudit({items:[{result:'YES'}, {result:'OBS'}]}), true);
 assert.equal(rules.canCompleteAudit({items:[{result:'YES'}, {result:''}]}), false);
+assert.equal(
+  rules.canCompleteAudit({behaviorOutcomeAssessment:true, items:[{result:''}, {result:''}]}),
+  true,
+  'Behavior/Outcome 평가 항목은 판단하지 않으므로 완료 처리를 막으면 안 됩니다',
+);
+
+assert.deepEqual(rules.BEHAVIOR_CODES, ['DA', 'DI', 'UD']);
+assert.deepEqual(rules.OUTCOME_CODES, ['UAS', 'AE', 'IC']);
+assert.equal(
+  rules.inferReportTemplateType({behaviorOutcomeAssessment: true}),
+  'report-type-2',
+  'Behavior/Outcome 평가 점검표는 항목별 블록 레이아웃(type-2)을 써야 합니다',
+);
 
 assert.deepEqual(rules.DIVISIONS, ['안전', '보안', '정비', '운항', '객실', '화물', '여객지원', '종합통제']);
 

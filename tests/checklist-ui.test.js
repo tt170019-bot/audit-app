@@ -88,6 +88,12 @@ assert.match(
 
 assert.match(
   source,
+  /audit\.behaviorOutcomeAssessment \? renderBehaviorOutcomePanel\(audit, item\) : renderResultPanel\(audit, item\)/,
+  'Behavior/Outcome 평가 점검표는 Result 패널 대신 Behavior/Outcome 패널을 렌더링해야 합니다',
+);
+
+assert.match(
+  source,
   /function renderMaturityPanels\(audit, item\)\{[\s\S]*?if\(!assignedScales\.length\) return '';/,
   'Maturity Assessment 패널은 항목에 척도가 하나도 배정되지 않으면 렌더링하지 않아야 합니다',
 );
@@ -128,7 +134,7 @@ assert.match(
 
 assert.match(
   source,
-  /function renderFieldAuditItem\(item, index, scales\)\{[\s\S]*?MaturityResolution\.resolveItemMaturity\(item, scales\)/,
+  /function renderFieldAuditItem\(item, index, scales, behaviorOutcomeAssessment\)\{[\s\S]*?MaturityResolution\.resolveItemMaturity\(item, scales\)/,
   'Word 보고서 항목 렌더러는 항목에 실제 배정된 척도 목록을 받아 사용해야 합니다',
 );
 

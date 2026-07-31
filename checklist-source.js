@@ -17,6 +17,7 @@
       items: row.items,
       maturityScale: row.maturity_scale || null,
       maturityScales: Array.isArray(row.maturity_scales) ? row.maturity_scales : null,
+      behaviorOutcomeAssessment: Boolean(row.behavior_outcome_assessment),
       revisionNo: row.revision_no ?? null,
       revisionDate: row.revision_date || '',
       division: row.division || '',
@@ -46,6 +47,7 @@
     // that presence is what tells deriveMaturityScales to stop falling
     // back to a stale legacy maturity_scale column.
     ['maturityScales', 'maturity_scales', v => Array.isArray(v) ? v : []],
+    ['behaviorOutcomeAssessment', 'behavior_outcome_assessment', v => Boolean(v)],
     ['revisionNo', 'revision_no', v => v === '' || v == null ? null : parseInt(v, 10)],
     ['revisionDate', 'revision_date', v => v || null],
     ['division', 'division', v => v || null],
@@ -98,6 +100,7 @@
       items: Array.isArray(row.items) ? row.items : [],
       maturityScale: row.maturity_scale || null,
       maturityScales: Array.isArray(row.maturity_scales) ? row.maturity_scales : null,
+      behaviorOutcomeAssessment: Boolean(row.behavior_outcome_assessment),
       revisionNo: row.revision_no ?? null,
       revisionDate: row.revision_date || '',
       division: row.division || '',

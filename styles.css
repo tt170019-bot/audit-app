@@ -371,6 +371,13 @@ select option { background: var(--ads-surface); color: var(--ads-text); }
 .field-choice.selected-ng { background: var(--ads-danger-bg); color: var(--ads-danger-text); }
 .field-choice.selected-na { background: var(--ads-neutral-bg); color: var(--ads-neutral-text); }
 .field-choice.selected-obs { background: var(--ads-obs-bg); color: var(--ads-obs-text); }
+.bo-group { margin-bottom: var(--space-150); }
+.bo-group:last-child { margin-bottom: 0; }
+.bo-group-title { font-size: var(--font-control-size); font-weight: var(--ads-weight-medium); color: var(--ads-text-subtle); margin-bottom: var(--space-075); }
+.bo-row { display: flex; gap: var(--space-100); flex-wrap: wrap; }
+.bo-field { display: flex; align-items: center; gap: var(--space-075); }
+.bo-field span { font-size: var(--font-control-size); color: var(--ads-text-subtle); min-width: 2.75rem; }
+.bo-field input[type=number] { width: 4.5rem; min-height: var(--ui-button-small-height); }
 .maturity-level-list { display: grid; gap: var(--space-075); }
 .maturity-card { border: var(--ui-border-width) solid transparent; border-radius: var(--radius-medium); padding: var(--space-150); background: var(--ads-surface); box-shadow: none; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease; }
 .maturity-card:hover { background: var(--ads-surface-container); }

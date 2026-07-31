@@ -20,6 +20,10 @@ _Avoid_: Audit result, satisfaction, checklist type
 A checklist template's own ordered list of levels (a name plus an ordered list of labels — e.g. Conformity/Established/Mature/Leading, or any custom set a Registrant defines) that its items' Maturity Assessments are recorded against. Defined once per template, not per item.
 _Avoid_: Maturity levels, scale (ambiguous alone), rubric
 
+**Behavior/Outcome Assessment**:
+A fixed, single-purpose alternative to the ordinary Audit Result, used only by one checklist template (the Weather-style aviation audit form). Each item shows two hardcoded code groups — Behavior (DA/DI/UD) and Outcome (UAS/AE/IC) — and the auditor may enter a free integer against any number of codes in either group (not a single pick). Enabled per template via a template-level flag; when on, it fully replaces the item's Audit Result buttons. Codes are the same across every item in the template — not Registrant-configurable, not per-item.
+_Avoid_: Result (collides with Audit Result — the screenshot's "Result" column is this assessment's Outcome group, not an Audit Result)
+
 **Registrant**:
 An authenticated person invited to register new checklist templates or edit existing ones. Distinct from "admin mode": a local, unauthenticated UI toggle (`?admin=1`) that only shows or hides buttons on one device and grants no real write access. Being a Registrant is what actually authorizes writing to the shared checklist store.
 _Avoid_: Admin, administrator, manager

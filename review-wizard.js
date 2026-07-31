@@ -9,7 +9,7 @@ function genScaleId(){
   return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-function openReviewWizard({mode, templateId, templateNo, name, filename, sections, items, scales, revisionNo, revisionDate, division}){
+function openReviewWizard({mode, templateId, templateNo, name, filename, sections, items, scales, revisionNo, revisionDate, division, behaviorOutcomeAssessment}){
   reviewWizard = {
     mode, templateId,
     templateNo: templateNo || '',
@@ -26,6 +26,9 @@ function openReviewWizard({mode, templateId, templateNo, name, filename, section
     revisionNo: revisionNo ?? '',
     revisionDate: revisionDate || '',
     division: division || '',
+    // Behavior/Outcome Assessment (see CONTEXT.md) — fixed to one checklist,
+    // not a general feature. Applies to every item in the template.
+    behaviorOutcomeAssessment: Boolean(behaviorOutcomeAssessment),
     step: 1
   };
   renderReviewWizard();
@@ -125,6 +128,11 @@ function renderReviewWizard(){
       <div class="review-sub">이 점검표에서 쓸 성숙도 척도를 0개, 1개, 또는 여러 개 만드세요. 척도마다 이름과 단계 수를 자유롭게 정할 수 있고, 다음 단계에서 항목마다 어떤 척도를 쓸지 고릅니다.</div>
       ${w.scales.map((s,i)=>reviewScaleEditor(s,i)).join('')}
       <button type="button" class="review-add-label" onclick="reviewAddScale()">+ 척도 추가</button>
+      <div class="review-scale-box">
+        <label class="review-scale-check">
+          <input type="checkbox" ${w.behaviorOutcomeAssessment ? 'checked' : ''} onchange="reviewSetBehaviorOutcomeAssessment(this.checked)"> Behavior/Outcome 평가 사용 (이 점검표 전용 — Behavior: DA/DI/UD, Outcome: UAS/AE/IC, 항목마다 Result 대신 표시)
+        </label>
+      </div>
     ` : `
       <div class="review-sub">척도: <b>${scaleSummary}</b> — <a href="#" onclick="event.preventDefault();reviewGotoStep(1)">수정</a></div>
       <div>${w.items.map(item => reviewItemRow(item, w.scales)).join('')}</div>
@@ -141,6 +149,7 @@ function renderReviewWizard(){
 function reviewSetRevisionNo(v){ reviewWizard.revisionNo = v; }
 function reviewSetRevisionDate(v){ reviewWizard.revisionDate = v; }
 function reviewSetDivision(v){ reviewWizard.division = v; }
+function reviewSetBehaviorOutcomeAssessment(v){ reviewWizard.behaviorOutcomeAssessment = Boolean(v); }
 function reviewSetScaleName(si,v){ reviewWizard.scales[si].name = v; }
 function reviewSetLabel(si,i,v){ reviewWizard.scales[si].labels[i] = v; }
 function reviewAddLabel(si){ reviewWizard.scales[si].labels.push('새 라벨'); renderReviewWizard(); }
@@ -224,6 +233,7 @@ async function confirmReviewWizard(){
       maturityGuidance: _guidance
     })),
     maturityScales: w.scales,
+    behaviorOutcomeAssessment: w.behaviorOutcomeAssessment,
     revisionNo: w.revisionNo,
     revisionDate: w.revisionDate,
     division: w.division
@@ -267,7 +277,8 @@ async function openReviewWizardForEdit(localId){
     scales: AuditRules.deriveMaturityScales(tpl),
     revisionNo: tpl.revisionNo,
     revisionDate: tpl.revisionDate,
-    division: tpl.division
+    division: tpl.division,
+    behaviorOutcomeAssessment: tpl.behaviorOutcomeAssessment
   });
 }
 
@@ -375,7 +386,8 @@ function restoreTemplateRevision(idx){
     scales: AuditRules.deriveMaturityScales(rev),
     revisionNo: rev.revisionNo,
     revisionDate: rev.revisionDate,
-    division: rev.division
+    division: rev.division,
+    behaviorOutcomeAssessment: rev.behaviorOutcomeAssessment
   });
   showToast('복원할 내용을 검토 후 저장하세요');
 }
