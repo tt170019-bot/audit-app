@@ -297,9 +297,14 @@ function renderSectionAnchorChip(sectionName, secItems, sectionIndex, idPrefix =
   const state = getSectionNavState(secItems, allAnswered);
   const label = getSectionChipLabel(sectionName);
   const chipId = `${idPrefix}${sectionIndex}`;
-  return `<button type="button" id="${chipId}" data-section-index="${sectionIndex}" class="anchor-chip ${state.className}" onclick="scrollToChecklistSection('sec-${sectionIndex}')" aria-label="${esc(sectionName)} 섹션으로 이동, ${state.answered}/${state.total} 항목 완료">
+  // Behavior/Outcome Assessment sections have no per-item judgment, so
+  // answered always equals total — show a plain item count instead of the
+  // redundant "N/N".
+  const countLabel = allAnswered ? `${state.total}` : `${state.answered}/${state.total}`;
+  const countAria = allAnswered ? `총 ${state.total}개 항목` : `${state.answered}/${state.total} 항목 완료`;
+  return `<button type="button" id="${chipId}" data-section-index="${sectionIndex}" class="anchor-chip ${state.className}" onclick="scrollToChecklistSection('sec-${sectionIndex}')" aria-label="${esc(sectionName)} 섹션으로 이동, ${countAria}">
     <span class="anchor-chip-label">${esc(label)}</span>
-    <span class="anchor-chip-count">${state.answered}/${state.total}</span>
+    <span class="anchor-chip-count">${countLabel}</span>
   </button>`;
 }
 
@@ -496,7 +501,7 @@ function renderChecklist(audit){
           ` : sectionEntries.map(([sec,secItems], sectionIndex)=>`
             <div class="section-header detail-section-start" id="sec-${sectionIndex}">
               <span class="detail-section-title">${esc(sec)}</span>
-              <span class="check-section-summary check-section-summary-inline">${getSectionCompletion(secItems, audit.behaviorOutcomeAssessment).answered}/${getSectionCompletion(secItems, audit.behaviorOutcomeAssessment).total}</span>
+              <span class="check-section-summary check-section-summary-inline">${audit.behaviorOutcomeAssessment ? getSectionCompletion(secItems).total : `${getSectionCompletion(secItems).answered}/${getSectionCompletion(secItems).total}`}</span>
             </div>
             ${secItems.map(item=>renderChecklistItem(audit, item)).join('')}
           `).join('')}
@@ -522,16 +527,17 @@ function renderChecklist(audit){
         <div class="modal-handle"></div>
         <div class="modal-title" id="modal-sections-title">섹션 이동</div>
         <div class="modal-body">
-          <button type="button" class="section-sheet-item section-sheet-pending" onclick="jumpToPendingFromSheet(${audit.id})">
+          ${audit.behaviorOutcomeAssessment ? '' : `<button type="button" class="section-sheet-item section-sheet-pending" onclick="jumpToPendingFromSheet(${audit.id})">
             <span class="section-sheet-label">미완료 항목으로 이동</span>
             <span class="section-sheet-count">${Math.max(summary.total-summary.answered,0)}</span>
-          </button>
+          </button>`}
           <div class="section-sheet-list">
             ${sectionEntries.map(([sec, secItems], i)=>{
-              const completion = getSectionCompletion(secItems, audit.behaviorOutcomeAssessment);
+              const completion = getSectionCompletion(secItems);
+              const count = audit.behaviorOutcomeAssessment ? `${completion.total}` : `${completion.answered}/${completion.total}`;
               return `<button type="button" class="section-sheet-item" data-section-index="${i}" onclick="goToSectionFromSheet(${i})">
                 <span class="section-sheet-label">${esc(sec)}</span>
-                <span class="section-sheet-count">${completion.answered}/${completion.total}</span>
+                <span class="section-sheet-count">${count}</span>
               </button>`;
             }).join('')}
           </div>
