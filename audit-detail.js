@@ -279,10 +279,10 @@ function renderChecklistItem(audit, item){
     </div>
   </div>`;
 }
-function getSectionNavState(secItems){
+function getSectionNavState(secItems, allAnswered = false){
   // Navigation chips are not status badges.
   // Keep section chips visually neutral regardless of YES/NO/OBS/N/A results.
-  const completion = getSectionCompletion(secItems);
+  const completion = getSectionCompletion(secItems, allAnswered);
   return { ...completion, className: 'is-neutral' };
 }
 
@@ -293,8 +293,8 @@ function getSectionChipLabel(sectionName){
   return String(sectionName || '').replace(/^\s*\d+\s*[.)]\s*/, '').trim() || String(sectionName || '일반');
 }
 
-function renderSectionAnchorChip(sectionName, secItems, sectionIndex, idPrefix = 'nav-sec-'){
-  const state = getSectionNavState(secItems);
+function renderSectionAnchorChip(sectionName, secItems, sectionIndex, idPrefix = 'nav-sec-', allAnswered = false){
+  const state = getSectionNavState(secItems, allAnswered);
   const label = getSectionChipLabel(sectionName);
   const chipId = `${idPrefix}${sectionIndex}`;
   return `<button type="button" id="${chipId}" data-section-index="${sectionIndex}" class="anchor-chip ${state.className}" onclick="scrollToChecklistSection('sec-${sectionIndex}')" aria-label="${esc(sectionName)} 섹션으로 이동, ${state.answered}/${state.total} 항목 완료">
@@ -463,17 +463,17 @@ function renderChecklist(audit){
       <div class="detail-progress">
         <div class="detail-progress-head">
           <span class="detail-progress-text">${summary.answered}/${summary.total} 완료 · ${summary.percent}%</span>
-          <div class="result-count-row detail-result-counts">
+          ${audit.behaviorOutcomeAssessment ? '' : `<div class="result-count-row detail-result-counts">
             <span class="badge badge-ok">YES ${summary.yes}</span>
             <span class="badge badge-ng">NO ${summary.no}</span>
             <span class="badge badge-na">N/A ${summary.na}</span>
             <span class="badge badge-obs">OBS ${summary.obs}</span>
-          </div>
+          </div>`}
         </div>
         <div class="prog-wrap detail-prog-wrap"><div class="prog-fill" style="width:${summary.percent}%"></div></div>
-        <div class="checklist-filter-row">
+        ${audit.behaviorOutcomeAssessment ? '' : `<div class="checklist-filter-row">
           ${[['all','전체'],['pending','미완료'],['NO','NO'],['OBS','OBS']].map(([value,label])=>`<button type="button" class="anchor-chip ${checklistFilter===value ? 'is-current' : ''}" aria-pressed="${checklistFilter===value ? 'true' : 'false'}" onclick="setChecklistFilter('${value}')">${label}</button>`).join('')}
-        </div>
+        </div>`}
       </div>
     </div>
 
@@ -481,8 +481,8 @@ function renderChecklist(audit){
     <div class="detail-body">
       <aside class="detail-sidebar" aria-label="점검 섹션 사이드바">
         <div class="detail-sidebar-label">SECTION</div>
-        ${sectionEntries.map(([sec, secItems], i)=>renderSectionAnchorChip(sec, secItems, i, 'nav-side-')).join('')}
-        ${renderPendingAnchorChip(audit)}
+        ${sectionEntries.map(([sec, secItems], i)=>renderSectionAnchorChip(sec, secItems, i, 'nav-side-', audit.behaviorOutcomeAssessment)).join('')}
+        ${audit.behaviorOutcomeAssessment ? '' : renderPendingAnchorChip(audit)}
       </aside>
 
       <div class="detail-content">
@@ -496,7 +496,7 @@ function renderChecklist(audit){
           ` : sectionEntries.map(([sec,secItems], sectionIndex)=>`
             <div class="section-header detail-section-start" id="sec-${sectionIndex}">
               <span class="detail-section-title">${esc(sec)}</span>
-              <span class="check-section-summary check-section-summary-inline">${getSectionCompletion(secItems).answered}/${getSectionCompletion(secItems).total}</span>
+              <span class="check-section-summary check-section-summary-inline">${getSectionCompletion(secItems, audit.behaviorOutcomeAssessment).answered}/${getSectionCompletion(secItems, audit.behaviorOutcomeAssessment).total}</span>
             </div>
             ${secItems.map(item=>renderChecklistItem(audit, item)).join('')}
           `).join('')}
@@ -528,7 +528,7 @@ function renderChecklist(audit){
           </button>
           <div class="section-sheet-list">
             ${sectionEntries.map(([sec, secItems], i)=>{
-              const completion = getSectionCompletion(secItems);
+              const completion = getSectionCompletion(secItems, audit.behaviorOutcomeAssessment);
               return `<button type="button" class="section-sheet-item" data-section-index="${i}" onclick="goToSectionFromSheet(${i})">
                 <span class="section-sheet-label">${esc(sec)}</span>
                 <span class="section-sheet-count">${completion.answered}/${completion.total}</span>
@@ -806,6 +806,7 @@ async function flushPendingBoForAudit(auditId){
 }
 
 function jumpToNext(auditId){
+  if(currentAudit?.behaviorOutcomeAssessment){ showToast('모든 항목이 완료되었습니다 ✓'); return; }
   const items = currentAudit?.items||[];
   const nextIdx = items.findIndex(i=>!i.result);
   if(nextIdx<0){ showToast('모든 항목이 완료되었습니다 ✓'); return; }

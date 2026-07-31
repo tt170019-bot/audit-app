@@ -562,7 +562,9 @@ function countAuditResult(items, resultValue){
 function getAuditSummary(audit){
   const items = getAuditItems(audit);
   const total = items.length;
-  const answered = items.filter(item => item.result).length;
+  // Behavior/Outcome Assessment items carry no per-item judgment (see
+  // CONTEXT.md) — nothing is ever "pending" for them.
+  const answered = audit?.behaviorOutcomeAssessment ? total : items.filter(item => item.result).length;
   const yes = countAuditResult(items, RESULT_VALUE.YES);
   const no = countAuditResult(items, RESULT_VALUE.NO);
   const obs = countAuditResult(items, RESULT_VALUE.OBS);
@@ -582,11 +584,11 @@ function getAuditSummary(audit){
   };
 }
 
-function getSectionCompletion(items){
+function getSectionCompletion(items, allAnswered = false){
   const safeItems = Array.isArray(items) ? items : [];
   return {
     total: safeItems.length,
-    answered: safeItems.filter(item => item.result).length
+    answered: allAnswered ? safeItems.length : safeItems.filter(item => item.result).length
   };
 }
 

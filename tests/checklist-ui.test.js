@@ -88,6 +88,12 @@ assert.match(
 
 assert.match(
   source,
+  /const answered = audit\?\.behaviorOutcomeAssessment \? total : items\.filter\(item => item\.result\)\.length;/,
+  'Behavior/Outcome 평가 심사는 판단하지 않으므로 전체 항목을 완료로 집계해야 합니다 (미완료 탭이 남으면 안 됩니다)',
+);
+
+assert.match(
+  source,
   /audit\.behaviorOutcomeAssessment \? renderBehaviorOutcomePanel\(audit, item\) : renderResultPanel\(audit, item\)/,
   'Behavior/Outcome 평가 점검표는 Result 패널 대신 Behavior/Outcome 패널을 렌더링해야 합니다',
 );
