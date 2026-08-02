@@ -302,6 +302,7 @@ function normalizeChecklistItem(item){
     question,
     refStd: String(item.refStd ?? item.standard ?? item.reference ?? item.regulation ?? item['참조규정'] ?? '').trim(),
     externalRef: String(item.externalRef ?? item.external ?? item.externalReference ?? item['외부참조'] ?? item['External Ref.'] ?? '').trim(),
+    guidance: String(item.guidance ?? item.guidanceText ?? item['GUIDANCE'] ?? '').trim(),
     result: normalizeResultValue(item.result) || null,
     // Multi-scale maturity model (2026-07-26) — which of the template's
     // scales this item is assigned to, and this item's own per-scale
@@ -859,7 +860,8 @@ async function renderExport(c){
           <span class="badge badge-na">N/A ${summary.na}</span>
           <span class="badge badge-obs">OBS ${summary.obs}</span>
         </div>
-        <div class="export-meta">${summary.answered}/${summary.total}항목 완료 · ${esc(a.auditor||'')} · ${esc(a.date||'')}</div>
+        <div class="export-meta">${summary.answered}/${summary.total}항목 완료 · ${esc(a.auditor||'')} · ${esc(a.dept||'')} · ${esc(a.date||'')}</div>
+        <div class="export-meta">점검표: ${esc(a.templateName || '기존 점검표')} · ${esc(a.templateVersion || '버전 정보 없음')}</div>
       </div>
       <div class="card-row export-badge-row">
         <button type="button" class="btn btn-ghost btn-sm flex-1" onclick="exportExcel(${a.id})">
@@ -925,10 +927,12 @@ function openNewChecklistModal(){
   openModal('modal-new-checklist');
 }
 
+const CHECKLIST_UPLOAD_HEADERS = ['ITEM', 'ITEM_NO', 'REQUIREMENT', 'INTERNAL_REF', 'EXTERNAL_REF', 'GUIDANCE'];
+
 function downloadChecklistTemplate(){
   const rows = [
-    ['섹션명', '항목번호', '점검 질문', '내부 참조', '외부 참조'],
-    ['1. 운항 일반', 'FLT-001', '비상절차가 문서화되어 있는가?', '운항규정 3.2', 'ICAO Annex 6'],
+    CHECKLIST_UPLOAD_HEADERS,
+    ['1. 운항 일반', 'FLT-001', '비상절차가 문서화되어 있는가?', '운항규정 3.2', 'ICAO Annex 6', '비상절차 매뉴얼 최신 개정본 확인'],
   ];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -939,8 +943,8 @@ function downloadChecklistTemplate(){
 async function downloadTemplateExcel(localId){
   const tpl = await getNormalizedTemplate(localId);
   if(!tpl){ showToast('점검표를 찾을 수 없습니다'); return; }
-  const rows = [['섹션명', '항목번호', '점검 질문', '내부 참조', '외부 참조']];
-  tpl.items.forEach(it => rows.push([it.section || '', it.ref || '', it.question || '', it.refStd || '', it.externalRef || '']));
+  const rows = [CHECKLIST_UPLOAD_HEADERS];
+  tpl.items.forEach(it => rows.push([it.section || '', it.ref || '', it.question || '', it.refStd || '', it.externalRef || '', it.guidance || '']));
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, 'CheckList');
@@ -990,10 +994,21 @@ function submitNewChecklist(){
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
 
-      // Skip header row
+      const headerRow = (rows[0]||[]).map(h=>String(h||'').trim().toUpperCase());
+      const colIndex = {};
+      CHECKLIST_UPLOAD_HEADERS.forEach(h=>{ colIndex[h] = headerRow.indexOf(h); });
+      const missing = CHECKLIST_UPLOAD_HEADERS.filter(h=>colIndex[h]===-1);
+      if(missing.length){ showToast(`양식이 맞지 않습니다. 누락된 헤더: ${missing.join(', ')}`); return; }
+
       const items=[], sections=new Set();
       for(let i=1;i<rows.length;i++){
-        const [section,ref,question,refStd,externalRef] = rows[i];
+        const row = rows[i];
+        const section = row[colIndex.ITEM];
+        const ref = row[colIndex.ITEM_NO];
+        const question = row[colIndex.REQUIREMENT];
+        const refStd = row[colIndex.INTERNAL_REF];
+        const externalRef = row[colIndex.EXTERNAL_REF];
+        const guidance = row[colIndex.GUIDANCE];
         if(!question) continue;
         sections.add(section||'일반');
         items.push(normalizeChecklistItem({
@@ -1001,7 +1016,8 @@ function submitNewChecklist(){
           ref,
           question,
           refStd,
-          externalRef
+          externalRef,
+          guidance
         }));
       }
       if(items.length===0){ showToast('항목을 찾을 수 없습니다. 형식을 확인하세요'); return; }
