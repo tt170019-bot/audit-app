@@ -67,7 +67,7 @@ async function savePhoto(){
   if(area){
     area.innerHTML = pendingPhotos.map(p=>`<img class="photo-thumb photo-thumb-clickable" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')+
       `<div class="photo-add" onclick="openPhotoModal(${auditId},${itemIdx})">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
         <span>추가</span>
       </div>`;
   }

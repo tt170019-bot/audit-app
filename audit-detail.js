@@ -258,7 +258,7 @@ function renderEvidencePanel(audit, item){
     <div class="photo-row" id="photos-${idx}">
       ${(item.photos||[]).map((p)=>`<img class="photo-thumb" src="${p}" onclick="viewPhoto('${p}')" alt="사진">`).join('')}
        ${audit.status===AUDIT_STATUS.DONE ? '' : `<div class="photo-add" onclick="openPhotoModal(${audit.id},${idx})" tabindex="0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="4"/><path d="M5 7H3a2 2 0 00-2 2v9a2 2 0 002 2h18a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7z"/></svg>
        <span>추가</span>
        </div>`}
     </div>
@@ -495,7 +495,7 @@ function renderChecklist(audit){
         <div class="detail-checklist-column">
           ${sectionEntries.length === 0 ? `
             <div class="empty">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
               <h3>조건에 맞는 항목 없음</h3>
               <p>다른 필터를 선택해보세요</p>
             </div>

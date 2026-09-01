@@ -23,6 +23,7 @@ const CACHE_FILES = [
   './photo.js',
   './registrant-ui.js',
   './review-wizard.js',
+  './motion.js',
   './styles.css',
 
   // Local font for offline use

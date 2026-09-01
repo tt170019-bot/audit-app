@@ -18,6 +18,7 @@ const source = [
   '../core.js',
   '../backup.js',
   '../photo.js',
+  '../motion.js',
 ].map(p => fs.readFileSync(require.resolve(p), 'utf8')).join('\n');
 
 assert.match(
