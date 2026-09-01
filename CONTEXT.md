@@ -48,6 +48,10 @@ _Avoid_: Maturity levels, scale (ambiguous alone), rubric
 An immutable snapshot of a Checklist Template's full content (name, sections, items, Maturity Scale), captured automatically the instant before a Registrant's edit overwrites the template. Revisions accumulate append-only per template and exist so a past edit can be inspected or restored. Distinct from an Audit's template snapshot: a Revision preserves the Template's own edit history; the Audit's snapshot preserves what one specific Audit used, and neither is affected by later template edits.
 _Avoid_: Version, backup, template history
 
+**Superseded Local Template**:
+An old copy of a Checklist Template left on one device, flagged inactive (`active: false`, `supersededAt`), when sync pulls in a newer revision of that template. It is excluded from new audits and hidden from the template list by default. Nothing to do with a Checklist Template Revision: that is the Supabase-side edit-history snapshot; this is just a stale local cache entry that sync has not pruned.
+_Avoid_: Old revision, previous version, template history
+
 **Revision Number / Revision Date**:
 A Checklist Template's own document-control identity — an integer and a calendar date a Registrant types in by hand when saving (e.g. "개정 3 · 2026-07-01"). Independent of `updated_at`: nothing derives or auto-increments it, so it can be left blank, skipped, or set out of order if that's what the paper trail says.
 _Avoid_: Version number, updated date
